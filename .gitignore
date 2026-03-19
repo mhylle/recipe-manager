@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+.angular/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+
+# Data directory (runtime storage)
+data/
+
+# Environment
+.env
+.env.*
+
+# Backend .git (nested)
+backend/.git/

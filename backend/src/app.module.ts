@@ -1,0 +1,25 @@
+import { Module } from '@nestjs/common';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { StorageModule } from './storage/storage.module.js';
+import { PantryModule } from './pantry/pantry.module.js';
+import { StaplesModule } from './staples/staples.module.js';
+import { MatchingModule } from './matching/matching.module.js';
+import { RecipeModule } from './recipe/recipe.module.js';
+import { MealPlanModule } from './meal-plan/meal-plan.module.js';
+import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
+
+@Module({
+  imports: [
+    StorageModule,
+    PantryModule,
+    StaplesModule,
+    MatchingModule,
+    RecipeModule,
+    MealPlanModule,
+    ShoppingListModule,
+  ],
+  controllers: [AppController],
+  providers: [AppService],
+})
+export class AppModule {}
