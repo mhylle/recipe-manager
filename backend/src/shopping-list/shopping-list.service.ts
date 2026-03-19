@@ -34,7 +34,6 @@ export class ShoppingListService {
       staplesConfig.items.map((s) => s.toLowerCase()),
     );
 
-    // Collect all ingredient needs from the meal plan
     const allNeeds: ConsolidatedItem[] = [];
 
     for (const entry of plan.entries) {
@@ -43,7 +42,6 @@ export class ShoppingListService {
         const scaleFactor = entry.servings / recipe.servings;
 
         for (const ingredient of recipe.ingredients) {
-          // Skip staples
           if (stapleNames.has(ingredient.name.toLowerCase())) continue;
 
           allNeeds.push({
@@ -57,10 +55,8 @@ export class ShoppingListService {
       }
     }
 
-    // Consolidate same ingredients
     const consolidated = consolidateIngredients(allNeeds);
 
-    // Deduct pantry
     const shoppingItems: ShoppingListItem[] = [];
 
     for (const item of consolidated) {
@@ -93,11 +89,6 @@ export class ShoppingListService {
   }
 
   async toggleItem(id: string, itemIndex: number): Promise<ShoppingList> {
-    const list = await this.shoppingListRepository.findById(id);
-    if (itemIndex >= 0 && itemIndex < list.items.length) {
-      list.items[itemIndex].checked = !list.items[itemIndex].checked;
-      return this.shoppingListRepository.update(id, { items: list.items });
-    }
-    return list;
+    return this.shoppingListRepository.toggleItemByIndex(id, itemIndex);
   }
 }

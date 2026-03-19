@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { StorageModule } from './storage/storage.module.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 import { PantryModule } from './pantry/pantry.module.js';
 import { StaplesModule } from './staples/staples.module.js';
 import { MatchingModule } from './matching/matching.module.js';
@@ -11,7 +11,7 @@ import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
 
 @Module({
   imports: [
-    StorageModule,
+    PrismaModule,
     PantryModule,
     StaplesModule,
     MatchingModule,

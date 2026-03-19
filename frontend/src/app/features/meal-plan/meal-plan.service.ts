@@ -4,11 +4,12 @@ import { Observable } from 'rxjs';
 import { MealPlan } from '../../shared/models/meal-plan.model';
 import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { MealType } from '../../shared/enums/meal-type.enum';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class MealPlanService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/meal-plans';
+  private readonly baseUrl = `${environment.apiBase}/api/meal-plans`;
 
   getByWeek(weekStartDate: string): Observable<MealPlan> {
     return this.http.get<MealPlan>(`${this.baseUrl}/week?date=${weekStartDate}`);

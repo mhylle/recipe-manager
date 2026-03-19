@@ -1,0 +1,171 @@
+name: Deploy Recipe Manager
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-recipe-manager
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      frontend-image: ${{ steps.meta.outputs.frontend-image }}
+      backend-image: ${{ steps.meta.outputs.backend-image }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate version
+        id: meta
+        run: |
+          VERSION="v$(date +%Y%m%d)-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "frontend-image=ghcr.io/${{ github.repository_owner }}/recipe-manager-frontend:$VERSION" >> $GITHUB_OUTPUT
+          echo "backend-image=ghcr.io/${{ github.repository_owner }}/recipe-manager-backend:$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/recipe-manager-backend:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/recipe-manager-backend:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          build-args: |
+            BASE_HREF=/recipe-manager/
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/recipe-manager-frontend:${{ steps.meta.outputs.version }}
+            ghcr.io/${{ github.repository_owner }}/recipe-manager-frontend:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1
+        env:
+          BACKEND_IMAGE: ${{ needs.build.outputs.backend-image }}
+          FRONTEND_IMAGE: ${{ needs.build.outputs.frontend-image }}
+          RECIPE_MANAGER_DB_PASSWORD: ${{ secrets.RECIPE_MANAGER_DB_PASSWORD }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,RECIPE_MANAGER_DB_PASSWORD
+          script: |
+            echo "=== Deploying Recipe Manager ==="
+            echo "Backend: $BACKEND_IMAGE"
+            echo "Frontend: $FRONTEND_IMAGE"
+
+            # Pull new images
+            docker pull "$BACKEND_IMAGE"
+            docker pull "$FRONTEND_IMAGE"
+
+            # Stop existing containers
+            docker stop recipe-manager-backend recipe-manager-frontend 2>/dev/null || true
+            docker rm recipe-manager-backend recipe-manager-frontend 2>/dev/null || true
+
+            # Start backend
+            docker run -d \
+              --name recipe-manager-backend \
+              --network mhylle_app-network \
+              --restart unless-stopped \
+              -e DATABASE_URL="postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db" \
+              -e CORS_ORIGIN="https://mhylle.com" \
+              -e PORT=3000 \
+              -p 8006:3000 \
+              "$BACKEND_IMAGE"
+
+            # Start frontend
+            docker run -d \
+              --name recipe-manager-frontend \
+              --network mhylle_app-network \
+              --restart unless-stopped \
+              -p 3007:80 \
+              "$FRONTEND_IMAGE"
+
+            # Wait for backend health
+            echo "Waiting for backend to be healthy..."
+            for i in $(seq 1 30); do
+              if docker exec recipe-manager-backend wget -q --spider http://localhost:3000/api 2>/dev/null; then
+                echo "Backend is healthy!"
+                break
+              fi
+              if [ $i -eq 30 ]; then
+                echo "Backend health check failed"
+                docker logs recipe-manager-backend --tail 50
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Wait for frontend health
+            echo "Waiting for frontend to be healthy..."
+            for i in $(seq 1 15); do
+              if docker exec recipe-manager-frontend wget -q --spider http://localhost/health 2>/dev/null; then
+                echo "Frontend is healthy!"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "Frontend health check failed"
+                docker logs recipe-manager-frontend --tail 20
+                exit 1
+              fi
+              sleep 2
+            done
+
+            # Clean up old images
+            docker image prune -f
+
+            echo "=== Deployment complete ==="
+            echo "Frontend: https://mhylle.com/recipe-manager/"
+            echo "API: https://mhylle.com/api/recipe-manager/api"
+
+  notify:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Deployment status
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "Recipe Manager deployed successfully!"
+            echo "Version: ${{ needs.build.outputs.version }}"
+            echo "Frontend: https://mhylle.com/recipe-manager/"
+            echo "API: https://mhylle.com/api/recipe-manager/api"
+          else
+            echo "Deployment failed or was skipped"
+            echo "Deploy result: ${{ needs.deploy.result }}"
+          fi

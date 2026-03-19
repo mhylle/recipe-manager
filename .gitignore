@@ -23,7 +23,8 @@ data/
 
 # Environment
 .env
-.env.*
+.env.local
+backend/.env
 
 # Backend .git (nested)
 backend/.git/

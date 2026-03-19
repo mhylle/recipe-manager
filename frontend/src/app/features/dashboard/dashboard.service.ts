@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Recipe } from '../../shared/models/recipe.model';
+import { environment } from '../../../environments/environment';
 
 export interface MissingIngredient {
   name: string;
@@ -27,6 +28,6 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
 
   getMatchResults(): Observable<MatchResult> {
-    return this.http.get<MatchResult>('/api/recipes/match');
+    return this.http.get<MatchResult>(`${environment.apiBase}/api/recipes/match`);
   }
 }

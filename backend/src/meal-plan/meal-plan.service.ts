@@ -11,8 +11,7 @@ export class MealPlanService {
   constructor(private readonly mealPlanRepository: MealPlanRepository) {}
 
   async getOrCreateByWeek(weekStartDate: string): Promise<MealPlan> {
-    const all = await this.mealPlanRepository.findAll();
-    const existing = all.find((mp) => mp.weekStartDate === weekStartDate);
+    const existing = await this.mealPlanRepository.findByWeek(weekStartDate);
     if (existing) {
       return existing;
     }
@@ -31,28 +30,17 @@ export class MealPlanService {
     mealPlanId: string,
     dto: AddMealPlanEntryDto,
   ): Promise<MealPlan> {
-    const plan = await this.mealPlanRepository.findById(mealPlanId);
     const entry: MealPlanEntry = {
       day: dto.day,
       meal: dto.meal,
       recipeId: dto.recipeId,
       servings: dto.servings,
     };
-    plan.entries.push(entry);
-    return this.mealPlanRepository.update(mealPlanId, {
-      entries: plan.entries,
-    });
+    return this.mealPlanRepository.addEntry(mealPlanId, entry);
   }
 
   async removeEntry(mealPlanId: string, entryIndex: number): Promise<MealPlan> {
-    const plan = await this.mealPlanRepository.findById(mealPlanId);
-    if (entryIndex < 0 || entryIndex >= plan.entries.length) {
-      throw new NotFoundException(`Entry at index ${entryIndex} not found`);
-    }
-    plan.entries.splice(entryIndex, 1);
-    return this.mealPlanRepository.update(mealPlanId, {
-      entries: plan.entries,
-    });
+    return this.mealPlanRepository.removeEntryByIndex(mealPlanId, entryIndex);
   }
 
   async updateEntryServings(

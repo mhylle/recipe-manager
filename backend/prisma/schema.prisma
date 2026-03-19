@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Unit {
+  g
+  kg
+  ml
+  l
+  tsp
+  tbsp
+  piece
+  pinch
+}
+
+enum PantryCategory {
+  dairy
+  meat
+  produce
+  grains
+  spices
+  condiments
+  baking
+  frozen
+  canned
+  beverages
+  snacks
+  other
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+enum DayOfWeek {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+model Recipe {
+  id           String             @id @default(uuid())
+  name         String
+  description  String
+  servings     Int
+  instructions String[]
+  prepTime     Int
+  cookTime     Int
+  difficulty   Difficulty
+  tags         String[]
+  imageUrl     String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  ingredients  RecipeIngredient[]
+  mealEntries  MealPlanEntry[]
+}
+
+model RecipeIngredient {
+  id             String         @id @default(uuid())
+  name           String
+  quantity       Float
+  unit           Unit
+  pantryCategory PantryCategory
+  recipeId       String
+  recipe         Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model PantryItem {
+  id          String         @id @default(uuid())
+  name        String
+  quantity    Float
+  unit        Unit
+  category    PantryCategory
+  barcode     String?
+  expiryDate  DateTime?
+  addedDate   DateTime       @default(now())
+  lastUpdated DateTime       @updatedAt
+}
+
+model MealPlan {
+  id            String          @id @default(uuid())
+  weekStartDate String          @unique
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  entries       MealPlanEntry[]
+}
+
+model MealPlanEntry {
+  id         String    @id @default(uuid())
+  day        DayOfWeek
+  meal       MealType
+  servings   Int
+  recipeId   String
+  recipe     Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  mealPlanId String
+  mealPlan   MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+}
+
+model ShoppingList {
+  id            String             @id @default(uuid())
+  mealPlanId    String
+  generatedDate DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  items         ShoppingListItem[]
+}
+
+model ShoppingListItem {
+  id             String       @id @default(uuid())
+  name           String
+  quantity       Float
+  unit           Unit
+  checked        Boolean      @default(false)
+  shoppingListId String
+  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  sortOrder      Int          @default(0)
+}
+
+model StaplesConfig {
+  id    String   @id @default("default")
+  items String[]
+}
