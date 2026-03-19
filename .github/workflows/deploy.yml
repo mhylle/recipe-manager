@@ -77,17 +77,20 @@ jobs:
         env:
           BACKEND_IMAGE: ${{ needs.build.outputs.backend-image }}
           FRONTEND_IMAGE: ${{ needs.build.outputs.frontend-image }}
-          RECIPE_MANAGER_DB_PASSWORD: ${{ secrets.RECIPE_MANAGER_DB_PASSWORD }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,RECIPE_MANAGER_DB_PASSWORD
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE
           script: |
             echo "=== Deploying Recipe Manager ==="
             echo "Backend: $BACKEND_IMAGE"
             echo "Frontend: $FRONTEND_IMAGE"
+
+            # Load server environment (contains DB passwords)
+            cd /home/mhylle/projects/mhylle.com
+            source .env
 
             # Pull new images
             docker pull "$BACKEND_IMAGE"
