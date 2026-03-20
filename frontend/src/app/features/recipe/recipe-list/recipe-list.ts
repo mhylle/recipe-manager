@@ -89,7 +89,9 @@ export class RecipeListComponent implements OnInit {
 
   hasActiveFilters(): boolean {
     if (!this.currentFilters) return false;
-    return !!(this.currentFilters.query || this.currentFilters.difficulty || this.currentFilters.maxPrepTime || this.currentFilters.tags);
+    const f = this.currentFilters;
+    return !!(f.query || f.difficulty || f.maxPrepTime || f.tags
+      || f.cuisines.length || f.proteins.length || f.courses.length);
   }
 
   onFiltersChanged(filters: RecipeFilters): void {
@@ -132,6 +134,26 @@ export class RecipeListComponent implements OnInit {
         if (tags.length > 0) {
           filtered = filtered.filter((r) => tags.every((tag) => r.tags.some((t) => t.toLowerCase() === tag)));
         }
+      }
+      if (filters?.cuisines?.length) {
+        filtered = filtered.filter((r) =>
+          filters.cuisines.some((c) => r.tags.some((t) => t.toLowerCase() === c.toLowerCase())));
+      }
+      if (filters?.proteins?.length) {
+        filtered = filtered.filter((r) =>
+          filters.proteins.some((p) => r.tags.some((t) => t.toLowerCase() === p.toLowerCase())));
+      }
+      if (filters?.courses?.length) {
+        const nonMainCourses = ['dessert', 'appetizer', 'soup', 'snack'];
+        filtered = filtered.filter((r) => {
+          const rTags = r.tags.map((t) => t.toLowerCase());
+          return filters.courses.some((c) => {
+            if (c.toLowerCase() === 'main') {
+              return !nonMainCourses.some((nm) => rTags.includes(nm));
+            }
+            return rTags.includes(c.toLowerCase());
+          });
+        });
       }
       this.items.set(filtered);
     });
