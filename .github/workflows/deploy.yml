@@ -105,6 +105,9 @@ jobs:
             docker stop recipe-manager-backend recipe-manager-frontend 2>/dev/null || true
             docker rm recipe-manager-backend recipe-manager-frontend 2>/dev/null || true
 
+            # Ensure images directory exists for volume mount
+            mkdir -p /home/mhylle/recipe-manager-images
+
             # Start backend
             docker run -d \
               --name recipe-manager-backend \
@@ -113,6 +116,7 @@ jobs:
               -e DATABASE_URL="postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db" \
               -e CORS_ORIGIN="https://mhylle.com" \
               -e PORT=3000 \
+              -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 8006:3000 \
               "$BACKEND_IMAGE"
 
