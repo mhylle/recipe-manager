@@ -64,6 +64,6 @@ export class CreateRecipeDto {
   tags: string[];
 
   @IsOptional()
-  @IsUrl()
+  @IsString()
   imageUrl?: string;
 }
