@@ -1,14 +1,18 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ShoppingListService } from '../shopping-list.service';
 import { MealPlanService } from '../../meal-plan/meal-plan.service';
+import { BilkaToGoService } from '../bilkatogo/bilkatogo.service';
+import { BilkaToGoLoginDialogComponent } from '../bilkatogo/bilkatogo-login-dialog';
+import { BilkaToGoResultsDialogComponent } from '../bilkatogo/bilkatogo-results-dialog';
 import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-list.model';
+import { BilkaToGoSendResult } from '../../../shared/models/bilkatogo.model';
 
 @Component({
   selector: 'app-shopping-list-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe],
+  imports: [DatePipe, BilkaToGoLoginDialogComponent, BilkaToGoResultsDialogComponent],
   template: `
     <div class="shopping-list">
       <div class="shopping-list__header">
@@ -16,9 +20,22 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
           <h1>Shopping List</h1>
           <p class="shopping-list__subtitle">Everything you need, nothing you do not.</p>
         </div>
-        <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
-          {{ generating() ? 'Generating...' : 'Generate from Meal Plan' }}
-        </button>
+        <div class="shopping-list__actions">
+          @if (shoppingList() && hasUncheckedItems()) {
+            <button
+              type="button"
+              class="btn btn--secondary"
+              (click)="sendToBilkatogo()"
+              [disabled]="sendingToBilkatogo()"
+              aria-label="Send unchecked items to BilkaToGo basket"
+            >
+              {{ sendingToBilkatogo() ? 'Sending...' : 'Send to BilkaToGo' }}
+            </button>
+          }
+          <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
+            {{ generating() ? 'Generating...' : 'Generate from Meal Plan' }}
+          </button>
+        </div>
       </div>
 
       @if (shoppingList()) {
@@ -56,6 +73,20 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
         </div>
       }
     </div>
+
+    @if (showLoginDialog()) {
+      <app-bilkatogo-login-dialog
+        (loginSuccess)="onBilkatogoLoginSuccess($event)"
+        (closed)="showLoginDialog.set(false)"
+      />
+    }
+
+    @if (showResultsDialog() && bilkatogoResult()) {
+      <app-bilkatogo-results-dialog
+        [result]="bilkatogoResult()!"
+        (closed)="showResultsDialog.set(false)"
+      />
+    }
   `,
   styles: [`
     .shopping-list {
@@ -137,9 +168,20 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
       font-size: 0.875rem;
     }
 
+    .shopping-list__actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
     @media (max-width: 640px) {
       .shopping-list__header {
         flex-direction: column;
+      }
+
+      .shopping-list__actions {
+        flex-direction: column;
+        width: 100%;
       }
     }
   `],
@@ -147,10 +189,22 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
 export class ShoppingListViewComponent implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly mealPlanService = inject(MealPlanService);
+  private readonly bilkaToGoService = inject(BilkaToGoService);
   private readonly route = inject(ActivatedRoute);
 
   readonly shoppingList = signal<ShoppingList | null>(null);
   readonly generating = signal(false);
+  readonly showLoginDialog = signal(false);
+  readonly showResultsDialog = signal(false);
+  readonly bilkatogoResult = signal<BilkaToGoSendResult | null>(null);
+  readonly sendingToBilkatogo = signal(false);
+  readonly bilkatogoSessionId = signal<string | null>(null);
+
+  readonly hasUncheckedItems = computed(() => {
+    const list = this.shoppingList();
+    return list !== null && list.items.some((item) => !item.checked);
+  });
+
   private currentMealPlanId = '';
 
   ngOnInit(): void {
@@ -186,6 +240,39 @@ export class ShoppingListViewComponent implements OnInit {
     if (!list) return;
     this.shoppingListService.toggleItem(list.id, index).subscribe((updated) => {
       this.shoppingList.set(updated);
+    });
+  }
+
+  sendToBilkatogo(): void {
+    if (this.bilkatogoSessionId()) {
+      this.sendToCart();
+    } else {
+      this.showLoginDialog.set(true);
+    }
+  }
+
+  onBilkatogoLoginSuccess(sessionId: string): void {
+    this.bilkatogoSessionId.set(sessionId);
+    this.showLoginDialog.set(false);
+    this.sendToCart();
+  }
+
+  private sendToCart(): void {
+    const list = this.shoppingList();
+    const sessionId = this.bilkatogoSessionId();
+    if (!list || !sessionId) return;
+
+    this.sendingToBilkatogo.set(true);
+    this.bilkaToGoService.sendToCart(list.id, sessionId).subscribe({
+      next: (result) => {
+        this.bilkatogoResult.set(result);
+        this.showResultsDialog.set(true);
+        this.sendingToBilkatogo.set(false);
+      },
+      error: () => {
+        this.sendingToBilkatogo.set(false);
+        alert('Failed to send items to BilkaToGo. Please try again.');
+      },
     });
   }
 

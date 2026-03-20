@@ -9,6 +9,7 @@ import { RecipeModule } from './recipe/recipe.module.js';
 import { MealPlanModule } from './meal-plan/meal-plan.module.js';
 import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
 import { ImageGenerationModule } from './image-generation/image-generation.module.js';
+import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { ImageGenerationModule } from './image-generation/image-generation.modul
     RecipeModule,
     MealPlanModule,
     ShoppingListModule,
+    BilkaToGoModule,
   ],
   controllers: [AppController],
   providers: [AppService],

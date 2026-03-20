@@ -1,9 +1,11 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of } from 'rxjs';
 import { ShoppingListViewComponent } from './shopping-list-view';
 import { ShoppingListService } from '../shopping-list.service';
 import { MealPlanService } from '../../meal-plan/meal-plan.service';
+import { BilkaToGoService } from '../bilkatogo/bilkatogo.service';
 import { Unit } from '../../../shared/enums/unit.enum';
 
 describe('ShoppingListViewComponent', () => {
@@ -24,17 +26,26 @@ describe('ShoppingListViewComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ShoppingListViewComponent],
       providers: [
+        provideRouter([]),
         {
           provide: ShoppingListService,
           useValue: {
             generate: vi.fn().mockReturnValue(of(mockList)),
             toggleItem: vi.fn().mockReturnValue(of(mockList)),
+            getById: vi.fn().mockReturnValue(of(mockList)),
           },
         },
         {
           provide: MealPlanService,
           useValue: {
             getByWeek: vi.fn().mockReturnValue(of({ id: 'plan-1', weekStartDate: '2026-03-16', entries: [] })),
+          },
+        },
+        {
+          provide: BilkaToGoService,
+          useValue: {
+            login: vi.fn().mockReturnValue(of({ sessionId: 'sess-abc' })),
+            sendToCart: vi.fn().mockReturnValue(of({ matched: [], unmatched: [], cartUrl: '' })),
           },
         },
       ],

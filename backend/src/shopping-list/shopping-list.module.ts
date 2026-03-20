@@ -11,5 +11,6 @@ import { StaplesModule } from '../staples/staples.module.js';
   imports: [MealPlanModule, RecipeModule, PantryModule, StaplesModule],
   controllers: [ShoppingListController],
   providers: [ShoppingListService, ShoppingListRepository],
+  exports: [ShoppingListService],
 })
 export class ShoppingListModule {}
