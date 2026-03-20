@@ -17,5 +17,7 @@ COPY --from=build /app/dist/frontend/browser/ /usr/share/nginx/html/
 
 EXPOSE 80
 
+RUN apk add --no-cache curl
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q --spider http://localhost/health || exit 1
+  CMD curl -sf http://localhost/health || exit 1

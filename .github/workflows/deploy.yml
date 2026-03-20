@@ -127,7 +127,7 @@ jobs:
             # Wait for backend health
             echo "Waiting for backend to be healthy..."
             for i in $(seq 1 30); do
-              if docker exec recipe-manager-backend wget -q --spider http://localhost:3000/api 2>/dev/null; then
+              if curl -sf http://localhost:8006/api > /dev/null 2>&1; then
                 echo "Backend is healthy!"
                 break
               fi
@@ -142,7 +142,7 @@ jobs:
             # Wait for frontend health
             echo "Waiting for frontend to be healthy..."
             for i in $(seq 1 15); do
-              if docker exec recipe-manager-frontend wget -q --spider http://localhost/health 2>/dev/null; then
+              if curl -sf http://localhost:3007/ > /dev/null 2>&1; then
                 echo "Frontend is healthy!"
                 break
               fi
