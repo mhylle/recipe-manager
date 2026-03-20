@@ -28,3 +28,10 @@ backend/.env
 
 # Backend .git (nested)
 backend/.git/
+
+# Generated images (stored on server, not in git)
+backend/public/
+
+# Playwright MCP logs and screenshots
+.playwright-mcp/
+*.png

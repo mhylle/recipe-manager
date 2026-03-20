@@ -2,6 +2,7 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
 import { Recipe } from '../../../shared/models/recipe.model';
+import { AuthService } from '../../../shared/services/auth.service';
 
 @Component({
   selector: 'app-recipe-detail',
@@ -131,6 +132,16 @@ import { Recipe } from '../../../shared/models/recipe.model';
           >
             Delete
           </button>
+          @if (authService.isAdmin()) {
+            <button
+              type="button"
+              class="btn btn--secondary"
+              [disabled]="regenerating()"
+              (click)="regenerateImages()"
+            >
+              {{ regenerating() ? 'Generating...' : 'Regenerate Images' }}
+            </button>
+          }
           <a routerLink="/recipes" class="btn btn--outline">
             Back to Recipes
           </a>
@@ -502,6 +513,20 @@ import { Recipe } from '../../../shared/models/recipe.model';
       background-color: #c62828;
     }
 
+    .btn--secondary {
+      background-color: #7b1fa2;
+      color: white;
+    }
+
+    .btn--secondary:hover {
+      background-color: #6a1b9a;
+    }
+
+    .btn--secondary:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+
     .btn--outline {
       background-color: transparent;
       color: #666;
@@ -584,8 +609,10 @@ export class RecipeDetailComponent implements OnInit {
   private readonly recipeService = inject(RecipeService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  readonly authService = inject(AuthService);
 
   readonly recipe = signal<Recipe | null>(null);
+  readonly regenerating = signal(false);
 
   readonly totalTime = computed(() => {
     const r = this.recipe();
@@ -593,6 +620,8 @@ export class RecipeDetailComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.authService.checkAuth();
+
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.recipeService.getById(id).subscribe((recipe) => {
@@ -608,5 +637,25 @@ export class RecipeDetailComponent implements OnInit {
         this.router.navigate(['/recipes']);
       });
     }
+  }
+
+  regenerateImages(): void {
+    const currentRecipe = this.recipe();
+    if (!currentRecipe) return;
+
+    this.regenerating.set(true);
+    this.recipeService.regenerateImages(currentRecipe.id).subscribe({
+      next: () => {
+        setTimeout(() => {
+          this.recipeService.getById(currentRecipe.id).subscribe((recipe) => {
+            this.recipe.set(recipe);
+            this.regenerating.set(false);
+          });
+        }, 2000);
+      },
+      error: () => {
+        this.regenerating.set(false);
+      },
+    });
   }
 }

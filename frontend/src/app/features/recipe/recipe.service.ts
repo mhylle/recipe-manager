@@ -28,4 +28,8 @@ export class RecipeService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
+
+  regenerateImages(id: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/regenerate-images`, {});
+  }
 }

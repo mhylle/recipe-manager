@@ -8,10 +8,12 @@ import { MatchingModule } from './matching/matching.module.js';
 import { RecipeModule } from './recipe/recipe.module.js';
 import { MealPlanModule } from './meal-plan/meal-plan.module.js';
 import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
+import { ImageGenerationModule } from './image-generation/image-generation.module.js';
 
 @Module({
   imports: [
     PrismaModule,
+    ImageGenerationModule,
     PantryModule,
     StaplesModule,
     MatchingModule,

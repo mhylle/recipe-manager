@@ -116,6 +116,7 @@ jobs:
               -e DATABASE_URL="postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db" \
               -e CORS_ORIGIN="https://mhylle.com" \
               -e PORT=3000 \
+              -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 8006:3000 \
               "$BACKEND_IMAGE"

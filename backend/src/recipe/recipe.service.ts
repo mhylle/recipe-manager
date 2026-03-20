@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RecipeRepository } from './recipe.repository.js';
 import { CreateRecipeDto } from './dto/create-recipe.dto.js';
 import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
+import { ImageGenerationService } from '../image-generation/image-generation.service.js';
 
 export interface RecipeSearchFilters {
   tags?: string[];
@@ -15,10 +16,50 @@ export interface RecipeSearchFilters {
 
 @Injectable()
 export class RecipeService {
-  constructor(private readonly recipeRepository: RecipeRepository) {}
+  private readonly logger = new Logger(RecipeService.name);
+
+  constructor(
+    private readonly recipeRepository: RecipeRepository,
+    private readonly imageGeneration: ImageGenerationService,
+  ) {}
 
   async create(dto: CreateRecipeDto): Promise<Recipe> {
-    return this.recipeRepository.create(dto);
+    const recipe = await this.recipeRepository.create(dto);
+    // Fire-and-forget image generation
+    if (this.imageGeneration.isEnabled() && !recipe.imageUrl) {
+      this.generateImagesAsync(recipe).catch((err) =>
+        this.logger.error(
+          `Image generation failed for ${recipe.name}: ${err}`,
+        ),
+      );
+    }
+    return recipe;
+  }
+
+  async regenerateImages(id: string): Promise<Recipe> {
+    const recipe = await this.recipeRepository.findById(id);
+    // Fire-and-forget — returns immediately
+    this.generateImagesAsync(recipe).catch((err) =>
+      this.logger.error(
+        `Image regeneration failed for ${recipe.name}: ${err}`,
+      ),
+    );
+    return recipe;
+  }
+
+  private async generateImagesAsync(recipe: Recipe): Promise<void> {
+    const heroUrl = await this.imageGeneration.generateHeroImage(recipe);
+    if (heroUrl) {
+      await this.recipeRepository.update(recipe.id, { imageUrl: heroUrl });
+    }
+
+    const stepImages =
+      await this.imageGeneration.generateStepImages(recipe);
+    if (stepImages.length > 0) {
+      await this.recipeRepository.update(recipe.id, {
+        instructionImages: stepImages,
+      });
+    }
   }
 
   async findAll(filters?: RecipeSearchFilters): Promise<Recipe[]> {

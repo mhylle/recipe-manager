@@ -62,4 +62,12 @@ export class RecipeController {
   async delete(@Param('id') id: string): Promise<void> {
     return this.recipeService.delete(id);
   }
+
+  @Post(':id/regenerate-images')
+  async regenerateImages(
+    @Param('id') id: string,
+  ): Promise<{ message: string }> {
+    const recipe = await this.recipeService.regenerateImages(id);
+    return { message: `Image generation started for ${recipe.name}` };
+  }
 }
