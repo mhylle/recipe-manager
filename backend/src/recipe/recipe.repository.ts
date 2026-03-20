@@ -13,6 +13,7 @@ export class RecipeRepository {
         description: data.description,
         servings: data.servings,
         instructions: data.instructions,
+        instructionImages: data.instructionImages ?? [],
         prepTime: data.prepTime,
         cookTime: data.cookTime,
         difficulty: data.difficulty,
@@ -58,6 +59,7 @@ export class RecipeRepository {
     if (data.description !== undefined) updateData.description = data.description;
     if (data.servings !== undefined) updateData.servings = data.servings;
     if (data.instructions !== undefined) updateData.instructions = data.instructions;
+    if (data.instructionImages !== undefined) updateData.instructionImages = data.instructionImages;
     if (data.prepTime !== undefined) updateData.prepTime = data.prepTime;
     if (data.cookTime !== undefined) updateData.cookTime = data.cookTime;
     if (data.difficulty !== undefined) updateData.difficulty = data.difficulty;
@@ -99,6 +101,7 @@ export class RecipeRepository {
       description: r.description as string,
       servings: r.servings as number,
       instructions: r.instructions as string[],
+      instructionImages: r.instructionImages as string[] | undefined,
       prepTime: r.prepTime as number,
       cookTime: r.cookTime as number,
       difficulty: r.difficulty as Recipe['difficulty'],

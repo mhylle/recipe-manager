@@ -43,6 +43,11 @@ export class CreateRecipeDto {
   @IsString({ each: true })
   instructions: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  instructionImages?: string[];
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RecipeIngredientDto)

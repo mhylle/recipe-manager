@@ -60,8 +60,9 @@ model Recipe {
   name         String
   description  String
   servings     Int
-  instructions String[]
-  prepTime     Int
+  instructions      String[]
+  instructionImages String[]
+  prepTime          Int
   cookTime     Int
   difficulty   Difficulty
   tags         String[]

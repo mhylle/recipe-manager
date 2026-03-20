@@ -95,10 +95,15 @@ import { Recipe } from '../../../shared/models/recipe.model';
           <section class="recipe-view__instructions">
             <h2 class="section-heading">Instructions</h2>
             <ol class="instructions-list" role="list">
-              @for (step of recipe()!.instructions; track $index) {
+              @for (step of recipe()!.instructions; track step; let i = $index) {
                 <li class="instruction-step">
-                  <span class="instruction-step__number" aria-hidden="true">{{ $index + 1 }}</span>
-                  <p class="instruction-step__text">{{ step }}</p>
+                  <span class="instruction-step__number" aria-hidden="true">{{ i + 1 }}</span>
+                  <div class="instruction-step__content">
+                    @if (recipe()!.instructionImages?.[i]) {
+                      <img [src]="recipe()!.instructionImages![i]" [alt]="'Step ' + (i + 1) + ' illustration'" class="step-image" />
+                    }
+                    <p class="instruction-step__text">{{ step }}</p>
+                  </div>
                 </li>
               }
             </ol>
@@ -410,6 +415,18 @@ import { Recipe } from '../../../shared/models/recipe.model';
       font-size: 0.875rem;
       font-weight: 700;
       margin-top: 0.125rem;
+    }
+
+    .instruction-step__content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .step-image {
+      width: 100%;
+      max-width: 400px;
+      border-radius: 8px;
+      margin-bottom: 0.5rem;
     }
 
     .instruction-step__text {
