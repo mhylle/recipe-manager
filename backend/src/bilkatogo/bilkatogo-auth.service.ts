@@ -123,9 +123,9 @@ export class BilkaToGoAuthService {
     const response = await firstValueFrom(
       this.httpService.post(
         BILKATOGO_LOGIN_JWT_URL,
-        { jwt: idToken },
+        null,
         {
-          headers: { 'Content-Type': 'application/json' },
+          headers: { jwt_token: idToken },
           withCredentials: true,
           maxRedirects: 0,
         },

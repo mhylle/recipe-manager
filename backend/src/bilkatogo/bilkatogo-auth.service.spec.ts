@@ -96,9 +96,9 @@ describe('BilkaToGoAuthService', () => {
       expect(httpService.post).toHaveBeenNthCalledWith(
         3,
         expect.stringContaining('LoginJWT'),
-        { jwt: 'test-jwt-token' },
+        null,
         expect.objectContaining({
-          headers: { 'Content-Type': 'application/json' },
+          headers: { jwt_token: 'test-jwt-token' },
           withCredentials: true,
           maxRedirects: 0,
         }),
