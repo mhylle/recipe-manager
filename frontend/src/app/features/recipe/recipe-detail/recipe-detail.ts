@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
+import { ShoppingListService } from '../../shopping-list/shopping-list.service';
 import { Recipe } from '../../../shared/models/recipe.model';
 import { AuthService } from '../../../shared/services/auth.service';
 
@@ -121,7 +122,15 @@ import { AuthService } from '../../../shared/services/auth.service';
 
         <!-- Actions -->
         <nav class="recipe-view__actions" aria-label="Recipe actions">
-          <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--primary">
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="addingToList()"
+            (click)="addToShoppingList()"
+          >
+            {{ addingToList() ? 'Adding...' : 'Add to Shopping List' }}
+          </button>
+          <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost">
             Edit Recipe
           </a>
           <button
@@ -519,12 +528,14 @@ import { AuthService } from '../../../shared/services/auth.service';
 })
 export class RecipeDetailComponent implements OnInit {
   private readonly recipeService = inject(RecipeService);
+  private readonly shoppingListService = inject(ShoppingListService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly authService = inject(AuthService);
 
   readonly recipe = signal<Recipe | null>(null);
   readonly regenerating = signal(false);
+  readonly addingToList = signal(false);
 
   readonly totalTime = computed(() => {
     const r = this.recipe();
@@ -549,6 +560,22 @@ export class RecipeDetailComponent implements OnInit {
         this.router.navigate(['/recipes']);
       });
     }
+  }
+
+  addToShoppingList(): void {
+    const currentRecipe = this.recipe();
+    if (!currentRecipe) return;
+
+    this.addingToList.set(true);
+    this.shoppingListService.generateFromRecipe(currentRecipe.id, currentRecipe.servings).subscribe({
+      next: (list) => {
+        this.addingToList.set(false);
+        this.router.navigate(['/shopping-list'], { queryParams: { id: list.id } });
+      },
+      error: () => {
+        this.addingToList.set(false);
+      },
+    });
   }
 
   regenerateImages(): void {

@@ -4,6 +4,7 @@ import {
   Post,
   Patch,
   Param,
+  Query,
   ParseIntPipe,
 } from '@nestjs/common';
 import { ShoppingListService } from './shopping-list.service.js';
@@ -18,6 +19,15 @@ export class ShoppingListController {
     @Param('mealPlanId') mealPlanId: string,
   ): Promise<ShoppingList> {
     return this.shoppingListService.generate(mealPlanId);
+  }
+
+  @Post('from-recipe/:recipeId')
+  async generateFromRecipe(
+    @Param('recipeId') recipeId: string,
+    @Query('servings') servings?: string,
+  ): Promise<ShoppingList> {
+    const servingsNum = servings ? parseInt(servings, 10) : undefined;
+    return this.shoppingListService.generateFromRecipe(recipeId, servingsNum);
   }
 
   @Get(':id')

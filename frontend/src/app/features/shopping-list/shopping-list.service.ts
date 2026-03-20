@@ -20,4 +20,9 @@ export class ShoppingListService {
   toggleItem(listId: string, itemIndex: number): Observable<ShoppingList> {
     return this.http.patch<ShoppingList>(`${this.baseUrl}/${listId}/items/${itemIndex}`, {});
   }
+
+  generateFromRecipe(recipeId: string, servings?: number): Observable<ShoppingList> {
+    const params = servings ? `?servings=${servings}` : '';
+    return this.http.post<ShoppingList>(`${this.baseUrl}/from-recipe/${recipeId}${params}`, {});
+  }
 }

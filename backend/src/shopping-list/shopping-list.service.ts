@@ -84,6 +84,55 @@ export class ShoppingListService {
     });
   }
 
+  async generateFromRecipe(recipeId: string, servings?: number): Promise<ShoppingList> {
+    const recipe = await this.recipeService.findById(recipeId);
+    const [pantryItems, staplesConfig] = await Promise.all([
+      this.pantryService.findAll(),
+      this.staplesService.getStaples(),
+    ]);
+
+    const stapleNames = new Set(
+      staplesConfig.items.map((s) => s.toLowerCase()),
+    );
+
+    const scaleFactor = servings ? servings / recipe.servings : 1;
+
+    const allNeeds: ConsolidatedItem[] = [];
+    for (const ingredient of recipe.ingredients) {
+      if (stapleNames.has(ingredient.name.toLowerCase())) continue;
+      allNeeds.push({
+        name: ingredient.name,
+        quantity: ingredient.quantity * scaleFactor,
+        unit: ingredient.unit,
+      });
+    }
+
+    const consolidated = consolidateIngredients(allNeeds);
+
+    const shoppingItems: ShoppingListItem[] = [];
+    for (const item of consolidated) {
+      const pantryItem = pantryItems.find(
+        (p) => p.name.toLowerCase() === item.name.toLowerCase(),
+      );
+      const available = pantryItem?.quantity ?? 0;
+      const needed = item.quantity - available;
+      if (needed > 0) {
+        shoppingItems.push({
+          name: item.name,
+          quantity: Math.ceil(needed * 100) / 100,
+          unit: item.unit,
+          checked: false,
+        });
+      }
+    }
+
+    return this.shoppingListRepository.create({
+      mealPlanId: `recipe:${recipeId}`,
+      generatedDate: new Date().toISOString(),
+      items: shoppingItems,
+    });
+  }
+
   async findById(id: string): Promise<ShoppingList> {
     return this.shoppingListRepository.findById(id);
   }

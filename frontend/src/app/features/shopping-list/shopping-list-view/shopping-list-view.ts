@@ -1,5 +1,6 @@
 import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import { ShoppingListService } from '../shopping-list.service';
 import { MealPlanService } from '../../meal-plan/meal-plan.service';
 import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-list.model';
@@ -146,12 +147,21 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
 export class ShoppingListViewComponent implements OnInit {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly mealPlanService = inject(MealPlanService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly shoppingList = signal<ShoppingList | null>(null);
   readonly generating = signal(false);
   private currentMealPlanId = '';
 
   ngOnInit(): void {
+    // If navigated with a list ID (e.g. from recipe detail), load it
+    const listId = this.route.snapshot.queryParamMap.get('id');
+    if (listId) {
+      this.shoppingListService.getById(listId).subscribe((list) => {
+        this.shoppingList.set(list);
+      });
+    }
+
     // Load current week's meal plan to get its ID
     const weekStart = this.getWeekStartDate();
     this.mealPlanService.getByWeek(weekStart).subscribe((plan) => {
