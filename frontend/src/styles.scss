@@ -1,1 +1,361 @@
-/* You can add global styles to this file, and also import other style files */
+// ============================================================
+// The Atelier Kitchen — Design System: "Digital Hygge"
+// ============================================================
+
+// --- Design Tokens ---
+:root {
+  // Surface hierarchy (Rug → Table → Object)
+  --surface: #f9f9f8;
+  --surface-container-low: #f2f4f3;
+  --surface-container-lowest: #ffffff;
+  --surface-container-high: #e8eae9;
+
+  // Primary (Moss Green)
+  --primary: #3e6a00;
+  --primary-hover: #355a00;
+  --primary-container: #bbf37c;
+  --on-primary: #ffffff;
+
+  // Secondary (Clay / Terracotta)
+  --secondary: #b47a56;
+  --secondary-hover: #9d6a4a;
+  --secondary-container: #f5dcc8;
+  --on-secondary: #ffffff;
+
+  // Text
+  --on-surface: #2d3433;
+  --on-surface-variant: #5a6b66;
+
+  // Borders & outlines (ghost only)
+  --outline-variant: rgba(45, 52, 51, 0.12);
+
+  // Semantic
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+
+  // Elevation
+  --shadow-ambient: 0 20px 40px -5px rgba(45, 52, 51, 0.04);
+  --shadow-elevated: 0 24px 48px -12px rgba(45, 52, 51, 0.1);
+
+  // Radii
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+
+  // Typography
+  --font-display: 'Noto Serif', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+
+  // Spacing
+  --spacing-section: clamp(48px, 6vw, 96px);
+  --spacing-card: 1.5rem;
+
+  // Glass
+  --glass-bg: rgba(249, 249, 248, 0.85);
+  --glass-blur: blur(16px);
+}
+
+// --- Global Resets ---
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--on-surface);
+  background-color: var(--surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// --- Grain Texture (2% opacity noise overlay) ---
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.02;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+// --- Typography Scale ---
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--on-surface);
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--on-surface);
+}
+
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--on-surface);
+}
+
+p {
+  margin-bottom: 0;
+}
+
+// --- Links ---
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: var(--primary-hover);
+  }
+}
+
+// --- Selection ---
+::selection {
+  background-color: var(--primary-container);
+  color: var(--on-surface);
+}
+
+// --- Focus ---
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+// --- Label utility ---
+.label-text {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+}
+
+// --- Screen reader only ---
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+// --- Button Primitives ---
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: none;
+  border-radius: var(--radius-xl);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  line-height: 1.4;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: var(--on-primary);
+
+  &:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+}
+
+.btn--secondary {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container-low);
+  }
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--on-surface-variant);
+
+  &:hover:not(:disabled) {
+    background: var(--surface-container-low);
+    color: var(--on-surface);
+  }
+}
+
+.btn--text {
+  background: transparent;
+  color: var(--secondary);
+  padding: 0.375rem 0.5rem;
+
+  &:hover:not(:disabled) {
+    color: var(--secondary-hover);
+  }
+}
+
+.btn--danger {
+  background: var(--error);
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: #a31616;
+  }
+}
+
+.btn--small {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8125rem;
+}
+
+// --- Input Primitives ---
+.input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--on-surface);
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: var(--on-surface-variant);
+    opacity: 0.6;
+  }
+
+  &:focus {
+    outline: none;
+    background: var(--surface-container-lowest);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(62, 106, 0, 0.1);
+  }
+}
+
+select.input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%235a6b66' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+// --- Chip Primitives ---
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+  background: var(--surface-container-lowest);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  line-height: 1.3;
+
+  &:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+}
+
+.chip--active {
+  background: var(--secondary-container);
+  color: var(--secondary);
+  border-color: var(--secondary-container);
+
+  &:hover {
+    background: #efd0b8;
+    border-color: #efd0b8;
+    color: var(--secondary-hover);
+  }
+}
+
+// --- Card Primitive ---
+.card {
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-ambient);
+  padding: var(--spacing-card);
+}
+
+// --- Badge Primitives ---
+.badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge--easy {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+
+.badge--medium {
+  background: var(--secondary-container);
+  color: var(--secondary);
+}
+
+.badge--hard {
+  background: var(--error-container);
+  color: var(--error);
+}
+
+// --- Tag Primitive ---
+.tag {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  background: var(--primary-container);
+  color: var(--primary);
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 500;
+}
+
+// --- Backdrop filter fallback ---
+@supports not (backdrop-filter: blur(16px)) {
+  .glass-nav {
+    background: var(--surface) !important;
+  }
+}
