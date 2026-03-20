@@ -10,31 +10,33 @@ import { PantryItem } from '../../../shared/models/pantry-item.model';
   template: `
     @if (item()) {
       <div class="pantry-detail">
-        <h2>{{ item()!.name }}</h2>
+        <h1>{{ item()!.name }}</h1>
 
-        <dl class="detail-list">
-          <dt>Quantity</dt>
-          <dd>{{ item()!.quantity }} {{ item()!.unit }}</dd>
+        <div class="card pantry-detail__card">
+          <dl class="detail-list">
+            <dt class="label-text">Quantity</dt>
+            <dd>{{ item()!.quantity }} {{ item()!.unit }}</dd>
 
-          <dt>Category</dt>
-          <dd>{{ item()!.category }}</dd>
+            <dt class="label-text">Category</dt>
+            <dd>{{ item()!.category }}</dd>
 
-          @if (item()!.barcode) {
-            <dt>Barcode</dt>
-            <dd>{{ item()!.barcode }}</dd>
-          }
+            @if (item()!.barcode) {
+              <dt class="label-text">Barcode</dt>
+              <dd>{{ item()!.barcode }}</dd>
+            }
 
-          @if (item()!.expiryDate) {
-            <dt>Expiry Date</dt>
-            <dd>{{ item()!.expiryDate }}</dd>
-          }
+            @if (item()!.expiryDate) {
+              <dt class="label-text">Expiry Date</dt>
+              <dd>{{ item()!.expiryDate }}</dd>
+            }
 
-          <dt>Added</dt>
-          <dd>{{ item()!.addedDate }}</dd>
+            <dt class="label-text">Added</dt>
+            <dd>{{ item()!.addedDate }}</dd>
 
-          <dt>Last Updated</dt>
-          <dd>{{ item()!.lastUpdated }}</dd>
-        </dl>
+            <dt class="label-text">Last Updated</dt>
+            <dd>{{ item()!.lastUpdated }}</dd>
+          </dl>
+        </div>
 
         <div class="detail-actions">
           <a [routerLink]="['/pantry', item()!.id, 'edit']" class="btn btn--primary">Edit</a>
@@ -46,7 +48,7 @@ import { PantryItem } from '../../../shared/models/pantry-item.model';
           >
             Delete
           </button>
-          <a routerLink="/pantry" class="btn btn--secondary">Back to List</a>
+          <a routerLink="/pantry" class="btn btn--ghost">Back to List</a>
         </div>
       </div>
     } @else {
@@ -58,51 +60,34 @@ import { PantryItem } from '../../../shared/models/pantry-item.model';
       max-width: 600px;
     }
 
+    .pantry-detail h1 {
+      margin-bottom: 1.5rem;
+    }
+
+    .pantry-detail__card {
+      padding: 2rem;
+    }
+
     .detail-list {
       display: grid;
-      grid-template-columns: 150px 1fr;
-      gap: 0.5rem;
-      margin: 1.5rem 0;
+      grid-template-columns: 140px 1fr;
+      gap: 0.75rem 1rem;
     }
 
     .detail-list dt {
-      font-weight: 600;
-      color: #555;
+      align-self: center;
     }
 
     .detail-list dd {
       margin: 0;
+      color: var(--on-surface);
+      font-size: 0.9375rem;
     }
 
     .detail-actions {
       display: flex;
-      gap: 1rem;
+      gap: 0.75rem;
       margin-top: 1.5rem;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 0.875rem;
-    }
-
-    .btn--primary {
-      background-color: #1976d2;
-      color: white;
-    }
-
-    .btn--danger {
-      background-color: #d32f2f;
-      color: white;
-    }
-
-    .btn--secondary {
-      background-color: #757575;
-      color: white;
     }
   `],
 })

@@ -7,102 +7,142 @@ import { StaplesService } from '../staples.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule],
   template: `
-    <div class="staples-config">
-      <h2>Staples Configuration</h2>
-      <p class="staples-config__description">
-        Staples are ingredients you always have on hand (like salt, pepper, oil).
-        They will be excluded from recipe matching calculations.
-      </p>
-
-      <div class="staples-config__add">
-        <label for="newStaple" class="sr-only">New staple name</label>
-        <input
-          id="newStaple"
-          type="text"
-          [formControl]="newStapleControl"
-          placeholder="Add a staple ingredient..."
-          (keydown.enter)="addStaple()"
-          aria-label="New staple name"
-        />
-        <button
-          type="button"
-          class="btn btn--primary"
-          (click)="addStaple()"
-          [disabled]="newStapleControl.invalid"
-        >
-          Add
-        </button>
+    <div class="staples-page">
+      <div class="staples-page__header">
+        <h1>Kitchen Essentials</h1>
+        <p class="staples-page__subtitle">Define the essential ingredients that always have a home in your pantry.</p>
       </div>
 
-      @if (items().length === 0) {
-        <p class="staples-config__empty" role="status">
-          No staples configured. Add items you always have on hand.
-        </p>
-      } @else {
-        <ul class="staples-config__list" role="list">
-          @for (item of items(); track item) {
-            <li class="staples-config__item">
-              <span>{{ item }}</span>
-              <button
-                type="button"
-                class="btn btn--small btn--danger"
-                (click)="removeStaple(item)"
-                [attr.aria-label]="'Remove ' + item"
-              >
-                Remove
-              </button>
-            </li>
+      <div class="staples-page__grid">
+        <!-- Left: Add New Essential -->
+        <div class="card staples-page__add-card">
+          <h3>Add New Essential</h3>
+          <div class="staples-page__add-form">
+            <label for="newStaple" class="sr-only">New staple name</label>
+            <input
+              id="newStaple"
+              type="text"
+              class="input"
+              [formControl]="newStapleControl"
+              placeholder="e.g. Olive Oil, Sea Salt..."
+              (keydown.enter)="addStaple()"
+              aria-label="New staple name"
+            />
+            <button
+              type="button"
+              class="btn btn--primary"
+              (click)="addStaple()"
+              [disabled]="newStapleControl.invalid"
+            >
+              Add
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Your Essentials -->
+        <div class="card staples-page__list-card">
+          <div class="staples-page__list-header">
+            <h3>Your Essentials</h3>
+            <span class="label-text">{{ items().length }} items</span>
+          </div>
+
+          @if (items().length === 0) {
+            <p class="staples-page__empty" role="status">
+              No staples configured. Add items you always have on hand.
+            </p>
+          } @else {
+            <ul class="staples-page__list" role="list">
+              @for (item of items(); track item) {
+                <li class="staples-page__item">
+                  <span class="staples-page__item-name">{{ item }}</span>
+                  <button
+                    type="button"
+                    class="btn btn--text"
+                    (click)="removeStaple(item)"
+                    [attr.aria-label]="'Remove ' + item"
+                  >
+                    Remove
+                  </button>
+                </li>
+              }
+            </ul>
           }
-        </ul>
-      }
+        </div>
+      </div>
     </div>
   `,
   styles: [`
-    .staples-config {
-      max-width: 500px;
+    .staples-page__header {
+      margin-bottom: 2rem;
     }
 
-    .staples-config__description {
-      color: #666;
-      margin-bottom: 1.5rem;
+    .staples-page__header h1 {
+      margin-bottom: 0.25rem;
     }
 
-    .staples-config__add {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .staples-config__add input {
-      flex: 1;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+    .staples-page__subtitle {
+      color: var(--on-surface-variant);
       font-size: 1rem;
     }
 
-    .staples-config__empty {
-      text-align: center;
-      padding: 2rem;
-      color: #666;
+    .staples-page__grid {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 2rem;
     }
 
-    .staples-config__list {
+    .staples-page__add-card h3 {
+      margin-bottom: 1rem;
+    }
+
+    .staples-page__add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .staples-page__list-card {
+      padding: var(--spacing-card);
+    }
+
+    .staples-page__list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .staples-page__list-header h3 {
+      margin: 0;
+    }
+
+    .staples-page__empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--on-surface-variant);
+    }
+
+    .staples-page__list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
 
-    .staples-config__item {
+    .staples-page__item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 0.75rem;
-      border-bottom: 1px solid #e0e0e0;
+      padding: 0.625rem 0;
     }
 
-    .staples-config__item span {
+    .staples-page__item + .staples-page__item {
+      border-top: 1px solid var(--outline-variant);
+    }
+
+    .staples-page__item-name {
       text-transform: capitalize;
+      font-weight: 500;
+      color: var(--on-surface);
     }
 
     .sr-only {
@@ -117,33 +157,10 @@ import { StaplesService } from '../staples.service';
       border-width: 0;
     }
 
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.875rem;
-    }
-
-    .btn--primary {
-      background-color: #1976d2;
-      color: white;
-    }
-
-    .btn--primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .btn--small {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .btn--danger {
-      background-color: #d32f2f;
-      color: white;
+    @media (max-width: 640px) {
+      .staples-page__grid {
+        grid-template-columns: 1fr;
+      }
     }
   `],
 })

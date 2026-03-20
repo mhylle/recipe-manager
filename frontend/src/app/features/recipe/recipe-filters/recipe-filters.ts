@@ -20,7 +20,7 @@ export interface RecipeFilters {
     <div class="recipe-filters">
       <div class="chip-groups">
         <div class="chip-group" role="group" aria-label="Filter by cuisine">
-          <span class="chip-group__label">Cuisine</span>
+          <span class="chip-group__label label-text">Cuisine</span>
           @for (option of cuisineOptions; track option) {
             <button type="button" class="chip"
               [class.chip--active]="activeCuisines().has(option)"
@@ -29,7 +29,7 @@ export interface RecipeFilters {
           }
         </div>
         <div class="chip-group" role="group" aria-label="Filter by protein">
-          <span class="chip-group__label">Protein</span>
+          <span class="chip-group__label label-text">Protein</span>
           @for (option of proteinOptions; track option) {
             <button type="button" class="chip"
               [class.chip--active]="activeProteins().has(option)"
@@ -38,7 +38,7 @@ export interface RecipeFilters {
           }
         </div>
         <div class="chip-group" role="group" aria-label="Filter by course">
-          <span class="chip-group__label">Course</span>
+          <span class="chip-group__label label-text">Course</span>
           @for (option of courseOptions; track option) {
             <button type="button" class="chip"
               [class.chip--active]="activeCourses().has(option)"
@@ -50,12 +50,12 @@ export interface RecipeFilters {
 
       <div class="filter-row">
         <div class="filter-group">
-          <label for="search">Search</label>
-          <input id="search" type="text" [formControl]="searchControl" placeholder="Search recipes..." (input)="emitFilters()" />
+          <label class="label-text" for="search">Search</label>
+          <input id="search" type="text" class="input" [formControl]="searchControl" placeholder="Search recipes..." (input)="emitFilters()" />
         </div>
         <div class="filter-group">
-          <label for="difficulty">Difficulty</label>
-          <select id="difficulty" [formControl]="difficultyControl" (change)="emitFilters()">
+          <label class="label-text" for="difficulty">Difficulty</label>
+          <select id="difficulty" class="input" [formControl]="difficultyControl" (change)="emitFilters()">
             <option value="">All</option>
             @for (d of difficultyOptions; track d) {
               <option [value]="d">{{ d }}</option>
@@ -63,38 +63,57 @@ export interface RecipeFilters {
           </select>
         </div>
         <div class="filter-group">
-          <label for="maxPrep">Max Prep (min)</label>
-          <input id="maxPrep" type="number" [formControl]="maxPrepControl" min="0" placeholder="Any" (input)="emitFilters()" />
+          <label class="label-text" for="maxPrep">Max Prep (min)</label>
+          <input id="maxPrep" type="number" class="input" [formControl]="maxPrepControl" min="0" placeholder="Any" (input)="emitFilters()" />
         </div>
         <div class="filter-group">
-          <label for="tags">Tags</label>
-          <input id="tags" type="text" [formControl]="tagsControl" placeholder="e.g. slow-cooked, quick" (input)="emitFilters()" />
+          <label class="label-text" for="tags">Tags</label>
+          <input id="tags" type="text" class="input" [formControl]="tagsControl" placeholder="e.g. slow-cooked, quick" (input)="emitFilters()" />
         </div>
-        <button type="button" class="btn btn--small" (click)="resetFilters()">Reset</button>
+        <button type="button" class="btn btn--ghost btn--small" (click)="resetFilters()">Reset</button>
       </div>
     </div>
   `,
   styles: [`
-    .recipe-filters { margin-bottom: 1.5rem; padding: 1rem; background: white; border: 1px solid #e0e0e0; border-radius: 8px; display: flex; flex-direction: column; gap: 0.75rem; }
-    .filter-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
-    .filter-group { display: flex; flex-direction: column; gap: 0.25rem; }
-    .filter-group label { font-size: 0.75rem; font-weight: 500; color: #666; }
-    .filter-group input, .filter-group select { padding: 0.375rem 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
-    .btn { padding: 0.375rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; background: white; cursor: pointer; font-size: 0.8125rem; }
-    .btn:hover { background: #f5f5f5; }
-
-    .chip-groups { display: flex; flex-direction: column; gap: 0.5rem; }
-    .chip-group { display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; }
-    .chip-group__label { font-size: 0.6875rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #888; min-width: 4rem; }
-    .chip {
-      display: inline-flex; align-items: center; padding: 0.25rem 0.625rem;
-      border: 1px solid #ccc; border-radius: 16px; background: white;
-      font-size: 0.75rem; cursor: pointer; transition: all 0.15s ease;
-      color: #555; line-height: 1.2;
+    .recipe-filters {
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: var(--surface-container-low);
+      border-radius: var(--radius-xl);
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
-    .chip:hover { border-color: #1976d2; color: #1976d2; }
-    .chip--active { background: #1976d2; color: white; border-color: #1976d2; }
-    .chip--active:hover { background: #1565c0; border-color: #1565c0; }
+
+    .filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+    }
+
+    .chip-groups {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.375rem;
+      align-items: center;
+    }
+
+    .chip-group__label {
+      min-width: 4.5rem;
+    }
   `],
 })
 export class RecipeFiltersComponent {

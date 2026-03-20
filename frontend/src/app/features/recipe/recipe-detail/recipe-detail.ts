@@ -164,7 +164,7 @@ import { AuthService } from '../../../shared/services/auth.service';
     /* ===== Hero Section ===== */
     .recipe-view__hero {
       position: relative;
-      border-radius: 16px;
+      border-radius: var(--radius-xl);
       overflow: hidden;
       margin-bottom: 0;
       min-height: 280px;
@@ -173,7 +173,7 @@ import { AuthService } from '../../../shared/services/auth.service';
     }
 
     .recipe-view__hero--no-image {
-      background: linear-gradient(135deg, #1a237e 0%, #0d47a1 50%, #01579b 100%);
+      background: linear-gradient(135deg, #2d3433 0%, #3e6a00 50%, #5a6b66 100%);
       min-height: 220px;
     }
 
@@ -205,8 +205,9 @@ import { AuthService } from '../../../shared/services/auth.service';
     }
 
     .recipe-view__title {
+      font-family: var(--font-display);
       font-size: 2rem;
-      font-weight: 700;
+      font-weight: 400;
       color: white;
       margin: 0 0 0.5rem;
       line-height: 1.2;
@@ -225,13 +226,12 @@ import { AuthService } from '../../../shared/services/auth.service';
     .recipe-view__info-bar {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      background: white;
-      border: 1px solid #e0e0e0;
-      border-radius: 12px;
+      background: var(--surface-container-lowest);
+      border-radius: var(--radius-xl);
       margin: -1.5rem 1.5rem 1.5rem;
       position: relative;
       z-index: 2;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      box-shadow: var(--shadow-elevated);
     }
 
     .info-item {
@@ -239,10 +239,6 @@ import { AuthService } from '../../../shared/services/auth.service';
       align-items: center;
       gap: 0.75rem;
       padding: 1rem 1.25rem;
-    }
-
-    .info-item:not(:last-child) {
-      border-right: 1px solid #f0f0f0;
     }
 
     .info-item__icon {
@@ -259,14 +255,14 @@ import { AuthService } from '../../../shared/services/auth.service';
       font-size: 0.6875rem;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #999;
+      color: var(--on-surface-variant);
       font-weight: 600;
     }
 
     .info-item__value {
       font-size: 1rem;
       font-weight: 600;
-      color: #333;
+      color: var(--on-surface);
     }
 
     /* ===== Tags ===== */
@@ -278,22 +274,11 @@ import { AuthService } from '../../../shared/services/auth.service';
       margin-bottom: 2rem;
     }
 
-    .tag {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      background: #e3f2fd;
-      color: #1565c0;
-      border-radius: 20px;
-      font-size: 0.8125rem;
-      font-weight: 500;
-      transition: background-color 0.15s;
-    }
-
     /* ===== Badge ===== */
     .badge {
       display: inline-block;
       padding: 0.25rem 0.75rem;
-      border-radius: 20px;
+      border-radius: var(--radius-full);
       font-size: 0.75rem;
       font-weight: 600;
       text-transform: uppercase;
@@ -301,18 +286,18 @@ import { AuthService } from '../../../shared/services/auth.service';
     }
 
     .badge--easy {
-      background-color: #e8f5e9;
-      color: #2e7d32;
+      background: var(--primary-container);
+      color: var(--primary);
     }
 
     .badge--medium {
-      background-color: #fff3e0;
-      color: #ef6c00;
+      background: var(--secondary-container);
+      color: var(--secondary);
     }
 
     .badge--hard {
-      background-color: #fce4ec;
-      color: #c62828;
+      background: var(--error-container);
+      color: var(--error);
     }
 
     .badge--time {
@@ -330,19 +315,20 @@ import { AuthService } from '../../../shared/services/auth.service';
     }
 
     .section-heading {
+      font-family: var(--font-display);
       font-size: 1.25rem;
-      font-weight: 700;
-      color: #333;
+      font-weight: 400;
+      color: var(--on-surface);
       margin: 0 0 1.25rem;
       padding-bottom: 0.75rem;
-      border-bottom: 2px solid #1976d2;
+      border-bottom: 2px solid var(--primary);
     }
 
     /* ===== Ingredients ===== */
     .recipe-view__ingredients {
-      background: #fafafa;
-      border: 1px solid #e8e8e8;
-      border-radius: 12px;
+      background: var(--surface-container-low);
+      border: none;
+      border-radius: var(--radius-xl);
       padding: 1.5rem;
       align-self: start;
       position: sticky;
@@ -361,33 +347,28 @@ import { AuthService } from '../../../shared/services/auth.service';
       gap: 0.5rem;
       align-items: baseline;
       padding: 0.625rem 0;
-      border-bottom: 1px solid #eee;
-    }
-
-    .ingredient-item:last-child {
-      border-bottom: none;
     }
 
     .ingredient-item__qty {
       font-weight: 700;
-      color: #1976d2;
+      color: var(--primary);
       font-size: 0.9375rem;
       white-space: nowrap;
     }
 
     .ingredient-item__name {
       font-size: 0.9375rem;
-      color: #333;
+      color: var(--on-surface);
     }
 
     .ingredient-item__category {
       font-size: 0.6875rem;
-      color: #aaa;
+      color: var(--on-surface-variant);
       text-transform: uppercase;
       letter-spacing: 0.03em;
-      background: #f0f0f0;
+      background: var(--surface-container-high);
       padding: 0.125rem 0.375rem;
-      border-radius: 4px;
+      border-radius: var(--radius-sm);
     }
 
     /* ===== Instructions ===== */
@@ -406,7 +387,7 @@ import { AuthService } from '../../../shared/services/auth.service';
       display: flex;
       gap: 1rem;
       padding: 1rem 0;
-      border-bottom: 1px solid #f0f0f0;
+      border-bottom: 1px solid var(--outline-variant);
     }
 
     .instruction-step:last-child {
@@ -417,8 +398,8 @@ import { AuthService } from '../../../shared/services/auth.service';
       flex-shrink: 0;
       width: 2rem;
       height: 2rem;
-      background: #1976d2;
-      color: white;
+      background: var(--primary);
+      color: var(--on-primary);
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -436,7 +417,7 @@ import { AuthService } from '../../../shared/services/auth.service';
     .step-image {
       width: 100%;
       max-width: 400px;
-      border-radius: 8px;
+      border-radius: var(--radius-md);
       margin-bottom: 0.5rem;
     }
 
@@ -444,18 +425,18 @@ import { AuthService } from '../../../shared/services/auth.service';
       margin: 0;
       font-size: 1rem;
       line-height: 1.6;
-      color: #444;
+      color: var(--on-surface);
     }
 
     /* ===== Image Placeholder ===== */
     .recipe-view__image-placeholder {
       text-align: center;
       padding: 2rem;
-      background: #f5f5f5;
-      border: 2px dashed #ddd;
-      border-radius: 12px;
+      background: var(--surface-container-low);
+      border: 2px dashed var(--outline-variant);
+      border-radius: var(--radius-xl);
       margin-bottom: 2rem;
-      color: #999;
+      color: var(--on-surface-variant);
     }
 
     .recipe-view__image-placeholder-icon {
@@ -474,67 +455,7 @@ import { AuthService } from '../../../shared/services/auth.service';
       display: flex;
       gap: 0.75rem;
       padding-top: 1.5rem;
-      border-top: 1px solid #e0e0e0;
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.625rem 1.25rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 0.875rem;
-      font-weight: 600;
-      transition: background-color 0.15s, box-shadow 0.15s;
-    }
-
-    .btn:hover {
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    }
-
-    .btn--primary {
-      background-color: #1976d2;
-      color: white;
-    }
-
-    .btn--primary:hover {
-      background-color: #1565c0;
-    }
-
-    .btn--danger {
-      background-color: #d32f2f;
-      color: white;
-    }
-
-    .btn--danger:hover {
-      background-color: #c62828;
-    }
-
-    .btn--secondary {
-      background-color: #7b1fa2;
-      color: white;
-    }
-
-    .btn--secondary:hover {
-      background-color: #6a1b9a;
-    }
-
-    .btn--secondary:disabled {
-      background-color: #ccc;
-      cursor: not-allowed;
-    }
-
-    .btn--outline {
-      background-color: transparent;
-      color: #666;
-      border: 1px solid #ddd;
-    }
-
-    .btn--outline:hover {
-      background-color: #f5f5f5;
+      border-top: 1px solid var(--outline-variant);
     }
 
     /* ===== Loading ===== */
@@ -544,14 +465,14 @@ import { AuthService } from '../../../shared/services/auth.service';
       align-items: center;
       justify-content: center;
       padding: 4rem 2rem;
-      color: #999;
+      color: var(--on-surface-variant);
     }
 
     .loading-spinner {
       width: 2.5rem;
       height: 2.5rem;
-      border: 3px solid #e0e0e0;
-      border-top-color: #1976d2;
+      border: 3px solid var(--outline-variant);
+      border-top-color: var(--primary);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
       margin-bottom: 1rem;
@@ -579,15 +500,6 @@ import { AuthService } from '../../../shared/services/auth.service';
       .recipe-view__info-bar {
         grid-template-columns: repeat(2, 1fr);
         margin: -1rem 0.75rem 1rem;
-      }
-
-      .info-item:nth-child(2) {
-        border-right: none;
-      }
-
-      .info-item:nth-child(1),
-      .info-item:nth-child(2) {
-        border-bottom: 1px solid #f0f0f0;
       }
 
       .recipe-view__body {

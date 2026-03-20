@@ -11,131 +11,137 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
   imports: [ReactiveFormsModule, RouterLink],
   template: `
     <div class="pantry-form">
-      <h2>{{ isEditMode() ? 'Edit Pantry Item' : 'Add Pantry Item' }}</h2>
+      <h1>{{ isEditMode() ? 'Edit Pantry Item' : 'Add Pantry Item' }}</h1>
 
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-        <div class="form-group">
-          <label for="name">Name <span aria-hidden="true">*</span></label>
-          <input
-            id="name"
-            type="text"
-            formControlName="name"
-            [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
-            aria-required="true"
-          />
-          @if (form.controls.name.invalid && form.controls.name.touched) {
-            <p class="error" role="alert">Name is required.</p>
-          }
-        </div>
+      <div class="card pantry-form__card">
+        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+          <div class="form-group">
+            <label for="name" class="form-label">Name <span aria-hidden="true">*</span></label>
+            <input
+              id="name"
+              type="text"
+              class="input"
+              formControlName="name"
+              [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+              aria-required="true"
+            />
+            @if (form.controls.name.invalid && form.controls.name.touched) {
+              <p class="form-error" role="alert">Name is required.</p>
+            }
+          </div>
 
-        <div class="form-group">
-          <label for="quantity">Quantity <span aria-hidden="true">*</span></label>
-          <input
-            id="quantity"
-            type="number"
-            formControlName="quantity"
-            min="0"
-            [attr.aria-invalid]="form.controls.quantity.invalid && form.controls.quantity.touched"
-            aria-required="true"
-          />
-          @if (form.controls.quantity.invalid && form.controls.quantity.touched) {
-            <p class="error" role="alert">
-              @if (form.controls.quantity.errors?.['required']) {
-                Quantity is required.
-              } @else if (form.controls.quantity.errors?.['min']) {
-                Quantity must be at least 0.
+          <div class="form-group">
+            <label for="quantity" class="form-label">Quantity <span aria-hidden="true">*</span></label>
+            <input
+              id="quantity"
+              type="number"
+              class="input"
+              formControlName="quantity"
+              min="0"
+              [attr.aria-invalid]="form.controls.quantity.invalid && form.controls.quantity.touched"
+              aria-required="true"
+            />
+            @if (form.controls.quantity.invalid && form.controls.quantity.touched) {
+              <p class="form-error" role="alert">
+                @if (form.controls.quantity.errors?.['required']) {
+                  Quantity is required.
+                } @else if (form.controls.quantity.errors?.['min']) {
+                  Quantity must be at least 0.
+                }
+              </p>
+            }
+          </div>
+
+          <div class="form-group">
+            <label for="unit" class="form-label">Unit <span aria-hidden="true">*</span></label>
+            <select
+              id="unit"
+              class="input"
+              formControlName="unit"
+              [attr.aria-invalid]="form.controls.unit.invalid && form.controls.unit.touched"
+              aria-required="true"
+            >
+              <option value="" disabled>Select a unit</option>
+              @for (unit of unitOptions; track unit) {
+                <option [value]="unit">{{ unit }}</option>
               }
-            </p>
-          }
-        </div>
-
-        <div class="form-group">
-          <label for="unit">Unit <span aria-hidden="true">*</span></label>
-          <select
-            id="unit"
-            formControlName="unit"
-            [attr.aria-invalid]="form.controls.unit.invalid && form.controls.unit.touched"
-            aria-required="true"
-          >
-            <option value="" disabled>Select a unit</option>
-            @for (unit of unitOptions; track unit) {
-              <option [value]="unit">{{ unit }}</option>
+            </select>
+            @if (form.controls.unit.invalid && form.controls.unit.touched) {
+              <p class="form-error" role="alert">Unit is required.</p>
             }
-          </select>
-          @if (form.controls.unit.invalid && form.controls.unit.touched) {
-            <p class="error" role="alert">Unit is required.</p>
-          }
-        </div>
+          </div>
 
-        <div class="form-group">
-          <label for="category">Category <span aria-hidden="true">*</span></label>
-          <select
-            id="category"
-            formControlName="category"
-            [attr.aria-invalid]="form.controls.category.invalid && form.controls.category.touched"
-            aria-required="true"
-          >
-            <option value="" disabled>Select a category</option>
-            @for (cat of categoryOptions; track cat) {
-              <option [value]="cat">{{ cat }}</option>
+          <div class="form-group">
+            <label for="category" class="form-label">Category <span aria-hidden="true">*</span></label>
+            <select
+              id="category"
+              class="input"
+              formControlName="category"
+              [attr.aria-invalid]="form.controls.category.invalid && form.controls.category.touched"
+              aria-required="true"
+            >
+              <option value="" disabled>Select a category</option>
+              @for (cat of categoryOptions; track cat) {
+                <option [value]="cat">{{ cat }}</option>
+              }
+            </select>
+            @if (form.controls.category.invalid && form.controls.category.touched) {
+              <p class="form-error" role="alert">Category is required.</p>
             }
-          </select>
-          @if (form.controls.category.invalid && form.controls.category.touched) {
-            <p class="error" role="alert">Category is required.</p>
-          }
-        </div>
+          </div>
 
-        <div class="form-group">
-          <label for="barcode">Barcode</label>
-          <input id="barcode" type="text" formControlName="barcode" />
-        </div>
+          <div class="form-group">
+            <label for="barcode" class="form-label">Barcode</label>
+            <input id="barcode" type="text" class="input" formControlName="barcode" />
+          </div>
 
-        <div class="form-group">
-          <label for="expiryDate">Expiry Date</label>
-          <input id="expiryDate" type="date" formControlName="expiryDate" />
-        </div>
+          <div class="form-group">
+            <label for="expiryDate" class="form-label">Expiry Date</label>
+            <input id="expiryDate" type="date" class="input" formControlName="expiryDate" />
+          </div>
 
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
-            {{ isEditMode() ? 'Update' : 'Create' }}
-          </button>
-          <a routerLink="/pantry" class="btn btn--secondary">Cancel</a>
-        </div>
-      </form>
+          <div class="form-actions">
+            <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
+              {{ isEditMode() ? 'Update' : 'Create' }}
+            </button>
+            <a routerLink="/pantry" class="btn btn--ghost">Cancel</a>
+          </div>
+        </form>
+      </div>
     </div>
   `,
   styles: [`
     .pantry-form {
-      max-width: 500px;
+      max-width: 540px;
+    }
+
+    .pantry-form h1 {
+      margin-bottom: 1.5rem;
+    }
+
+    .pantry-form__card {
+      padding: 2rem;
     }
 
     .form-group {
-      margin-bottom: 1rem;
+      margin-bottom: 1.25rem;
     }
 
-    .form-group label {
+    .form-label {
       display: block;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.375rem;
       font-weight: 500;
+      color: var(--on-surface);
+      font-size: 0.875rem;
     }
 
-    .form-group input,
-    .form-group select {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-      box-sizing: border-box;
+    .input[aria-invalid="true"] {
+      border-color: var(--error);
+      box-shadow: 0 0 0 3px rgba(186, 26, 26, 0.1);
     }
 
-    .form-group input[aria-invalid="true"],
-    .form-group select[aria-invalid="true"] {
-      border-color: #d32f2f;
-    }
-
-    .error {
-      color: #d32f2f;
+    .form-error {
+      color: var(--error);
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
@@ -143,40 +149,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
     .form-actions {
       display: flex;
       gap: 1rem;
-      margin-top: 1.5rem;
-    }
-
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 0.875rem;
-    }
-
-    .btn--primary {
-      background-color: #1976d2;
-      color: white;
-    }
-
-    .btn--primary:hover:not(:disabled) {
-      background-color: #1565c0;
-    }
-
-    .btn--primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .btn--secondary {
-      background-color: #757575;
-      color: white;
-    }
-
-    .btn--secondary:hover {
-      background-color: #616161;
+      margin-top: 2rem;
     }
   `],
 })

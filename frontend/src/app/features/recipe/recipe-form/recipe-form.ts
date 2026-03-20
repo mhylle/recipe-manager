@@ -20,6 +20,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
           <input
             id="name"
             type="text"
+            class="input"
             formControlName="name"
             [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
             aria-required="true"
@@ -33,6 +34,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
           <label for="description">Description <span aria-hidden="true">*</span></label>
           <textarea
             id="description"
+            class="input"
             formControlName="description"
             rows="3"
             [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
@@ -49,6 +51,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
             <input
               id="servings"
               type="number"
+              class="input"
               formControlName="servings"
               min="1"
               aria-required="true"
@@ -60,6 +63,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
             <input
               id="prepTime"
               type="number"
+              class="input"
               formControlName="prepTime"
               min="0"
               aria-required="true"
@@ -71,6 +75,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
             <input
               id="cookTime"
               type="number"
+              class="input"
               formControlName="cookTime"
               min="0"
               aria-required="true"
@@ -79,7 +84,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 
           <div class="form-group">
             <label for="difficulty">Difficulty <span aria-hidden="true">*</span></label>
-            <select id="difficulty" formControlName="difficulty" aria-required="true">
+            <select id="difficulty" class="input" formControlName="difficulty" aria-required="true">
               <option value="" disabled>Select difficulty</option>
               @for (diff of difficultyOptions; track diff) {
                 <option [value]="diff">{{ diff }}</option>
@@ -90,7 +95,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 
         <div class="form-group">
           <label for="tags">Tags (comma-separated)</label>
-          <input id="tags" type="text" formControlName="tags" placeholder="e.g. breakfast, quick, italian" />
+          <input id="tags" type="text" class="input" formControlName="tags" placeholder="e.g. breakfast, quick, italian" />
         </div>
 
         <fieldset class="ingredients-section">
@@ -98,14 +103,14 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
           <div formArrayName="ingredients">
             @for (ingredient of ingredientsArray.controls; track $index; let i = $index) {
               <div class="ingredient-row" [formGroupName]="i">
-                <input type="text" formControlName="name" placeholder="Ingredient name" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'" />
-                <input type="number" formControlName="quantity" placeholder="Qty" min="0" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'" />
-                <select formControlName="unit" [attr.aria-label]="'Ingredient ' + (i + 1) + ' unit'">
+                <input type="text" class="input" formControlName="name" placeholder="Ingredient name" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'" />
+                <input type="number" class="input" formControlName="quantity" placeholder="Qty" min="0" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'" />
+                <select class="input" formControlName="unit" [attr.aria-label]="'Ingredient ' + (i + 1) + ' unit'">
                   @for (unit of unitOptions; track unit) {
                     <option [value]="unit">{{ unit }}</option>
                   }
                 </select>
-                <select formControlName="pantryCategory" [attr.aria-label]="'Ingredient ' + (i + 1) + ' category'">
+                <select class="input" formControlName="pantryCategory" [attr.aria-label]="'Ingredient ' + (i + 1) + ' category'">
                   @for (cat of categoryOptions; track cat) {
                     <option [value]="cat">{{ cat }}</option>
                   }
@@ -130,6 +135,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
           <label for="instructions">Instructions (one per line) <span aria-hidden="true">*</span></label>
           <textarea
             id="instructions"
+            class="input"
             formControlName="instructions"
             rows="6"
             placeholder="Step 1&#10;Step 2&#10;Step 3"
@@ -141,7 +147,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
           <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
             {{ isEditMode() ? 'Update' : 'Create' }}
           </button>
-          <a routerLink="/recipes" class="btn btn--secondary">Cancel</a>
+          <a routerLink="/recipes" class="btn btn--ghost">Cancel</a>
         </div>
       </form>
     </div>
@@ -151,6 +157,14 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
       max-width: 700px;
     }
 
+    .recipe-form h2 {
+      font-family: var(--font-display);
+      font-size: 1.75rem;
+      font-weight: 400;
+      color: var(--on-surface);
+      margin: 0 0 1.5rem;
+    }
+
     .form-group {
       margin-bottom: 1rem;
     }
@@ -158,20 +172,10 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
     .form-group label,
     .form-group legend {
       display: block;
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.375rem;
       font-weight: 500;
-    }
-
-    .form-group input,
-    .form-group select,
-    .form-group textarea {
-      width: 100%;
-      padding: 0.5rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 1rem;
-      box-sizing: border-box;
-      font-family: inherit;
+      color: var(--on-surface);
+      font-size: 0.875rem;
     }
 
     .form-row {
@@ -186,14 +190,16 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
     }
 
     .ingredients-section {
-      border: 1px solid #e0e0e0;
-      border-radius: 4px;
-      padding: 1rem;
+      background: var(--surface-container-low);
+      border: none;
+      border-radius: var(--radius-xl);
+      padding: 1.25rem;
       margin-bottom: 1rem;
     }
 
     .ingredients-section legend {
       font-weight: 600;
+      color: var(--on-surface);
       padding: 0 0.5rem;
     }
 
@@ -205,16 +211,8 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
       align-items: center;
     }
 
-    .ingredient-row input,
-    .ingredient-row select {
-      padding: 0.375rem;
-      border: 1px solid #ccc;
-      border-radius: 4px;
-      font-size: 0.875rem;
-    }
-
     .error {
-      color: #d32f2f;
+      color: var(--error);
       font-size: 0.75rem;
       margin-top: 0.25rem;
     }
@@ -225,57 +223,18 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
       margin-top: 1.5rem;
     }
 
-    .btn {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      text-decoration: none;
-      font-size: 0.875rem;
-    }
-
-    .btn--primary {
-      background-color: #1976d2;
-      color: white;
-    }
-
-    .btn--primary:hover:not(:disabled) {
-      background-color: #1565c0;
-    }
-
-    .btn--primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    .btn--secondary {
-      background-color: #757575;
-      color: white;
-    }
-
-    .btn--secondary:hover {
-      background-color: #616161;
-    }
-
-    .btn--small {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
-
-    .btn--danger {
-      background-color: #d32f2f;
-      color: white;
-    }
-
     .btn--add {
-      background-color: #e8f5e9;
-      color: #2e7d32;
+      background: var(--primary-container);
+      color: var(--primary);
       margin-top: 0.5rem;
+      border: none;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.15s ease;
     }
 
     .btn--add:hover {
-      background-color: #c8e6c9;
+      filter: brightness(0.92);
     }
   `],
 })

@@ -11,62 +11,136 @@ import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-
   template: `
     <div class="shopping-list">
       <div class="shopping-list__header">
-        <h2>Shopping List</h2>
+        <div>
+          <h1>Shopping List</h1>
+          <p class="shopping-list__subtitle">Everything you need, nothing you do not.</p>
+        </div>
         <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
           {{ generating() ? 'Generating...' : 'Generate from Meal Plan' }}
         </button>
       </div>
 
       @if (shoppingList()) {
-        <p class="shopping-list__info">
+        <p class="shopping-list__info label-text">
           Generated: {{ shoppingList()!.generatedDate | date:'medium' }}
         </p>
 
         @if (shoppingList()!.items.length === 0) {
-          <p class="shopping-list__empty" role="status">
-            All ingredients are already in your pantry. Nothing to buy!
-          </p>
+          <div class="card shopping-list__empty" role="status">
+            <p>All ingredients are already in your pantry. Nothing to buy!</p>
+          </div>
         } @else {
-          <ul class="shopping-list__items" role="list">
-            @for (item of shoppingList()!.items; track $index) {
-              <li class="shopping-list__item" [class.shopping-list__item--checked]="item.checked">
-                <label class="shopping-list__label">
-                  <input
-                    type="checkbox"
-                    [checked]="item.checked"
-                    (change)="toggleItem($index)"
-                    [attr.aria-label]="item.name + ' - ' + item.quantity + ' ' + item.unit"
-                  />
-                  <span class="shopping-list__name">{{ item.name }}</span>
-                  <span class="shopping-list__qty">{{ item.quantity }} {{ item.unit }}</span>
-                </label>
-              </li>
-            }
-          </ul>
+          <div class="card">
+            <ul class="shopping-list__items" role="list">
+              @for (item of shoppingList()!.items; track $index) {
+                <li class="shopping-list__item" [class.shopping-list__item--checked]="item.checked">
+                  <label class="shopping-list__label">
+                    <input
+                      type="checkbox"
+                      [checked]="item.checked"
+                      (change)="toggleItem($index)"
+                      [attr.aria-label]="item.name + ' - ' + item.quantity + ' ' + item.unit"
+                    />
+                    <span class="shopping-list__name">{{ item.name }}</span>
+                    <span class="shopping-list__qty">{{ item.quantity }} {{ item.unit }}</span>
+                  </label>
+                </li>
+              }
+            </ul>
+          </div>
         }
       } @else {
-        <p class="shopping-list__empty" role="status">
-          No shopping list generated yet. Click "Generate from Meal Plan" to create one.
-        </p>
+        <div class="card shopping-list__empty" role="status">
+          <p>No shopping list generated yet. Click "Generate from Meal Plan" to create one.</p>
+        </div>
       }
     </div>
   `,
   styles: [`
-    .shopping-list { max-width: 600px; }
-    .shopping-list__header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-    .shopping-list__info { color: #888; font-size: 0.8125rem; margin-bottom: 1rem; }
-    .shopping-list__empty { text-align: center; padding: 2rem; color: #666; }
-    .shopping-list__items { list-style: none; padding: 0; margin: 0; }
-    .shopping-list__item { padding: 0.75rem; border-bottom: 1px solid #e0e0e0; }
-    .shopping-list__item--checked { opacity: 0.5; }
-    .shopping-list__item--checked .shopping-list__name { text-decoration: line-through; }
-    .shopping-list__label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; }
-    .shopping-list__label input[type="checkbox"] { width: 1.125rem; height: 1.125rem; }
-    .shopping-list__name { flex: 1; font-weight: 500; }
-    .shopping-list__qty { color: #888; font-size: 0.875rem; }
-    .btn { padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; }
-    .btn--primary { background-color: #1976d2; color: white; }
-    .btn--primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .shopping-list {
+      max-width: 640px;
+    }
+
+    .shopping-list__header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 2rem;
+      gap: 1rem;
+    }
+
+    .shopping-list__header h1 {
+      margin-bottom: 0.25rem;
+    }
+
+    .shopping-list__subtitle {
+      color: var(--on-surface-variant);
+      font-size: 1rem;
+    }
+
+    .shopping-list__info {
+      margin-bottom: 1rem;
+    }
+
+    .shopping-list__empty {
+      text-align: center;
+      padding: 3rem var(--spacing-card);
+      color: var(--on-surface-variant);
+    }
+
+    .shopping-list__items {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .shopping-list__item {
+      padding: 0.75rem 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .shopping-list__item + .shopping-list__item {
+      border-top: 1px solid var(--outline-variant);
+    }
+
+    .shopping-list__item--checked {
+      opacity: 0.4;
+    }
+
+    .shopping-list__item--checked .shopping-list__name {
+      text-decoration: line-through;
+    }
+
+    .shopping-list__label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      cursor: pointer;
+    }
+
+    .shopping-list__label input[type="checkbox"] {
+      width: 1.125rem;
+      height: 1.125rem;
+      accent-color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .shopping-list__name {
+      flex: 1;
+      font-weight: 500;
+      color: var(--on-surface);
+    }
+
+    .shopping-list__qty {
+      color: var(--on-surface-variant);
+      font-size: 0.875rem;
+    }
+
+    @media (max-width: 640px) {
+      .shopping-list__header {
+        flex-direction: column;
+      }
+    }
   `],
 })
 export class ShoppingListViewComponent implements OnInit {
