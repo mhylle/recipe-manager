@@ -68,6 +68,24 @@ import { AuthService } from '../../../shared/services/auth.service';
           </div>
         </div>
 
+        <!-- Quick Actions (always visible near the top) -->
+        <div class="recipe-view__quick-actions">
+          <button
+            type="button"
+            class="btn btn--primary"
+            [disabled]="addingToList()"
+            (click)="addToShoppingList()"
+          >
+            {{ addingToList() ? 'Adding...' : 'Add to Shopping List' }}
+          </button>
+          <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
+            Edit
+          </a>
+          <a routerLink="/recipes" class="btn btn--ghost btn--small">
+            All Recipes
+          </a>
+        </div>
+
         <!-- Tags -->
         @if (recipe()!.tags.length > 0) {
           <div class="recipe-view__tags">
@@ -120,40 +138,26 @@ import { AuthService } from '../../../shared/services/auth.service';
           </div>
         }
 
-        <!-- Actions -->
+        <!-- Secondary Actions -->
         <nav class="recipe-view__actions" aria-label="Recipe actions">
           <button
             type="button"
-            class="btn btn--primary"
-            [disabled]="addingToList()"
-            (click)="addToShoppingList()"
-          >
-            {{ addingToList() ? 'Adding...' : 'Add to Shopping List' }}
-          </button>
-          <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost">
-            Edit Recipe
-          </a>
-          <button
-            type="button"
-            class="btn btn--danger"
+            class="btn btn--text btn--small"
             (click)="onDelete()"
             [attr.aria-label]="'Delete ' + recipe()!.name"
           >
-            Delete
+            Delete recipe
           </button>
           @if (authService.isAdmin()) {
             <button
               type="button"
-              class="btn btn--secondary"
+              class="btn btn--text btn--small"
               [disabled]="regenerating()"
               (click)="regenerateImages()"
             >
-              {{ regenerating() ? 'Generating...' : 'Regenerate Images' }}
+              {{ regenerating() ? 'Generating...' : 'Regenerate images' }}
             </button>
           }
-          <a routerLink="/recipes" class="btn btn--outline">
-            Back to Recipes
-          </a>
         </nav>
       </article>
     } @else {
@@ -459,12 +463,21 @@ import { AuthService } from '../../../shared/services/auth.service';
       font-size: 0.875rem;
     }
 
-    /* ===== Actions ===== */
+    /* ===== Quick Actions (below info bar) ===== */
+    .recipe-view__quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 1.25rem 0 0.5rem;
+    }
+
+    /* ===== Secondary Actions (bottom) ===== */
     .recipe-view__actions {
       display: flex;
       gap: 0.75rem;
-      padding-top: 1.5rem;
-      border-top: 1px solid var(--outline-variant);
+      padding-top: 1rem;
+      margin-top: 2rem;
+      opacity: 0.7;
     }
 
     /* ===== Loading ===== */
