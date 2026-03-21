@@ -10,14 +10,15 @@ import { BilkaToGoService } from './bilkatogo.service';
     '(keydown.escape)': 'closed.emit()',
   },
   template: `
-    <div
-      class="dialog-backdrop"
-      (click)="closed.emit()"
-      role="dialog"
-      aria-label="Log in to BilkaToGo"
-      aria-modal="true"
-    >
-      <div class="dialog card" (click)="$event.stopPropagation()">
+    <div class="dialog-backdrop" (click)="closed.emit()">
+      <div
+        class="dialog card"
+        role="dialog"
+        aria-label="Log in to BilkaToGo"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+        (mousedown)="$event.stopPropagation()"
+      >
         <h3>Log in to BilkaToGo</h3>
         <p class="dialog__subtitle">
           Enter your Salling Group credentials to send items to your BilkaToGo basket.
@@ -73,7 +74,7 @@ import { BilkaToGoService } from './bilkatogo.service';
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 100;
+      z-index: 10000;
     }
 
     .dialog {
