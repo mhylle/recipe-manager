@@ -3,6 +3,8 @@ name: Deploy Recipe Manager
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -10,7 +12,32 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Backend tests
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm test
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+          npm test
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -79,20 +106,24 @@ jobs:
           FRONTEND_IMAGE: ${{ needs.build.outputs.frontend-image }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_ACTOR: ${{ github.actor }}
+          # Secrets sourced from GitHub Secrets (NOT server .env). The server's
+          # .env file historically held a password with `/` and `==` chars that
+          # broke Prisma's DATABASE_URL parsing (P1013). Sourcing from GH
+          # secrets + URL-safe password closes that. Phase 1 alignment too —
+          # see SECURITY-HARDENING-PLAN.md.
+          RECIPE_MANAGER_DB_PASSWORD: ${{ secrets.RECIPE_MANAGER_DB_PASSWORD }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,GH_TOKEN,GH_ACTOR
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY
           script: |
+            set -e
             echo "=== Deploying Recipe Manager ==="
             echo "Backend: $BACKEND_IMAGE"
             echo "Frontend: $FRONTEND_IMAGE"
-
-            # Load server environment (contains DB passwords)
-            cd /home/mhylle/projects/mhylle.com
-            source .env
 
             # Login to GHCR
             echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
@@ -113,12 +144,18 @@ jobs:
               --name recipe-manager-backend \
               --network mhylle_app-network \
               --restart unless-stopped \
+              -e NODE_ENV=production \
               -e DATABASE_URL="postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db" \
               -e CORS_ORIGIN="https://mhylle.com" \
               -e PORT=3000 \
               -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
+              --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \
+              --health-interval=30s \
+              --health-timeout=10s \
+              --health-retries=3 \
+              --health-start-period=60s \
               "$BACKEND_IMAGE"
 
             # Start frontend
@@ -126,13 +163,19 @@ jobs:
               --name recipe-manager-frontend \
               --network mhylle_app-network \
               --restart unless-stopped \
+              -e NODE_ENV=production \
               -p 127.0.0.1:3007:80 \
+              --health-cmd="curl -sf http://localhost/health || exit 1" \
+              --health-interval=30s \
+              --health-timeout=10s \
+              --health-retries=3 \
+              --health-start-period=30s \
               "$FRONTEND_IMAGE"
 
             # Wait for backend health
             echo "Waiting for backend to be healthy..."
             for i in $(seq 1 30); do
-              if curl -sf http://localhost:8006/api > /dev/null 2>&1; then
+              if curl -sf http://localhost:8006/api/health > /dev/null 2>&1; then
                 echo "Backend is healthy!"
                 break
               fi
@@ -147,7 +190,7 @@ jobs:
             # Wait for frontend health
             echo "Waiting for frontend to be healthy..."
             for i in $(seq 1 15); do
-              if curl -sf http://localhost:3007/ > /dev/null 2>&1; then
+              if curl -sf http://localhost:3007/health > /dev/null 2>&1; then
                 echo "Frontend is healthy!"
                 break
               fi
@@ -166,8 +209,20 @@ jobs:
             echo "Frontend: https://mhylle.com/recipe-manager/"
             echo "API: https://mhylle.com/api/recipe-manager/api"
 
+      - name: Verify deployment
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_PORT }}
+          script: |
+            sleep 15
+            curl -f -s https://mhylle.com/recipe-manager/ > /dev/null && echo "Frontend accessible" || echo "Frontend check failed"
+            curl -f -s https://mhylle.com/api/recipe-manager/api/health > /dev/null && echo "API accessible" || echo "API check failed"
+
   notify:
-    needs: [build, deploy]
+    needs: [test, build, deploy]
     runs-on: ubuntu-latest
     if: always()
     steps:
