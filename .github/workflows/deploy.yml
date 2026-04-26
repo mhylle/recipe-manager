@@ -118,7 +118,7 @@ jobs:
               -e PORT=3000 \
               -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
-              -p 8006:3000 \
+              -p 127.0.0.1:8006:3000 \
               "$BACKEND_IMAGE"
 
             # Start frontend
@@ -126,7 +126,7 @@ jobs:
               --name recipe-manager-frontend \
               --network mhylle_app-network \
               --restart unless-stopped \
-              -p 3007:80 \
+              -p 127.0.0.1:3007:80 \
               "$FRONTEND_IMAGE"
 
             # Wait for backend health
