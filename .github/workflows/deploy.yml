@@ -197,7 +197,7 @@ jobs:
             curl -f -s https://mhylle.com/api/recipe-manager/api/health > /dev/null && echo "API accessible" || echo "API check failed"
 
   notify:
-    needs: [test, build, deploy]
+    needs: [build, deploy]
     runs-on: ubuntu-latest
     if: always()
     steps:
