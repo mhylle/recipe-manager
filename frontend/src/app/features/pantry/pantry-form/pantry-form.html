@@ -1,0 +1,119 @@
+<div class="pantry-form">
+  <h1>{{ (isEditMode() ? 'pantry.form.titleEdit' : 'pantry.form.titleAdd') | t }}</h1>
+
+  <div class="card pantry-form__card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <!-- Which language the name field below belongs to. -->
+      <div class="lang-tabs" role="tablist" [attr.aria-label]="'recipe.form.languageTabs' | t">
+        @for (option of locales; track option.code) {
+          <button
+            type="button"
+            role="tab"
+            class="lang-tab"
+            [class.lang-tab--active]="editingLocale() === option.code"
+            [attr.aria-selected]="editingLocale() === option.code"
+            (click)="switchLocale(option.code)"
+          >
+            {{ option.label }}
+            @if (isMissing(option.code)) {
+              <span class="lang-tab__badge" [attr.title]="'recipe.form.missingTranslation' | t">&bull;</span>
+            }
+          </button>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="name" class="form-label">{{ 'pantry.form.name' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <input
+          id="name"
+          type="text"
+          class="input"
+          formControlName="name"
+          (input)="onNameInput()"
+          [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+          aria-required="true"
+        />
+        @if (form.controls.name.invalid && form.controls.name.touched) {
+          <p class="form-error" role="alert">{{ 'pantry.form.nameRequired' | t }}</p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="quantity" class="form-label">{{ 'pantry.form.quantity' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <input
+          id="quantity"
+          type="number"
+          class="input"
+          formControlName="quantity"
+          min="0"
+          [attr.aria-invalid]="form.controls.quantity.invalid && form.controls.quantity.touched"
+          aria-required="true"
+        />
+        @if (form.controls.quantity.invalid && form.controls.quantity.touched) {
+          <p class="form-error" role="alert">
+            @if (form.controls.quantity.errors?.['required']) {
+              {{ 'pantry.form.quantityRequired' | t }}
+            } @else if (form.controls.quantity.errors?.['min']) {
+              {{ 'pantry.form.quantityMin' | t }}
+            }
+          </p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="unit" class="form-label">{{ 'pantry.form.unit' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <select
+          id="unit"
+          class="input"
+          formControlName="unit"
+          [attr.aria-invalid]="form.controls.unit.invalid && form.controls.unit.touched"
+          aria-required="true"
+        >
+          <option value="" disabled>{{ 'pantry.form.unitPlaceholder' | t }}</option>
+          @for (unit of unitOptions; track unit) {
+            <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+          }
+        </select>
+        @if (form.controls.unit.invalid && form.controls.unit.touched) {
+          <p class="form-error" role="alert">{{ 'pantry.form.unitRequired' | t }}</p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="category" class="form-label">{{ 'pantry.form.category' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <select
+          id="category"
+          class="input"
+          formControlName="category"
+          [attr.aria-invalid]="form.controls.category.invalid && form.controls.category.touched"
+          aria-required="true"
+        >
+          <option value="" disabled>{{ 'pantry.form.categoryPlaceholder' | t }}</option>
+          @for (cat of categoryOptions; track cat) {
+            <option [value]="cat">{{ cat | enumLabel: 'pantryCategory' }}</option>
+          }
+        </select>
+        @if (form.controls.category.invalid && form.controls.category.touched) {
+          <p class="form-error" role="alert">{{ 'pantry.form.categoryRequired' | t }}</p>
+        }
+      </div>
+
+      <div class="form-group">
+        <label for="barcode" class="form-label">{{ 'pantry.form.barcode' | t }}</label>
+        <input id="barcode" type="text" class="input" formControlName="barcode" />
+      </div>
+
+      <div class="form-group">
+        <label for="expiryDate" class="form-label">{{ 'pantry.form.expiryDate' | t }}</label>
+        <input id="expiryDate" type="date" class="input" formControlName="expiryDate" />
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
+          {{ (isEditMode() ? 'common.actions.update' : 'common.actions.create') | t }}
+        </button>
+        <a routerLink="/pantry" class="btn btn--ghost">{{ 'common.actions.cancel' | t }}</a>
+      </div>
+    </form>
+  </div>
+</div>

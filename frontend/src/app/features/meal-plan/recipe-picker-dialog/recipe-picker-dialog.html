@@ -1,0 +1,22 @@
+<div class="dialog-backdrop" (click)="close()" (keydown.escape)="close()" role="dialog" [attr.aria-label]="'mealPlan.picker.dialogLabel' | t">
+  <div class="dialog card" (click)="$event.stopPropagation()">
+    <h3>{{ 'mealPlan.picker.title' | t }}</h3>
+    @if (recipes().length === 0) {
+      <p class="dialog__empty">{{ 'mealPlan.picker.empty' | t }}</p>
+    } @else {
+      <ul class="recipe-picker__list" role="listbox">
+        @for (recipe of recipes(); track recipe.id) {
+          <li role="option">
+            <button type="button" class="recipe-picker__item" (click)="selectRecipe(recipe)">
+              <span class="recipe-picker__name">{{ recipe.name }}</span>
+              <span class="recipe-picker__meta">{{ 'mealPlan.picker.meta' | t: { minutes: recipe.prepTime + recipe.cookTime, servings: recipe.servings } }}</span>
+            </button>
+          </li>
+        }
+      </ul>
+    }
+    <div class="dialog__actions">
+      <button type="button" class="btn btn--ghost" (click)="close()">{{ 'common.actions.cancel' | t }}</button>
+    </div>
+  </div>
+</div>

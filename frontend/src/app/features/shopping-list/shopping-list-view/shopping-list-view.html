@@ -1,0 +1,73 @@
+<div class="shopping-list">
+  <div class="shopping-list__header">
+    <div>
+      <h1>{{ 'shoppingList.title' | t }}</h1>
+      <p class="shopping-list__subtitle">{{ 'shoppingList.subtitle' | t }}</p>
+    </div>
+    <div class="shopping-list__actions">
+      @if (shoppingList() && hasUncheckedItems()) {
+        <button
+          type="button"
+          class="btn btn--secondary"
+          (click)="sendToBilkatogo()"
+          [disabled]="sendingToBilkatogo()"
+          [attr.aria-label]="'shoppingList.sendToBilkatogoLabel' | t"
+        >
+          {{ (sendingToBilkatogo() ? 'shoppingList.sending' : 'shoppingList.sendToBilkatogo') | t }}
+        </button>
+      }
+      <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
+        {{ (generating() ? 'shoppingList.generating' : 'shoppingList.generate') | t }}
+      </button>
+    </div>
+  </div>
+
+  @if (shoppingList()) {
+    <p class="shopping-list__info label-text">
+      {{ 'shoppingList.generatedOn' | t: { date: (shoppingList()!.generatedDate | localeDate: 'long') } }}
+    </p>
+
+    @if (shoppingList()!.items.length === 0) {
+      <div class="card shopping-list__empty" role="status">
+        <p>{{ 'shoppingList.empty.nothingToBuy' | t }}</p>
+      </div>
+    } @else {
+      <div class="card">
+        <ul class="shopping-list__items" role="list">
+          @for (item of shoppingList()!.items; track $index) {
+            <li class="shopping-list__item" [class.shopping-list__item--checked]="item.checked">
+              <label class="shopping-list__label">
+                <input
+                  type="checkbox"
+                  [checked]="item.checked"
+                  (change)="toggleItem($index)"
+                  [attr.aria-label]="'shoppingList.itemLabel' | t: { name: item.name, quantity: item.quantity, unit: unitLabel(item.unit) }"
+                />
+                <span class="shopping-list__name">{{ item.name }}</span>
+                <span class="shopping-list__qty">{{ item.quantity | localeNumber }} {{ item.unit | enumLabel: 'unit' }}</span>
+              </label>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  } @else {
+    <div class="card shopping-list__empty" role="status">
+      <p>{{ 'shoppingList.empty.none' | t }}</p>
+    </div>
+  }
+</div>
+
+@if (showLoginDialog()) {
+  <app-bilkatogo-login-dialog
+    (loginSuccess)="onBilkatogoLoginSuccess($event)"
+    (closed)="showLoginDialog.set(false)"
+  />
+}
+
+@if (showResultsDialog() && bilkatogoResult()) {
+  <app-bilkatogo-results-dialog
+    [result]="bilkatogoResult()!"
+    (closed)="showResultsDialog.set(false)"
+  />
+}

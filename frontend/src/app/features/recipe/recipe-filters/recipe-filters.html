@@ -1,0 +1,56 @@
+<div class="recipe-filters">
+  <div class="chip-groups">
+    <div class="chip-group" role="group" [attr.aria-label]="'recipe.filters.cuisineGroup' | t">
+      <span class="chip-group__label label-text">{{ 'recipe.filters.cuisineLabel' | t }}</span>
+      @for (option of cuisineOptions; track option.value) {
+        <button type="button" class="chip"
+          [class.chip--active]="activeCuisines().has(option.value)"
+          [attr.aria-pressed]="activeCuisines().has(option.value)"
+          (click)="toggleCuisine(option.value)">{{ option.labelKey | t }}</button>
+      }
+    </div>
+    <div class="chip-group" role="group" [attr.aria-label]="'recipe.filters.proteinGroup' | t">
+      <span class="chip-group__label label-text">{{ 'recipe.filters.proteinLabel' | t }}</span>
+      @for (option of proteinOptions; track option.value) {
+        <button type="button" class="chip"
+          [class.chip--active]="activeProteins().has(option.value)"
+          [attr.aria-pressed]="activeProteins().has(option.value)"
+          (click)="toggleProtein(option.value)">{{ option.labelKey | t }}</button>
+      }
+    </div>
+    <div class="chip-group" role="group" [attr.aria-label]="'recipe.filters.courseGroup' | t">
+      <span class="chip-group__label label-text">{{ 'recipe.filters.courseLabel' | t }}</span>
+      @for (option of courseOptions; track option.value) {
+        <button type="button" class="chip"
+          [class.chip--active]="activeCourses().has(option.value)"
+          [attr.aria-pressed]="activeCourses().has(option.value)"
+          (click)="toggleCourse(option.value)">{{ option.labelKey | t }}</button>
+      }
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <div class="filter-group">
+      <label class="label-text" for="search">{{ 'recipe.filters.search' | t }}</label>
+      <input id="search" type="text" class="input" [formControl]="searchControl" [attr.placeholder]="'recipe.filters.searchPlaceholder' | t" (input)="emitFilters()" />
+    </div>
+    <div class="filter-group">
+      <label class="label-text" for="difficulty">{{ 'recipe.filters.difficulty' | t }}</label>
+      <select id="difficulty" class="input" [formControl]="difficultyControl" (change)="emitFilters()">
+        <option value="">{{ 'common.actions.all' | t }}</option>
+        @for (d of difficultyOptions; track d) {
+          <option [value]="d">{{ d | enumLabel: 'difficulty' }}</option>
+        }
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="label-text" for="maxPrep">{{ 'recipe.filters.maxPrep' | t }}</label>
+      <input id="maxPrep" type="number" class="input" [formControl]="maxPrepControl" min="0" [attr.placeholder]="'recipe.filters.maxPrepPlaceholder' | t" (input)="emitFilters()" />
+    </div>
+    <div class="filter-group">
+      <label class="label-text" for="tags">{{ 'recipe.filters.tags' | t }}</label>
+      <input id="tags" type="text" class="input" [formControl]="tagsControl" [attr.placeholder]="'recipe.filters.tagsPlaceholder' | t" (input)="emitFilters()" />
+    </div>
+    <button type="button" class="btn btn--ghost btn--small" (click)="resetFilters()">{{ 'common.actions.reset' | t }}</button>
+  </div>
+</div>

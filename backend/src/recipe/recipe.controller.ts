@@ -14,14 +14,20 @@ import { CreateRecipeDto } from './dto/create-recipe.dto.js';
 import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
+import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
+import type { Locale } from '../shared/i18n/locale.js';
+import type { RecipeTranslationInput } from './recipe.repository.js';
 
 @Controller('recipes')
 export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
 
   @Post()
-  async create(@Body() dto: CreateRecipeDto): Promise<Recipe> {
-    return this.recipeService.create(dto);
+  async create(
+    @Body() dto: CreateRecipeDto & { translations?: RecipeTranslationInput[] },
+    @ReqLocale() locale: Locale,
+  ): Promise<Recipe> {
+    return this.recipeService.create(dto, locale, dto.translations);
   }
 
   @Get()
@@ -31,6 +37,7 @@ export class RecipeController {
     @Query('maxPrepTime') maxPrepTime?: string,
     @Query('maxCookTime') maxCookTime?: string,
     @Query('tags') tags?: string,
+    @ReqLocale() locale: Locale = 'en',
   ): Promise<Recipe[]> {
     const filters: RecipeSearchFilters = {};
     if (query) filters.query = query;
@@ -41,20 +48,31 @@ export class RecipeController {
 
     return this.recipeService.findAll(
       Object.keys(filters).length > 0 ? filters : undefined,
+      locale,
     );
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<Recipe> {
-    return this.recipeService.findById(id);
+  async findById(
+    @Param('id') id: string,
+    @ReqLocale() locale: Locale,
+  ): Promise<Recipe> {
+    return this.recipeService.findById(id, locale);
+  }
+
+  /** Every stored language for a recipe — powers the per-language editing UI. */
+  @Get(':id/translations')
+  async findTranslations(@Param('id') id: string): Promise<RecipeTranslationInput[]> {
+    return this.recipeService.findAllTranslations(id);
   }
 
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() dto: UpdateRecipeDto,
+    @Body() dto: UpdateRecipeDto & { translations?: RecipeTranslationInput[] },
+    @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
-    return this.recipeService.update(id, dto);
+    return this.recipeService.update(id, dto, locale, dto.translations);
   }
 
   @Delete(':id')

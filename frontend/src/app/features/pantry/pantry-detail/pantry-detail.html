@@ -1,0 +1,46 @@
+@if (item()) {
+  <div class="pantry-detail">
+    <h1>{{ item()!.name }}</h1>
+
+    <div class="card pantry-detail__card">
+      <dl class="detail-list">
+        <dt class="label-text">{{ 'pantry.detail.quantity' | t }}</dt>
+        <dd>{{ item()!.quantity | localeNumber }} {{ item()!.unit | enumLabel: 'unit' }}</dd>
+
+        <dt class="label-text">{{ 'pantry.detail.category' | t }}</dt>
+        <dd>{{ item()!.category | enumLabel: 'pantryCategory' }}</dd>
+
+        @if (item()!.barcode) {
+          <dt class="label-text">{{ 'pantry.detail.barcode' | t }}</dt>
+          <dd>{{ item()!.barcode }}</dd>
+        }
+
+        @if (item()!.expiryDate) {
+          <dt class="label-text">{{ 'pantry.detail.expiryDate' | t }}</dt>
+          <dd>{{ item()!.expiryDate | localeDate }}</dd>
+        }
+
+        <dt class="label-text">{{ 'pantry.detail.added' | t }}</dt>
+        <dd>{{ item()!.addedDate | localeDate }}</dd>
+
+        <dt class="label-text">{{ 'pantry.detail.lastUpdated' | t }}</dt>
+        <dd>{{ item()!.lastUpdated | localeDate }}</dd>
+      </dl>
+    </div>
+
+    <div class="detail-actions">
+      <a [routerLink]="['/pantry', item()!.id, 'edit']" class="btn btn--primary">{{ 'common.actions.edit' | t }}</a>
+      <button
+        type="button"
+        class="btn btn--danger"
+        (click)="onDelete()"
+        [attr.aria-label]="'common.actions.deleteNamed' | t: { name: item()!.name }"
+      >
+        {{ 'common.actions.delete' | t }}
+      </button>
+      <a routerLink="/pantry" class="btn btn--ghost">{{ 'pantry.detail.backToList' | t }}</a>
+    </div>
+  </div>
+} @else {
+  <p role="status">{{ 'pantry.detail.loading' | t }}</p>
+}

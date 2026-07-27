@@ -1,5 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ShoppingListService } from '../shopping-list.service';
 import { MealPlanService } from '../../meal-plan/meal-plan.service';
@@ -8,188 +7,35 @@ import { BilkaToGoLoginDialogComponent } from '../bilkatogo/bilkatogo-login-dial
 import { BilkaToGoResultsDialogComponent } from '../bilkatogo/bilkatogo-results-dialog';
 import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-list.model';
 import { BilkaToGoSendResult } from '../../../shared/models/bilkatogo.model';
+import { Unit } from '../../../shared/enums/unit.enum';
+import {
+  EnumLabelPipe,
+  LocaleDatePipe,
+  LocaleNumberPipe,
+  LocaleService,
+  TranslatePipe,
+  reloadOnLocaleChange,
+} from '../../../shared/i18n';
 
 @Component({
   selector: 'app-shopping-list-view',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, BilkaToGoLoginDialogComponent, BilkaToGoResultsDialogComponent],
-  template: `
-    <div class="shopping-list">
-      <div class="shopping-list__header">
-        <div>
-          <h1>Shopping List</h1>
-          <p class="shopping-list__subtitle">Everything you need, nothing you do not.</p>
-        </div>
-        <div class="shopping-list__actions">
-          @if (shoppingList() && hasUncheckedItems()) {
-            <button
-              type="button"
-              class="btn btn--secondary"
-              (click)="sendToBilkatogo()"
-              [disabled]="sendingToBilkatogo()"
-              aria-label="Send unchecked items to BilkaToGo basket"
-            >
-              {{ sendingToBilkatogo() ? 'Sending...' : 'Send to BilkaToGo' }}
-            </button>
-          }
-          <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
-            {{ generating() ? 'Generating...' : 'Generate from Meal Plan' }}
-          </button>
-        </div>
-      </div>
-
-      @if (shoppingList()) {
-        <p class="shopping-list__info label-text">
-          Generated: {{ shoppingList()!.generatedDate | date:'medium' }}
-        </p>
-
-        @if (shoppingList()!.items.length === 0) {
-          <div class="card shopping-list__empty" role="status">
-            <p>All ingredients are already in your pantry. Nothing to buy!</p>
-          </div>
-        } @else {
-          <div class="card">
-            <ul class="shopping-list__items" role="list">
-              @for (item of shoppingList()!.items; track $index) {
-                <li class="shopping-list__item" [class.shopping-list__item--checked]="item.checked">
-                  <label class="shopping-list__label">
-                    <input
-                      type="checkbox"
-                      [checked]="item.checked"
-                      (change)="toggleItem($index)"
-                      [attr.aria-label]="item.name + ' - ' + item.quantity + ' ' + item.unit"
-                    />
-                    <span class="shopping-list__name">{{ item.name }}</span>
-                    <span class="shopping-list__qty">{{ item.quantity }} {{ item.unit }}</span>
-                  </label>
-                </li>
-              }
-            </ul>
-          </div>
-        }
-      } @else {
-        <div class="card shopping-list__empty" role="status">
-          <p>No shopping list generated yet. Click "Generate from Meal Plan" to create one.</p>
-        </div>
-      }
-    </div>
-
-    @if (showLoginDialog()) {
-      <app-bilkatogo-login-dialog
-        (loginSuccess)="onBilkatogoLoginSuccess($event)"
-        (closed)="showLoginDialog.set(false)"
-      />
-    }
-
-    @if (showResultsDialog() && bilkatogoResult()) {
-      <app-bilkatogo-results-dialog
-        [result]="bilkatogoResult()!"
-        (closed)="showResultsDialog.set(false)"
-      />
-    }
-  `,
-  styles: [`
-    .shopping-list {
-      max-width: 640px;
-    }
-
-    .shopping-list__header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 2rem;
-      gap: 1rem;
-    }
-
-    .shopping-list__header h1 {
-      margin-bottom: 0.25rem;
-    }
-
-    .shopping-list__subtitle {
-      color: var(--on-surface-variant);
-      font-size: 1rem;
-    }
-
-    .shopping-list__info {
-      margin-bottom: 1rem;
-    }
-
-    .shopping-list__empty {
-      text-align: center;
-      padding: 3rem var(--spacing-card);
-      color: var(--on-surface-variant);
-    }
-
-    .shopping-list__items {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-    }
-
-    .shopping-list__item {
-      padding: 0.75rem 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .shopping-list__item + .shopping-list__item {
-      border-top: 1px solid var(--outline-variant);
-    }
-
-    .shopping-list__item--checked {
-      opacity: 0.4;
-    }
-
-    .shopping-list__item--checked .shopping-list__name {
-      text-decoration: line-through;
-    }
-
-    .shopping-list__label {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      cursor: pointer;
-    }
-
-    .shopping-list__label input[type="checkbox"] {
-      width: 1.125rem;
-      height: 1.125rem;
-      accent-color: var(--primary);
-      flex-shrink: 0;
-    }
-
-    .shopping-list__name {
-      flex: 1;
-      font-weight: 500;
-      color: var(--on-surface);
-    }
-
-    .shopping-list__qty {
-      color: var(--on-surface-variant);
-      font-size: 0.875rem;
-    }
-
-    .shopping-list__actions {
-      display: flex;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    @media (max-width: 640px) {
-      .shopping-list__header {
-        flex-direction: column;
-      }
-
-      .shopping-list__actions {
-        flex-direction: column;
-        width: 100%;
-      }
-    }
-  `],
+  imports: [
+    BilkaToGoLoginDialogComponent,
+    BilkaToGoResultsDialogComponent,
+    TranslatePipe,
+    EnumLabelPipe,
+    LocaleDatePipe,
+    LocaleNumberPipe,
+  ],
+  templateUrl: './shopping-list-view.html',
+  styleUrl: './shopping-list-view.scss',
 })
-export class ShoppingListViewComponent implements OnInit {
+export class ShoppingListViewComponent {
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly mealPlanService = inject(MealPlanService);
   private readonly bilkaToGoService = inject(BilkaToGoService);
+  private readonly locale = inject(LocaleService);
   private readonly route = inject(ActivatedRoute);
 
   readonly shoppingList = signal<ShoppingList | null>(null);
@@ -205,9 +51,17 @@ export class ShoppingListViewComponent implements OnInit {
     return list !== null && list.items.some((item) => !item.checked);
   });
 
+  /** Translated unit, for feeding into the checkbox's parameterised aria-label. */
+  unitLabel(unit: Unit): string {
+    return this.locale.translate(`enum.unit.${unit}`);
+  }
+
   private currentMealPlanId = '';
 
-  ngOnInit(): void {
+  // Re-fetches on every language switch; item names are localised server-side.
+  private readonly reload = reloadOnLocaleChange(() => this.loadList());
+
+  private loadList(): void {
     // If navigated with a list ID (e.g. from recipe detail), load it
     const listId = this.route.snapshot.queryParamMap.get('id');
     if (listId) {
@@ -271,7 +125,7 @@ export class ShoppingListViewComponent implements OnInit {
       },
       error: () => {
         this.sendingToBilkatogo.set(false);
-        alert('Failed to send items to BilkaToGo. Please try again.');
+        alert(this.locale.translate('shoppingList.sendFailed'));
       },
     });
   }

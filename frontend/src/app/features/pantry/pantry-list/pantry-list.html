@@ -1,0 +1,49 @@
+<div class="pantry-list">
+  <div class="pantry-list__header">
+    <div>
+      <h1>{{ 'pantry.list.title' | t }}</h1>
+      <p class="pantry-list__subtitle">{{ 'pantry.list.subtitle' | t }}</p>
+    </div>
+    <a routerLink="/pantry/new" class="btn btn--primary">{{ 'pantry.list.add' | t }}</a>
+  </div>
+
+  <app-pantry-filters (filtersChanged)="onFiltersChanged($event)" />
+
+  @if (items().length === 0) {
+    <div class="card pantry-list__empty" role="status">
+      <p>{{ (hasActiveFilters() ? 'pantry.list.empty.filtered' : 'pantry.list.empty.none') | t }}</p>
+    </div>
+  } @else {
+    @for (entry of groupedItems() | keyvalue; track entry.key) {
+      <section class="pantry-list__category">
+        <h3 class="pantry-list__category-heading">
+          <span class="pantry-list__category-dot"></span>
+          {{ entry.key | enumLabel: 'pantryCategory' }}
+        </h3>
+        <div class="card">
+          @for (item of entry.value; track item.id) {
+            <div class="pantry-list__row">
+              <a [routerLink]="['/pantry', item.id]" class="pantry-list__name">{{ item.name }}</a>
+              <span class="pantry-list__qty">{{ item.quantity | localeNumber }} {{ item.unit | enumLabel: 'unit' }}</span>
+              <span class="pantry-list__expiry">
+                @if (item.expiryDate) {
+                  @switch (item.expiryDate | expiryStatus) {
+                    @case ('expired') { <span class="expiry-badge expiry-badge--expired" role="status">{{ 'pantry.expiry.expired' | t }}</span> }
+                    @case ('expiring-soon') { <span class="expiry-badge expiry-badge--expiring-soon" role="status">{{ 'pantry.expiry.expiringSoon' | t }}</span> }
+                    @case ('fresh') { <span class="expiry-badge expiry-badge--fresh" role="status">{{ item.expiryDate | localeDate: 'short' }}</span> }
+                  }
+                } @else {
+                  <span class="expiry-badge expiry-badge--none">&mdash;</span>
+                }
+              </span>
+              <div class="pantry-list__actions">
+                <a [routerLink]="['/pantry', item.id, 'edit']" class="btn btn--small btn--ghost">{{ 'common.actions.edit' | t }}</a>
+                <button type="button" class="btn btn--small btn--text" (click)="onDelete(item)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: item.name }">{{ 'common.actions.delete' | t }}</button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  }
+</div>

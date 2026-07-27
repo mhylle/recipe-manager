@@ -5,246 +5,60 @@ import { RecipeService } from '../recipe.service';
 import { Unit } from '../../../shared/enums/unit.enum';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
 import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
+import { EnumLabelPipe, LOCALES, LocaleService, TranslatePipe } from '../../../shared/i18n';
+import type { Locale } from '../../../shared/i18n';
+import { RecipeTranslation } from '../../../shared/models/translation.model';
+
+/** The prose fields of the form, for one language. */
+interface LocalisedDraft {
+  name: string;
+  description: string;
+  instructions: string;
+  ingredientNames: string[];
+}
+
+const EMPTY_DRAFT: LocalisedDraft = {
+  name: '',
+  description: '',
+  instructions: '',
+  ingredientNames: [],
+};
 
 @Component({
   selector: 'app-recipe-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="recipe-form">
-      <h2>{{ isEditMode() ? 'Edit Recipe' : 'Add Recipe' }}</h2>
-
-      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-        <div class="form-group">
-          <label for="name">Name <span aria-hidden="true">*</span></label>
-          <input
-            id="name"
-            type="text"
-            class="input"
-            formControlName="name"
-            [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
-            aria-required="true"
-          />
-          @if (form.controls.name.invalid && form.controls.name.touched) {
-            <p class="error" role="alert">Name is required.</p>
-          }
-        </div>
-
-        <div class="form-group">
-          <label for="description">Description <span aria-hidden="true">*</span></label>
-          <textarea
-            id="description"
-            class="input"
-            formControlName="description"
-            rows="3"
-            [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
-            aria-required="true"
-          ></textarea>
-          @if (form.controls.description.invalid && form.controls.description.touched) {
-            <p class="error" role="alert">Description is required.</p>
-          }
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="servings">Servings <span aria-hidden="true">*</span></label>
-            <input
-              id="servings"
-              type="number"
-              class="input"
-              formControlName="servings"
-              min="1"
-              aria-required="true"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="prepTime">Prep Time (min) <span aria-hidden="true">*</span></label>
-            <input
-              id="prepTime"
-              type="number"
-              class="input"
-              formControlName="prepTime"
-              min="0"
-              aria-required="true"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="cookTime">Cook Time (min) <span aria-hidden="true">*</span></label>
-            <input
-              id="cookTime"
-              type="number"
-              class="input"
-              formControlName="cookTime"
-              min="0"
-              aria-required="true"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="difficulty">Difficulty <span aria-hidden="true">*</span></label>
-            <select id="difficulty" class="input" formControlName="difficulty" aria-required="true">
-              <option value="" disabled>Select difficulty</option>
-              @for (diff of difficultyOptions; track diff) {
-                <option [value]="diff">{{ diff }}</option>
-              }
-            </select>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="tags">Tags (comma-separated)</label>
-          <input id="tags" type="text" class="input" formControlName="tags" placeholder="e.g. breakfast, quick, italian" />
-        </div>
-
-        <fieldset class="ingredients-section">
-          <legend>Ingredients <span aria-hidden="true">*</span></legend>
-          <div formArrayName="ingredients">
-            @for (ingredient of ingredientsArray.controls; track $index; let i = $index) {
-              <div class="ingredient-row" [formGroupName]="i">
-                <input type="text" class="input" formControlName="name" placeholder="Ingredient name" [attr.aria-label]="'Ingredient ' + (i + 1) + ' name'" />
-                <input type="number" class="input" formControlName="quantity" placeholder="Qty" min="0" [attr.aria-label]="'Ingredient ' + (i + 1) + ' quantity'" />
-                <select class="input" formControlName="unit" [attr.aria-label]="'Ingredient ' + (i + 1) + ' unit'">
-                  @for (unit of unitOptions; track unit) {
-                    <option [value]="unit">{{ unit }}</option>
-                  }
-                </select>
-                <select class="input" formControlName="pantryCategory" [attr.aria-label]="'Ingredient ' + (i + 1) + ' category'">
-                  @for (cat of categoryOptions; track cat) {
-                    <option [value]="cat">{{ cat }}</option>
-                  }
-                </select>
-                <button
-                  type="button"
-                  class="btn btn--small btn--danger"
-                  (click)="removeIngredient(i)"
-                  [attr.aria-label]="'Remove ingredient ' + (i + 1)"
-                >
-                  Remove
-                </button>
-              </div>
-            }
-          </div>
-          <button type="button" class="btn btn--small btn--add" (click)="addIngredient()">
-            + Add Ingredient
-          </button>
-        </fieldset>
-
-        <div class="form-group">
-          <label for="instructions">Instructions (one per line) <span aria-hidden="true">*</span></label>
-          <textarea
-            id="instructions"
-            class="input"
-            formControlName="instructions"
-            rows="6"
-            placeholder="Step 1&#10;Step 2&#10;Step 3"
-            aria-required="true"
-          ></textarea>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
-            {{ isEditMode() ? 'Update' : 'Create' }}
-          </button>
-          <a routerLink="/recipes" class="btn btn--ghost">Cancel</a>
-        </div>
-      </form>
-    </div>
-  `,
-  styles: [`
-    .recipe-form {
-      max-width: 700px;
-    }
-
-    .recipe-form h2 {
-      font-family: var(--font-display);
-      font-size: 1.75rem;
-      font-weight: 400;
-      color: var(--on-surface);
-      margin: 0 0 1.5rem;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label,
-    .form-group legend {
-      display: block;
-      margin-bottom: 0.375rem;
-      font-weight: 500;
-      color: var(--on-surface);
-      font-size: 0.875rem;
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .form-row .form-group {
-      margin-bottom: 0;
-    }
-
-    .ingredients-section {
-      background: var(--surface-container-low);
-      border: none;
-      border-radius: var(--radius-xl);
-      padding: 1.25rem;
-      margin-bottom: 1rem;
-    }
-
-    .ingredients-section legend {
-      font-weight: 600;
-      color: var(--on-surface);
-      padding: 0 0.5rem;
-    }
-
-    .ingredient-row {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr auto;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-      align-items: center;
-    }
-
-    .error {
-      color: var(--error);
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 1.5rem;
-    }
-
-    .btn--add {
-      background: var(--primary-container);
-      color: var(--primary);
-      margin-top: 0.5rem;
-      border: none;
-      border-radius: var(--radius-full);
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-
-    .btn--add:hover {
-      filter: brightness(0.92);
-    }
-  `],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, EnumLabelPipe],
+  templateUrl: './recipe-form.html',
+  styleUrl: './recipe-form.scss',
 })
 export class RecipeFormComponent implements OnInit {
   private readonly recipeService = inject(RecipeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
+  private readonly localeService = inject(LocaleService);
+
   readonly isEditMode = signal(false);
   private editId = '';
+
+  readonly locales = LOCALES;
+
+  /**
+   * Which language's text the prose fields currently hold. Starts on the UI
+   * language, but is independent of it — you can read the UI in English while
+   * writing the Danish version.
+   */
+  readonly editingLocale = signal<Locale>(this.localeService.locale());
+
+  /**
+   * Text for the languages NOT currently in the form. The visible fields are the
+   * live copy for `editingLocale`; switching tabs stashes them here and loads the
+   * other language's text.
+   */
+  private readonly drafts = new Map<Locale, LocalisedDraft>();
+
+  /** Locales with no name entered yet — surfaced so gaps are visible, not silent. */
+  readonly missingLocales = signal<readonly Locale[]>([]);
 
   readonly unitOptions = Object.values(Unit);
   readonly difficultyOptions = Object.values(Difficulty);
@@ -273,25 +87,93 @@ export class RecipeFormComponent implements OnInit {
       this.editId = id;
       this.recipeService.getById(id).subscribe((recipe) => {
         this.form.patchValue({
-          name: recipe.name,
-          description: recipe.description,
           servings: recipe.servings,
           prepTime: recipe.prepTime,
           cookTime: recipe.cookTime,
           difficulty: recipe.difficulty,
           tags: recipe.tags.join(', '),
-          instructions: recipe.instructions.join('\n'),
         });
-        // Clear and re-populate ingredients
+        // Clear and re-populate ingredients (quantities/units are shared across
+        // languages; only the names are localised).
         this.ingredientsArray.clear();
         recipe.ingredients.forEach((ing) => {
-          this.ingredientsArray.push(this.createIngredientGroup(ing.name, ing.quantity, ing.unit, ing.pantryCategory));
+          this.ingredientsArray.push(
+            this.createIngredientGroup('', ing.quantity, ing.unit, ing.pantryCategory),
+          );
+        });
+
+        this.recipeService.getTranslations(id).subscribe((translations) => {
+          this.loadDrafts(translations);
         });
       });
     } else {
       // Start with one empty ingredient row
       this.addIngredient();
+      this.refreshMissingLocales();
     }
+  }
+
+  /** Seed the per-language drafts from the API and show the current tab's text. */
+  private loadDrafts(translations: readonly RecipeTranslation[]): void {
+    this.drafts.clear();
+    for (const t of translations) {
+      this.drafts.set(t.locale, {
+        name: t.name,
+        description: t.description,
+        instructions: t.instructions.join('\n'),
+        ingredientNames: [...t.ingredientNames],
+      });
+    }
+    this.applyDraft(this.editingLocale());
+    this.refreshMissingLocales();
+  }
+
+  /** Stash the visible text, then show the chosen language's. */
+  switchLocale(locale: Locale): void {
+    if (locale === this.editingLocale()) {
+      return;
+    }
+    this.captureDraft();
+    this.editingLocale.set(locale);
+    this.applyDraft(locale);
+    this.refreshMissingLocales();
+  }
+
+  private captureDraft(): void {
+    const value = this.form.getRawValue();
+    this.drafts.set(this.editingLocale(), {
+      name: value.name,
+      description: value.description,
+      instructions: value.instructions,
+      ingredientNames: value.ingredients.map((ing) => (ing['name'] as string) ?? ''),
+    });
+  }
+
+  private applyDraft(locale: Locale): void {
+    const draft = this.drafts.get(locale) ?? EMPTY_DRAFT;
+    this.form.patchValue({
+      name: draft.name,
+      description: draft.description,
+      instructions: draft.instructions,
+    });
+    this.ingredientsArray.controls.forEach((group, index) => {
+      group.get('name')?.setValue(draft.ingredientNames[index] ?? '');
+    });
+  }
+
+  private refreshMissingLocales(): void {
+    const currentName = this.form.controls.name.value.trim();
+    this.missingLocales.set(
+      LOCALES.map((l) => l.code).filter((code) =>
+        code === this.editingLocale()
+          ? currentName.length === 0
+          : !(this.drafts.get(code)?.name ?? '').trim(),
+      ),
+    );
+  }
+
+  protected isMissing(locale: Locale): boolean {
+    return this.missingLocales().includes(locale);
   }
 
   addIngredient(): void {
@@ -307,33 +189,53 @@ export class RecipeFormComponent implements OnInit {
       return;
     }
 
+    // Fold the visible fields back in so the tab being edited is not lost.
+    this.captureDraft();
+
     const value = this.form.getRawValue();
+    const authoringLocale = this.editingLocale();
+    const own = this.drafts.get(authoringLocale) ?? EMPTY_DRAFT;
+
     const payload = {
-      name: value.name,
-      description: value.description,
+      name: own.name,
+      description: own.description,
       servings: value.servings,
       prepTime: value.prepTime,
       cookTime: value.cookTime,
       difficulty: value.difficulty as Difficulty,
       tags: value.tags ? value.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [],
-      instructions: value.instructions.split('\n').map((s: string) => s.trim()).filter((s: string) => s.length > 0),
-      ingredients: value.ingredients.map((ing) => ({
-        name: ing['name'] as string,
+      instructions: splitLines(own.instructions),
+      ingredients: value.ingredients.map((ing, index) => ({
+        name: own.ingredientNames[index] ?? '',
         quantity: Number(ing['quantity']),
         unit: ing['unit'] as Unit,
         pantryCategory: ing['pantryCategory'] as PantryCategory,
       })),
+      // Every OTHER language that has text. Sending them on the same request keeps
+      // the write atomic — a half-saved recipe with one language missing is worse
+      // than a rejected save.
+      translations: [...this.drafts.entries()]
+        .filter(([locale, draft]) => locale !== authoringLocale && draft.name.trim().length > 0)
+        .map(([locale, draft]) => ({
+          locale,
+          name: draft.name,
+          description: draft.description,
+          instructions: splitLines(draft.instructions),
+          ingredientNames: draft.ingredientNames,
+        })),
     };
 
+    const done = () => this.router.navigate(['/recipes']);
     if (this.isEditMode()) {
-      this.recipeService.update(this.editId, payload).subscribe(() => {
-        this.router.navigate(['/recipes']);
-      });
+      this.recipeService.update(this.editId, payload, authoringLocale).subscribe(done);
     } else {
-      this.recipeService.create(payload).subscribe(() => {
-        this.router.navigate(['/recipes']);
-      });
+      this.recipeService.create(payload, authoringLocale).subscribe(done);
     }
+  }
+
+  onNameInput(): void {
+    // Keep the "missing translation" markers honest as the user types.
+    this.refreshMissingLocales();
   }
 
   private createIngredientGroup(
@@ -349,4 +251,11 @@ export class RecipeFormComponent implements OnInit {
       pantryCategory: new FormControl(pantryCategory, { nonNullable: true, validators: [Validators.required] }),
     });
   }
+}
+
+function splitLines(value: string): string[] {
+  return value
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }

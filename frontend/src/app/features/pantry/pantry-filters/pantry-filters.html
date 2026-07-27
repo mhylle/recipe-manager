@@ -1,0 +1,18 @@
+<div class="pantry-filters">
+  <div class="filter-row">
+    <div class="filter-group">
+      <label for="pantrySearch" class="label-text">{{ 'pantry.filters.search' | t }}</label>
+      <input id="pantrySearch" type="text" class="input" [formControl]="searchControl" [attr.placeholder]="'pantry.filters.searchPlaceholder' | t" (input)="emitFilters()" />
+    </div>
+    <div class="filter-group">
+      <label for="categoryFilter" class="label-text">{{ 'pantry.filters.category' | t }}</label>
+      <select id="categoryFilter" class="input" [formControl]="categoryControl" (change)="emitFilters()">
+        <option value="">{{ 'common.actions.all' | t }}</option>
+        @for (cat of categoryOptions; track cat) {
+          <option [value]="cat">{{ cat | enumLabel: 'pantryCategory' }}</option>
+        }
+      </select>
+    </div>
+    <button type="button" class="btn btn--ghost" (click)="resetFilters()">{{ 'common.actions.reset' | t }}</button>
+  </div>
+</div>

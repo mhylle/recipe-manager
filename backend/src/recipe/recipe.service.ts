@@ -5,6 +5,8 @@ import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ImageGenerationService } from '../image-generation/image-generation.service.js';
+import { DEFAULT_LOCALE, Locale } from '../shared/i18n/locale.js';
+import { RecipeTranslationInput } from './recipe.repository.js';
 
 export interface RecipeSearchFilters {
   tags?: string[];
@@ -23,8 +25,14 @@ export class RecipeService {
     private readonly imageGeneration: ImageGenerationService,
   ) {}
 
-  async create(dto: CreateRecipeDto): Promise<Recipe> {
-    const recipe = await this.recipeRepository.create(dto);
+  async create(
+    dto: CreateRecipeDto,
+    locale: Locale = DEFAULT_LOCALE,
+    translations?: RecipeTranslationInput[],
+  ): Promise<Recipe> {
+    // The locale the author is writing in becomes the recipe's source locale —
+    // the fallback every other language resolves to.
+    const recipe = await this.recipeRepository.create(dto, { sourceLocale: locale, translations });
     // Fire-and-forget image generation
     if (this.imageGeneration.isEnabled() && !recipe.imageUrl) {
       this.generateImagesAsync(recipe).catch((err) =>
@@ -62,18 +70,31 @@ export class RecipeService {
     }
   }
 
-  async findAll(filters?: RecipeSearchFilters): Promise<Recipe[]> {
-    const recipes = await this.recipeRepository.findAll();
+  async findAll(
+    filters?: RecipeSearchFilters,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<Recipe[]> {
+    // Filters run AFTER localisation so a text query matches what the user reads.
+    const recipes = await this.recipeRepository.findAll(locale);
     if (!filters) return recipes;
     return this.applyFilters(recipes, filters);
   }
 
-  async findById(id: string): Promise<Recipe> {
-    return this.recipeRepository.findById(id);
+  async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Recipe> {
+    return this.recipeRepository.findById(id, locale);
   }
 
-  async update(id: string, dto: UpdateRecipeDto): Promise<Recipe> {
-    return this.recipeRepository.update(id, dto);
+  async findAllTranslations(id: string): Promise<RecipeTranslationInput[]> {
+    return this.recipeRepository.findAllTranslations(id);
+  }
+
+  async update(
+    id: string,
+    dto: UpdateRecipeDto,
+    locale: Locale = DEFAULT_LOCALE,
+    translations?: RecipeTranslationInput[],
+  ): Promise<Recipe> {
+    return this.recipeRepository.update(id, dto, { locale, translations });
   }
 
   async delete(id: string): Promise<void> {

@@ -1,0 +1,156 @@
+@if (recipe()) {
+  <article class="recipe-view">
+    <!-- Hero Section -->
+    <div class="recipe-view__hero" [class.recipe-view__hero--no-image]="!recipe()!.imageUrl">
+      @if (recipe()!.imageUrl) {
+        <img
+          [src]="recipe()!.imageUrl"
+          [alt]="recipe()!.name"
+          class="recipe-view__hero-image"
+        />
+        <div class="recipe-view__hero-overlay"></div>
+      }
+      <div class="recipe-view__hero-content">
+        <div class="recipe-view__badges">
+          <span class="badge" [class]="'badge--' + recipe()!.difficulty">
+            {{ recipe()!.difficulty | enumLabel: 'difficulty' }}
+          </span>
+          @if (totalTime()) {
+            <span class="badge badge--time">{{ 'recipe.detail.totalTime' | t: { minutes: totalTime() } }}</span>
+          }
+        </div>
+        <h1 class="recipe-view__title">{{ recipe()!.name }}</h1>
+        <p class="recipe-view__description">{{ recipe()!.description }}</p>
+      </div>
+    </div>
+
+    <!-- Quick Info Bar -->
+    <div class="recipe-view__info-bar">
+      <div class="info-item">
+        <span class="info-item__icon" aria-hidden="true">&#9202;</span>
+        <div class="info-item__text">
+          <span class="info-item__label">{{ 'recipe.detail.prep' | t }}</span>
+          <span class="info-item__value">{{ recipe()!.prepTime }} {{ 'recipe.detail.minutes' | t }}</span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-item__icon" aria-hidden="true">&#127859;</span>
+        <div class="info-item__text">
+          <span class="info-item__label">{{ 'recipe.detail.cook' | t }}</span>
+          <span class="info-item__value">{{ recipe()!.cookTime }} {{ 'recipe.detail.minutes' | t }}</span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-item__icon" aria-hidden="true">&#127860;</span>
+        <div class="info-item__text">
+          <span class="info-item__label">{{ 'recipe.detail.servings' | t }}</span>
+          <span class="info-item__value">{{ recipe()!.servings }}</span>
+        </div>
+      </div>
+      <div class="info-item">
+        <span class="info-item__icon" aria-hidden="true">&#127869;</span>
+        <div class="info-item__text">
+          <span class="info-item__label">{{ 'recipe.detail.ingredients' | t }}</span>
+          <span class="info-item__value">{{ recipe()!.ingredients.length }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions (always visible near the top) -->
+    <div class="recipe-view__quick-actions">
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="addingToList()"
+        (click)="addToShoppingList()"
+      >
+        {{ (addingToList() ? 'recipe.detail.adding' : 'recipe.detail.addToShoppingList') | t }}
+      </button>
+      <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
+        {{ 'common.actions.edit' | t }}
+      </a>
+      <a routerLink="/recipes" class="btn btn--ghost btn--small">
+        {{ 'recipe.detail.allRecipes' | t }}
+      </a>
+    </div>
+
+    <!-- Tags -->
+    @if (recipe()!.tags.length > 0) {
+      <div class="recipe-view__tags">
+        @for (tag of recipe()!.tags; track tag) {
+          <span class="tag">{{ tag }}</span>
+        }
+      </div>
+    }
+
+    <!-- Two Column Layout: Ingredients + Instructions -->
+    <div class="recipe-view__body">
+      <!-- Ingredients Panel -->
+      <aside class="recipe-view__ingredients">
+        <h2 class="section-heading">{{ 'recipe.detail.ingredients' | t }}</h2>
+        <ul class="ingredients-list" role="list">
+          @for (ing of recipe()!.ingredients; track $index) {
+            <li class="ingredient-item">
+              <span class="ingredient-item__qty">{{ ing.quantity | localeNumber }} {{ ing.unit | enumLabel: 'unit' }}</span>
+              <span class="ingredient-item__name">{{ ing.name }}</span>
+              <span class="ingredient-item__category">{{ ing.pantryCategory | enumLabel: 'pantryCategory' }}</span>
+            </li>
+          }
+        </ul>
+      </aside>
+
+      <!-- Instructions Panel -->
+      <section class="recipe-view__instructions">
+        <h2 class="section-heading">{{ 'recipe.detail.instructions' | t }}</h2>
+        <ol class="instructions-list" role="list">
+          @for (step of recipe()!.instructions; track step; let i = $index) {
+            <li class="instruction-step">
+              <span class="instruction-step__number" aria-hidden="true">{{ i + 1 }}</span>
+              <div class="instruction-step__content">
+                @if (recipe()!.instructionImages?.[i]) {
+                  <img [src]="recipe()!.instructionImages![i]" [alt]="'recipe.detail.stepAlt' | t: { number: i + 1 }" class="step-image" />
+                }
+                <p class="instruction-step__text">{{ step }}</p>
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+    </div>
+
+    <!-- Image placeholder when no image -->
+    @if (!recipe()!.imageUrl) {
+      <div class="recipe-view__image-placeholder">
+        <span class="recipe-view__image-placeholder-icon" aria-hidden="true">&#128247;</span>
+        <p>{{ 'recipe.detail.noImage' | t }}</p>
+      </div>
+    }
+
+    <!-- Secondary Actions -->
+    <nav class="recipe-view__actions" [attr.aria-label]="'recipe.detail.actionsLabel' | t">
+      <button
+        type="button"
+        class="btn btn--text btn--small"
+        (click)="onDelete()"
+        [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe()!.name }"
+      >
+        {{ 'recipe.detail.delete' | t }}
+      </button>
+      @if (authService.isAdmin()) {
+        <button
+          type="button"
+          class="btn btn--text btn--small"
+          [disabled]="regenerating()"
+          (click)="regenerateImages()"
+        >
+          {{ (regenerating() ? 'recipe.detail.generating' : 'recipe.detail.regenerate') | t }}
+        </button>
+      }
+    </nav>
+  </article>
+} @else {
+  <div class="recipe-view__loading" role="status">
+    <div class="loading-spinner" aria-hidden="true"></div>
+    <p>{{ 'recipe.detail.loading' | t }}</p>
+  </div>
+}

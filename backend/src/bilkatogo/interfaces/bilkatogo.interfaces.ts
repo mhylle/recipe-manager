@@ -21,9 +21,16 @@ export interface BilkaToGoMatchedItem {
   product: BilkaToGoProduct;
 }
 
+/**
+ * Why an item could not be added. A stable CODE, not prose: this value is
+ * rendered to the user, and a server-side English sentence cannot be translated
+ * by the frontend. Any diagnostic detail stays in the server log.
+ */
+export type BilkaToGoUnmatchedReason = 'noMatch' | 'error';
+
 export interface BilkaToGoUnmatchedItem {
   itemName: string;
-  reason: string;
+  reason: BilkaToGoUnmatchedReason;
 }
 
 export interface BilkaToGoSendResult {

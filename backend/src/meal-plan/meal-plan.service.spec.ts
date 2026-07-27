@@ -24,10 +24,16 @@ describe('MealPlanService', () => {
   };
 
   beforeEach(async () => {
+    // Must mirror every method MealPlanService actually calls — an incomplete
+    // mock fails as "not a function" rather than as a useful assertion.
     const mockRepository = {
       create: jest.fn(),
       findAll: jest.fn(),
       findById: jest.fn(),
+      findByWeek: jest.fn(),
+      addEntry: jest.fn(),
+      removeEntryByIndex: jest.fn(),
+      getEntryByIndex: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     };
@@ -43,16 +49,20 @@ describe('MealPlanService', () => {
     repository = module.get(MealPlanRepository);
   });
 
+  // These specs were written against an older service that filtered findAll() and
+  // did its own index arithmetic. It now delegates to the repository's findByWeek
+  // and removeEntryByIndex, so the mocks target those instead. Same behaviours.
+
   describe('getOrCreateByWeek', () => {
     it('should return existing plan if found', async () => {
-      repository.findAll.mockResolvedValue([mockPlan]);
+      repository.findByWeek.mockResolvedValue(mockPlan);
       const result = await service.getOrCreateByWeek('2026-03-16');
       expect(result).toEqual(mockPlan);
       expect(repository.create).not.toHaveBeenCalled();
     });
 
     it('should create new plan if not found', async () => {
-      repository.findAll.mockResolvedValue([]);
+      repository.findByWeek.mockResolvedValue(null);
       repository.create.mockResolvedValue({ ...mockPlan, entries: [] });
       const result = await service.getOrCreateByWeek('2026-03-16');
       expect(repository.create).toHaveBeenCalledWith({
@@ -65,7 +75,6 @@ describe('MealPlanService', () => {
 
   describe('addEntry', () => {
     it('should add an entry to the plan', async () => {
-      repository.findById.mockResolvedValue({ ...mockPlan, entries: [] });
       const updated = {
         ...mockPlan,
         entries: [
@@ -77,7 +86,7 @@ describe('MealPlanService', () => {
           },
         ],
       };
-      repository.update.mockResolvedValue(updated);
+      repository.addEntry.mockResolvedValue(updated);
 
       const result = await service.addEntry('plan-1', {
         day: DayOfWeek.TUESDAY,
@@ -86,28 +95,31 @@ describe('MealPlanService', () => {
         servings: 2,
       });
 
-      expect(repository.update).toHaveBeenCalled();
+      expect(repository.addEntry).toHaveBeenCalledWith('plan-1', {
+        day: DayOfWeek.TUESDAY,
+        meal: MealType.LUNCH,
+        recipeId: 'r2',
+        servings: 2,
+      });
       expect(result.entries).toHaveLength(1);
     });
   });
 
   describe('removeEntry', () => {
     it('should remove entry at index', async () => {
-      repository.findById.mockResolvedValue({
-        ...mockPlan,
-        entries: [...mockPlan.entries],
-      });
-      repository.update.mockResolvedValue({ ...mockPlan, entries: [] });
+      repository.removeEntryByIndex.mockResolvedValue({ ...mockPlan, entries: [] });
 
       const result = await service.removeEntry('plan-1', 0);
+
+      expect(repository.removeEntryByIndex).toHaveBeenCalledWith('plan-1', 0);
       expect(result.entries).toHaveLength(0);
     });
 
     it('should throw on invalid index', async () => {
-      repository.findById.mockResolvedValue({
-        ...mockPlan,
-        entries: [...mockPlan.entries],
-      });
+      // Index validation now lives in the repository, so the rejection propagates.
+      repository.removeEntryByIndex.mockRejectedValue(
+        new NotFoundException('Entry at index 5 not found'),
+      );
       await expect(service.removeEntry('plan-1', 5)).rejects.toThrow(
         NotFoundException,
       );

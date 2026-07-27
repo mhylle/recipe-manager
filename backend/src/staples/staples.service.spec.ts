@@ -1,58 +1,62 @@
 import { StaplesService } from './staples.service';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { PrismaService } from '../prisma/prisma.service';
+
+// This spec previously drove a filesystem-backed StaplesService that read and wrote
+// data/config/staples.json. The service has since moved to Prisma, so the old spec
+// could not even compile. Rewritten against the current implementation with an
+// in-memory stand-in for the single `default` StaplesConfig row — the assertions
+// below are the same behaviours the original covered.
+
+function createPrismaStub() {
+  let row: { id: string; items: string[] } | null = null;
+  return {
+    row: () => row,
+    staplesConfig: {
+      findUnique: jest.fn(async () => row),
+      upsert: jest.fn(
+        async ({ create, update }: { create: { id: string; items: string[] }; update: { items: string[] } }) => {
+          row = row ? { ...row, items: update.items } : { ...create };
+          return row;
+        },
+      ),
+    },
+  };
+}
 
 describe('StaplesService', () => {
   let service: StaplesService;
-  const testDir = path.join(process.cwd(), 'data', 'config');
-  const testFile = path.join(testDir, 'staples.json');
+  let prisma: ReturnType<typeof createPrismaStub>;
 
-  beforeEach(async () => {
-    service = new StaplesService();
-    // Clean up test file
-    try {
-      await fs.unlink(testFile);
-    } catch {
-      // File may not exist
-    }
-  });
-
-  afterAll(async () => {
-    try {
-      await fs.unlink(testFile);
-    } catch {
-      // Clean up
-    }
+  beforeEach(() => {
+    prisma = createPrismaStub();
+    service = new StaplesService(prisma as unknown as PrismaService);
   });
 
   describe('getStaples', () => {
     it('should return default empty list when no config exists', async () => {
-      const result = await service.getStaples();
-      expect(result).toEqual({ items: [] });
+      expect(await service.getStaples()).toEqual({ items: [] });
     });
 
     it('should return saved staples', async () => {
-      await fs.mkdir(testDir, { recursive: true });
-      await fs.writeFile(
-        testFile,
-        JSON.stringify({ items: ['salt', 'pepper'] }),
-      );
-
-      const result = await service.getStaples();
-      expect(result).toEqual({ items: ['salt', 'pepper'] });
+      await service.updateStaples({ items: ['salt', 'pepper'] });
+      expect(await service.getStaples()).toEqual({ items: ['salt', 'pepper'] });
     });
   });
 
   describe('updateStaples', () => {
     it('should save and return the staples list', async () => {
       const config = { items: ['salt', 'pepper', 'olive oil'] };
-      const result = await service.updateStaples(config);
+      expect(await service.updateStaples(config)).toEqual(config);
+      expect(await service.getStaples()).toEqual(config);
+    });
 
-      expect(result).toEqual(config);
+    it('should write to the single default row rather than creating many', async () => {
+      await service.updateStaples({ items: ['salt'] });
+      await service.updateStaples({ items: ['pepper'] });
 
-      // Verify it was persisted
-      const saved = await service.getStaples();
-      expect(saved).toEqual(config);
+      expect(prisma.staplesConfig.upsert).toHaveBeenCalledTimes(2);
+      expect(prisma.row()?.id).toBe('default');
+      expect(await service.getStaples()).toEqual({ items: ['pepper'] });
     });
   });
 
@@ -67,7 +71,6 @@ describe('StaplesService', () => {
 
     it('should return false for a non-staple item', async () => {
       await service.updateStaples({ items: ['Salt'] });
-
       expect(await service.isStaple('Flour')).toBe(false);
     });
 

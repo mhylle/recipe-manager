@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { RecipeService } from './recipe.service';
 import { RecipeRepository } from './recipe.repository';
+import { ImageGenerationService } from '../image-generation/image-generation.service';
 import { Recipe } from '../shared/interfaces/recipe.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
@@ -61,6 +62,16 @@ describe('RecipeService', () => {
       providers: [
         RecipeService,
         { provide: RecipeRepository, useValue: mockRepository },
+        // RecipeService gained this dependency; disabled here so tests exercise
+        // persistence only and never reach out to an image backend.
+        {
+          provide: ImageGenerationService,
+          useValue: {
+            isEnabled: jest.fn().mockReturnValue(false),
+            generateHeroImage: jest.fn(),
+            generateStepImages: jest.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 
@@ -109,7 +120,10 @@ describe('RecipeService', () => {
 
       const result = await service.create(dto);
 
-      expect(repository.create).toHaveBeenCalledWith(dto);
+      expect(repository.create).toHaveBeenCalledWith(dto, {
+        sourceLocale: 'en',
+        translations: undefined,
+      });
       expect(result).toEqual(mockRecipe);
       expect(result.id).toBeDefined();
       expect(result.ingredients).toHaveLength(3);
@@ -146,7 +160,7 @@ describe('RecipeService', () => {
 
       const result = await service.findById('recipe-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('recipe-uuid-1');
+      expect(repository.findById).toHaveBeenCalledWith('recipe-uuid-1', 'en');
       expect(result).toEqual(mockRecipe);
     });
 
@@ -186,6 +200,9 @@ describe('RecipeService', () => {
       expect(repository.update).toHaveBeenCalledWith('recipe-uuid-1', {
         name: 'Blueberry Pancakes',
         ingredients: updatedRecipe.ingredients,
+      }, {
+        locale: 'en',
+        translations: undefined,
       });
       expect(result.name).toBe('Blueberry Pancakes');
       expect(result.ingredients).toHaveLength(4);

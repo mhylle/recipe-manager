@@ -1,0 +1,42 @@
+<div class="recipe-list">
+  <div class="recipe-list__header">
+    <h2>{{ 'recipe.list.title' | t }}</h2>
+    <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
+  </div>
+
+  <app-recipe-filters (filtersChanged)="onFiltersChanged($event)" />
+
+  @if (items().length === 0) {
+    <p class="recipe-list__empty" role="status">
+      {{ (hasActiveFilters() ? 'recipe.list.empty.filtered' : 'recipe.list.empty.none') | t }}
+    </p>
+  } @else {
+    <div class="recipe-list__grid" role="list">
+      @for (recipe of items(); track recipe.id) {
+        <div class="card recipe-card" role="listitem">
+          <div class="recipe-card__header">
+            <a [routerLink]="['/recipes', recipe.id]" class="recipe-card__title">{{ recipe.name }}</a>
+            <span class="recipe-card__difficulty" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
+          </div>
+          <p class="recipe-card__description">{{ recipe.description }}</p>
+          <div class="recipe-card__meta">
+            <span class="recipe-card__time" [attr.aria-label]="'recipe.list.prepLabel' | t">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
+            <span class="recipe-card__time" [attr.aria-label]="'recipe.list.cookLabel' | t">{{ 'recipe.list.cook' | t: { minutes: recipe.cookTime } }}</span>
+            <span class="recipe-card__servings" [attr.aria-label]="'recipe.list.servingsLabel' | t">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
+          </div>
+          @if (recipe.tags.length > 0) {
+            <div class="recipe-card__tags">
+              @for (tag of recipe.tags; track tag) {
+                <span class="tag">{{ tag }}</span>
+              }
+            </div>
+          }
+          <div class="recipe-card__actions">
+            <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small">{{ 'common.actions.edit' | t }}</a>
+            <button type="button" class="btn btn--small btn--danger" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

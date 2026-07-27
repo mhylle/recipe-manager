@@ -9,13 +9,13 @@ import type { AxiosResponse } from 'axios';
 
 function mockAxiosResponse<T>(
   data: T,
-  headers: Record<string, unknown> = {},
+  headers: Record<string, string | string[]> = {},
 ): AxiosResponse<T> {
   return {
     data,
     status: 200,
     statusText: 'OK',
-    headers,
+    headers: headers as unknown as AxiosResponse<T>['headers'],
     config: {} as any,
   };
 }

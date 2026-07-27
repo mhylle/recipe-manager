@@ -74,8 +74,14 @@ describe('RecipeListComponent', () => {
   it('should display difficulty badges', () => {
     const badges = fixture.nativeElement.querySelectorAll('.badge');
     expect(badges.length).toBe(2);
-    expect(badges[0].textContent.trim()).toBe('easy');
-    expect(badges[1].textContent.trim()).toBe('medium');
+
+    // The user reads a translated label...
+    expect(badges[0].textContent.trim()).toBe('Easy');
+    expect(badges[1].textContent.trim()).toBe('Medium');
+
+    // ...while the underlying enum value — which goes to the API and the DB — is
+    // untouched. The class name is derived from it, so this is the guard against
+    // a "translation" that corrupts stored data.
     expect(badges[0].classList.contains('badge--easy')).toBe(true);
     expect(badges[1].classList.contains('badge--medium')).toBe(true);
   });
@@ -88,7 +94,7 @@ describe('RecipeListComponent', () => {
 
   it('should show empty state when no recipes', async () => {
     mockRecipeService.getAll.mockReturnValue(of([]));
-    component.ngOnInit();
+    component.loadItems();
     fixture.detectChanges();
 
     const emptyMessage = fixture.nativeElement.querySelector('.recipe-list__empty');

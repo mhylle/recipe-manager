@@ -1,0 +1,33 @@
+.pantry-detail {
+  max-width: 600px;
+}
+
+.pantry-detail h1 {
+  margin-bottom: 1.5rem;
+}
+
+.pantry-detail__card {
+  padding: 2rem;
+}
+
+.detail-list {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0.75rem 1rem;
+}
+
+.detail-list dt {
+  align-self: center;
+}
+
+.detail-list dd {
+  margin: 0;
+  color: var(--on-surface);
+  font-size: 0.9375rem;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}

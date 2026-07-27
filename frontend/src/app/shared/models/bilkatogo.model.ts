@@ -16,9 +16,12 @@ export interface BilkaToGoMatchedItem {
   product: BilkaToGoProduct;
 }
 
+/** Mirrors the backend union — a code the UI translates, not server-side prose. */
+export type BilkaToGoUnmatchedReason = 'noMatch' | 'error';
+
 export interface BilkaToGoUnmatchedItem {
   itemName: string;
-  reason: string;
+  reason: BilkaToGoUnmatchedReason;
 }
 
 export interface BilkaToGoSendResult {

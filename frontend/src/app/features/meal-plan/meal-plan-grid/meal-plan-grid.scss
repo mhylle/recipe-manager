@@ -1,0 +1,172 @@
+.meal-plan__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.meal-plan__header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.meal-plan__subtitle {
+  color: var(--on-surface-variant);
+  font-size: 1rem;
+}
+
+.meal-plan__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.meal-plan__week-label {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  padding: 0.375rem 0.75rem;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-full);
+}
+
+.grid-container {
+  overflow-x: auto;
+}
+
+.meal-grid {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 6px;
+  table-layout: fixed;
+}
+
+.meal-grid__corner {
+  /*
+   * Sets the row-label column width for the whole table (table-layout: fixed).
+   * This was 90px, which fit "Breakfast" with one pixel to spare and so
+   * overflowed on the first translated language — Danish "Mellemmåltid" is
+   * ~23px wider. Sized here with real headroom; the pill is additionally
+   * capped below so an even longer label wraps inside the cell rather than
+   * painting over the first day column.
+   */
+  width: 9rem;
+}
+
+.meal-grid__day-header {
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+}
+
+.meal-grid__day-abbr {
+  font-family: var(--font-body);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+}
+
+.meal-grid__meal-label {
+  vertical-align: middle;
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.meal-grid__meal-pill {
+  display: inline-block;
+  /* Never paint outside the label column, whatever the language. */
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.meal-grid__meal-pill--breakfast {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+
+.meal-grid__meal-pill--lunch {
+  background: var(--secondary-container);
+  color: var(--secondary);
+}
+
+.meal-grid__meal-pill--dinner {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+.meal-grid__meal-pill--snack {
+  background: var(--surface-container-low);
+  color: var(--on-surface-variant);
+}
+
+.meal-grid__cell {
+  background: var(--surface-container-lowest);
+  border-radius: var(--radius-lg);
+  padding: 0.625rem;
+  min-height: 100px;
+  vertical-align: top;
+  box-shadow: var(--shadow-ambient);
+}
+
+.meal-grid__entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.meal-grid__recipe-name {
+  font-family: var(--font-display);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--on-surface);
+  line-height: 1.3;
+}
+
+.meal-grid__servings {
+  font-size: 0.6875rem;
+  color: var(--on-surface-variant);
+}
+
+.meal-grid__entry-actions {
+  display: flex;
+  gap: 0.125rem;
+  margin-top: 0.25rem;
+}
+
+.meal-grid__entry-actions .btn {
+  padding: 0.125rem 0.375rem;
+  font-size: 0.6875rem;
+}
+
+.meal-grid__add-btn {
+  width: 100%;
+  min-height: 80px;
+  border: 2px dashed var(--outline-variant);
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.25rem;
+  color: var(--on-surface-variant);
+  border-radius: var(--radius-lg);
+  transition: all 0.15s ease;
+}
+
+.meal-grid__add-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(62, 106, 0, 0.03);
+}
+
+@media (max-width: 768px) {
+  .meal-plan__header {
+    flex-direction: column;
+  }
+}

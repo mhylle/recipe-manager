@@ -58,13 +58,13 @@ describe('MealPlanGridComponent', () => {
   });
 
   it('should show recipe name in assigned slot', () => {
-    const content = fixture.nativeElement.querySelector('.meal-cell__name');
+    const content = fixture.nativeElement.querySelector('.meal-grid__recipe-name');
     expect(content).toBeTruthy();
     expect(content.textContent).toContain('Pancakes');
   });
 
   it('should show add buttons for empty slots', () => {
-    const addBtns = fixture.nativeElement.querySelectorAll('.meal-cell__add');
+    const addBtns = fixture.nativeElement.querySelectorAll('.meal-grid__add-btn');
     expect(addBtns.length).toBeGreaterThan(0);
   });
 });
