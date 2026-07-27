@@ -15,7 +15,10 @@ export interface RecipeTranslationInput {
 }
 
 const RECIPE_INCLUDE = {
-  ingredients: { include: { translations: true } },
+  // `orderBy` is load-bearing, not cosmetic: `ingredientNames` in a translation
+  // payload is aligned by POSITION, so an unordered read would attach names to
+  // the wrong ingredients.
+  ingredients: { include: { translations: true }, orderBy: { id: 'asc' } },
   translations: true,
 } as const;
 
@@ -190,6 +193,27 @@ export class RecipeRepository {
           instructions: data.instructions ?? current?.instructions ?? [],
           ingredientNames: [],
         });
+      }
+
+      // Ingredient names for a language that is being ADDED without restating the
+      // whole ingredient list. Without this, a translations-only PATCH stores the
+      // prose and silently loses every ingredient name.
+      if (data.ingredients === undefined) {
+        for (const t of options.translations ?? []) {
+          for (const [index, name] of t.ingredientNames.entries()) {
+            const ingredient = existing.ingredients[index];
+            if (!ingredient || !name?.trim()) {
+              continue;
+            }
+            await tx.recipeIngredientTranslation.upsert({
+              where: {
+                ingredientId_locale: { ingredientId: ingredient.id, locale: t.locale },
+              },
+              create: { ingredientId: ingredient.id, locale: t.locale, name },
+              update: { name },
+            });
+          }
+        }
       }
 
       for (const t of textEdits) {
