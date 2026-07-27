@@ -1,0 +1,51 @@
+<div class="dialog-backdrop" (click)="closed.emit()">
+  <div
+    class="dialog card"
+    role="dialog"
+    [attr.aria-label]="'bilkatogo.login.dialogLabel' | t"
+    aria-modal="true"
+    (click)="$event.stopPropagation()"
+    (mousedown)="$event.stopPropagation()"
+  >
+    <h3>{{ 'bilkatogo.login.title' | t }}</h3>
+    <p class="dialog__subtitle">
+      {{ 'bilkatogo.login.subtitle' | t }}
+    </p>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="dialog__form">
+      <div class="dialog__field">
+        <label for="bilka-email" class="dialog__label">{{ 'bilkatogo.login.email' | t }}</label>
+        <input
+          id="bilka-email"
+          type="email"
+          class="input"
+          formControlName="email"
+          autocomplete="email"
+          [attr.placeholder]="'bilkatogo.login.emailPlaceholder' | t"
+        />
+      </div>
+
+      <div class="dialog__field">
+        <label for="bilka-password" class="dialog__label">{{ 'bilkatogo.login.password' | t }}</label>
+        <input
+          id="bilka-password"
+          type="password"
+          class="input"
+          formControlName="password"
+          autocomplete="current-password"
+        />
+      </div>
+
+      @if (error()) {
+        <p class="dialog__error" role="alert">{{ error()! | t }}</p>
+      }
+
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" (click)="closed.emit()">{{ 'common.actions.cancel' | t }}</button>
+        <button type="submit" class="btn btn--primary" [disabled]="loading()">
+          {{ (loading() ? 'bilkatogo.login.submitting' : 'bilkatogo.login.submit') | t }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

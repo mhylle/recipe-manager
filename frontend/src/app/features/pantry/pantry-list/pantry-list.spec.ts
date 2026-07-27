@@ -54,7 +54,8 @@ describe('PantryListComponent', () => {
   });
 
   it('should render list of items', () => {
-    const rows = fixture.nativeElement.querySelectorAll('tbody tr');
+    // Items render as grouped category rows, ordered by category key ('baking' < 'dairy').
+    const rows = fixture.nativeElement.querySelectorAll('.pantry-list__row');
     expect(rows.length).toBe(2);
     expect(rows[0].textContent).toContain('Flour');
     expect(rows[1].textContent).toContain('Milk');
@@ -62,7 +63,7 @@ describe('PantryListComponent', () => {
 
   it('should show empty state when no items', async () => {
     mockPantryService.getAll.mockReturnValue(of([]));
-    component.ngOnInit();
+    component.loadItems();
     fixture.detectChanges();
 
     const emptyMessage = fixture.nativeElement.querySelector('.pantry-list__empty');

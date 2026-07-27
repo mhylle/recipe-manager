@@ -41,7 +41,7 @@ describe('BilkaToGoResultsDialogComponent', () => {
       },
     ],
     unmatched: [
-      { itemName: 'Fresh Basil', reason: 'No matching product found' },
+      { itemName: 'Fresh Basil', reason: 'noMatch' },
     ],
     cartUrl: 'https://bilkatogo.dk/cart/abc123',
   };
@@ -85,7 +85,9 @@ describe('BilkaToGoResultsDialogComponent', () => {
     const items = unmatched.querySelectorAll('.results-item');
     expect(items.length).toBe(1);
     expect(items[0].textContent).toContain('Fresh Basil');
-    expect(items[0].textContent).toContain('No matching product found');
+    // The backend now sends a stable code; the UI resolves it through the dictionary,
+    // which is what makes the reason translatable at all.
+    expect(items[0].textContent).toContain('No matching products found');
   });
 
   it('should render cart link with correct URL and security attributes', () => {

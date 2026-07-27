@@ -80,26 +80,29 @@ describe('DashboardComponent', () => {
   });
 
   it('should display three bucket sections', () => {
-    const sections = fixture.nativeElement.querySelectorAll('.bucket');
+    const sections = fixture.nativeElement.querySelectorAll('.dashboard__section');
     expect(sections.length).toBe(3);
   });
 
   it('should display can make now recipes', () => {
-    const canMake = fixture.nativeElement.querySelector('.bucket--can-make');
-    expect(canMake.textContent).toContain('Can Make Now (1)');
+    const canMake = fixture.nativeElement.querySelector('[aria-labelledby="can-make-heading"]');
+    expect(canMake.textContent).toContain('READY TO CRAFT');
     expect(canMake.textContent).toContain('Simple Salad');
   });
 
   it('should display almost can make recipes with missing ingredients', () => {
-    const almost = fixture.nativeElement.querySelector('.bucket--almost');
-    expect(almost.textContent).toContain('Need 1-2 Items (1)');
-    expect(almost.textContent).toContain('Pasta');
-    expect(almost.textContent).toContain('Missing: Pasta');
+    const almost = fixture.nativeElement.querySelector('[aria-labelledby="almost-heading"]');
+    expect(almost.textContent).toContain('ALMOST THERE');
+    expect(almost.querySelector('.dashboard__almost-name').textContent).toContain('Pasta');
+
+    const missingPills = almost.querySelectorAll('.dashboard__missing-pills .chip');
+    expect(missingPills.length).toBe(1);
+    expect(missingPills[0].textContent).toContain('Pasta');
   });
 
   it('should display missing many recipes', () => {
-    const missing = fixture.nativeElement.querySelector('.bucket--missing');
-    expect(missing.textContent).toContain('Missing Many Items (1)');
+    const missing = fixture.nativeElement.querySelector('[aria-labelledby="missing-heading"]');
+    expect(missing.textContent).toContain('THE INVENTORY');
     expect(missing.textContent).toContain('Complex Dish');
   });
 
@@ -109,10 +112,10 @@ describe('DashboardComponent', () => {
       almostCanMake: [],
       missingMany: [],
     }));
-    component.ngOnInit();
+    component.loadMatchResults();
     fixture.detectChanges();
 
-    const emptyMessages = fixture.nativeElement.querySelectorAll('.bucket__empty');
+    const emptyMessages = fixture.nativeElement.querySelectorAll('.dashboard__empty');
     expect(emptyMessages.length).toBe(3);
   });
 });

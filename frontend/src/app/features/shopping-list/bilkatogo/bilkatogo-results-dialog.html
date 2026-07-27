@@ -1,0 +1,71 @@
+<div
+  class="dialog-backdrop"
+  (click)="closed.emit()"
+  role="dialog"
+  [attr.aria-label]="'bilkatogo.results.dialogLabel' | t"
+  aria-modal="true"
+>
+  <div class="dialog card" (click)="$event.stopPropagation()">
+    <h3>{{ 'bilkatogo.results.title' | t }}</h3>
+    <p class="dialog__summary">
+      {{ 'bilkatogo.results.summary' | t: { matched: result().matched.length, total: totalItems() } }}
+    </p>
+
+    @if (result().matched.length > 0) {
+      <section class="results-section results-section--matched" [attr.aria-label]="'bilkatogo.results.matchedLabel' | t">
+        <h4 class="results-section__heading">{{ 'bilkatogo.results.matchedHeading' | t }}</h4>
+        <ul class="results-list" role="list">
+          @for (item of result().matched; track item.product.objectID) {
+            <li class="results-item">
+              <div class="results-item__info">
+                <span class="results-item__name">{{ item.product.productName }}</span>
+                @if (item.product.brand) {
+                  <span class="results-item__brand">{{ item.product.brand }}</span>
+                }
+              </div>
+              <span class="results-item__price">
+                {{ item.product.price / 100 | localeCurrency: 'DKK' }}
+              </span>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    @if (result().unmatched.length > 0) {
+      <section class="results-section results-section--unmatched" [attr.aria-label]="'bilkatogo.results.unmatchedLabel' | t">
+        <h4 class="results-section__heading">{{ 'bilkatogo.results.unmatchedHeading' | t }}</h4>
+        <ul class="results-list" role="list">
+          @for (item of result().unmatched; track item.itemName) {
+            <li class="results-item">
+              <div class="results-item__info">
+                <span class="results-item__name">{{ item.itemName }}</span>
+                <span class="results-item__reason">
+                  @switch (item.reason) {
+                    @case ('noMatch') { {{ 'bilkatogo.results.reason.noMatch' | t }} }
+                    @case ('error') { {{ 'bilkatogo.results.reason.error' | t }} }
+                  }
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+
+    <div class="dialog__actions">
+      @if (result().cartUrl) {
+        <a
+          [href]="result().cartUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn--primary"
+          [attr.aria-label]="'bilkatogo.results.openBasketLabel' | t"
+        >
+          {{ 'bilkatogo.results.openBasket' | t }}
+        </a>
+      }
+      <button type="button" class="btn btn--ghost" (click)="closed.emit()">{{ 'bilkatogo.results.close' | t }}</button>
+    </div>
+  </div>
+</div>

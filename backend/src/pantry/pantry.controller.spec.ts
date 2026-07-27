@@ -50,9 +50,9 @@ describe('PantryController', () => {
         category: PantryCategory.BAKING,
       };
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, 'en', undefined);
       expect(result).toEqual(mockPantryItem);
     });
   });
@@ -81,9 +81,9 @@ describe('PantryController', () => {
     it('should return a single pantry item', async () => {
       service.findById.mockResolvedValue(mockPantryItem);
 
-      const result = await controller.findById('test-uuid-1');
+      const result = await controller.findById('test-uuid-1', 'en');
 
-      expect(service.findById).toHaveBeenCalledWith('test-uuid-1');
+      expect(service.findById).toHaveBeenCalledWith('test-uuid-1', 'en');
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -92,7 +92,7 @@ describe('PantryController', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(controller.findById('missing-id')).rejects.toThrow(
+      await expect(controller.findById('missing-id', 'en')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -103,11 +103,16 @@ describe('PantryController', () => {
       const updatedItem = { ...mockPantryItem, quantity: 250 };
       service.update.mockResolvedValue(updatedItem);
 
-      const result = await controller.update('test-uuid-1', { quantity: 250 });
+      const result = await controller.update('test-uuid-1', { quantity: 250 }, 'en');
 
-      expect(service.update).toHaveBeenCalledWith('test-uuid-1', {
+      expect(service.update).toHaveBeenCalledWith(
+        'test-uuid-1',
+        {
         quantity: 250,
-      });
+      },
+        'en',
+        undefined,
+      );
       expect(result.quantity).toBe(250);
     });
   });

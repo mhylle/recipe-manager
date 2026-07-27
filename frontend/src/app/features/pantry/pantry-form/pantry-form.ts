@@ -4,162 +4,35 @@ import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { PantryService } from '../pantry.service';
 import { Unit } from '../../../shared/enums/unit.enum';
 import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
+import { EnumLabelPipe, LOCALES, LocaleService, TranslatePipe } from '../../../shared/i18n';
+import type { Locale } from '../../../shared/i18n';
 
 @Component({
   selector: 'app-pantry-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
-  template: `
-    <div class="pantry-form">
-      <h1>{{ isEditMode() ? 'Edit Pantry Item' : 'Add Pantry Item' }}</h1>
-
-      <div class="card pantry-form__card">
-        <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
-          <div class="form-group">
-            <label for="name" class="form-label">Name <span aria-hidden="true">*</span></label>
-            <input
-              id="name"
-              type="text"
-              class="input"
-              formControlName="name"
-              [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
-              aria-required="true"
-            />
-            @if (form.controls.name.invalid && form.controls.name.touched) {
-              <p class="form-error" role="alert">Name is required.</p>
-            }
-          </div>
-
-          <div class="form-group">
-            <label for="quantity" class="form-label">Quantity <span aria-hidden="true">*</span></label>
-            <input
-              id="quantity"
-              type="number"
-              class="input"
-              formControlName="quantity"
-              min="0"
-              [attr.aria-invalid]="form.controls.quantity.invalid && form.controls.quantity.touched"
-              aria-required="true"
-            />
-            @if (form.controls.quantity.invalid && form.controls.quantity.touched) {
-              <p class="form-error" role="alert">
-                @if (form.controls.quantity.errors?.['required']) {
-                  Quantity is required.
-                } @else if (form.controls.quantity.errors?.['min']) {
-                  Quantity must be at least 0.
-                }
-              </p>
-            }
-          </div>
-
-          <div class="form-group">
-            <label for="unit" class="form-label">Unit <span aria-hidden="true">*</span></label>
-            <select
-              id="unit"
-              class="input"
-              formControlName="unit"
-              [attr.aria-invalid]="form.controls.unit.invalid && form.controls.unit.touched"
-              aria-required="true"
-            >
-              <option value="" disabled>Select a unit</option>
-              @for (unit of unitOptions; track unit) {
-                <option [value]="unit">{{ unit }}</option>
-              }
-            </select>
-            @if (form.controls.unit.invalid && form.controls.unit.touched) {
-              <p class="form-error" role="alert">Unit is required.</p>
-            }
-          </div>
-
-          <div class="form-group">
-            <label for="category" class="form-label">Category <span aria-hidden="true">*</span></label>
-            <select
-              id="category"
-              class="input"
-              formControlName="category"
-              [attr.aria-invalid]="form.controls.category.invalid && form.controls.category.touched"
-              aria-required="true"
-            >
-              <option value="" disabled>Select a category</option>
-              @for (cat of categoryOptions; track cat) {
-                <option [value]="cat">{{ cat }}</option>
-              }
-            </select>
-            @if (form.controls.category.invalid && form.controls.category.touched) {
-              <p class="form-error" role="alert">Category is required.</p>
-            }
-          </div>
-
-          <div class="form-group">
-            <label for="barcode" class="form-label">Barcode</label>
-            <input id="barcode" type="text" class="input" formControlName="barcode" />
-          </div>
-
-          <div class="form-group">
-            <label for="expiryDate" class="form-label">Expiry Date</label>
-            <input id="expiryDate" type="date" class="input" formControlName="expiryDate" />
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
-              {{ isEditMode() ? 'Update' : 'Create' }}
-            </button>
-            <a routerLink="/pantry" class="btn btn--ghost">Cancel</a>
-          </div>
-        </form>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .pantry-form {
-      max-width: 540px;
-    }
-
-    .pantry-form h1 {
-      margin-bottom: 1.5rem;
-    }
-
-    .pantry-form__card {
-      padding: 2rem;
-    }
-
-    .form-group {
-      margin-bottom: 1.25rem;
-    }
-
-    .form-label {
-      display: block;
-      margin-bottom: 0.375rem;
-      font-weight: 500;
-      color: var(--on-surface);
-      font-size: 0.875rem;
-    }
-
-    .input[aria-invalid="true"] {
-      border-color: var(--error);
-      box-shadow: 0 0 0 3px rgba(186, 26, 26, 0.1);
-    }
-
-    .form-error {
-      color: var(--error);
-      font-size: 0.75rem;
-      margin-top: 0.25rem;
-    }
-
-    .form-actions {
-      display: flex;
-      gap: 1rem;
-      margin-top: 2rem;
-    }
-  `],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, EnumLabelPipe],
+  templateUrl: './pantry-form.html',
+  styleUrl: './pantry-form.scss',
 })
 export class PantryFormComponent implements OnInit {
   private readonly pantryService = inject(PantryService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
+  private readonly localeService = inject(LocaleService);
+
   readonly isEditMode = signal(false);
   private editId = '';
+
+  readonly locales = LOCALES;
+
+  /** Which language the name field holds. Independent of the UI language. */
+  readonly editingLocale = signal<Locale>(this.localeService.locale());
+
+  /** Names for the languages not currently in the field. */
+  private readonly drafts = new Map<Locale, string>();
+
+  readonly missingLocales = signal<readonly Locale[]>([]);
 
   readonly unitOptions = Object.values(Unit);
   readonly categoryOptions = Object.values(PantryCategory);
@@ -180,15 +53,52 @@ export class PantryFormComponent implements OnInit {
       this.editId = id;
       this.pantryService.getById(id).subscribe((item) => {
         this.form.patchValue({
-          name: item.name,
           quantity: item.quantity,
           unit: item.unit,
           category: item.category,
           barcode: item.barcode ?? '',
           expiryDate: item.expiryDate ?? '',
         });
+        this.pantryService.getTranslations(id).subscribe((translations) => {
+          this.drafts.clear();
+          for (const t of translations) {
+            this.drafts.set(t.locale, t.name);
+          }
+          this.form.controls.name.setValue(this.drafts.get(this.editingLocale()) ?? '');
+          this.refreshMissingLocales();
+        });
       });
+    } else {
+      this.refreshMissingLocales();
     }
+  }
+
+  /** Stash the visible name, then show the chosen language's. */
+  switchLocale(locale: Locale): void {
+    if (locale === this.editingLocale()) {
+      return;
+    }
+    this.drafts.set(this.editingLocale(), this.form.controls.name.value);
+    this.editingLocale.set(locale);
+    this.form.controls.name.setValue(this.drafts.get(locale) ?? '');
+    this.refreshMissingLocales();
+  }
+
+  onNameInput(): void {
+    this.refreshMissingLocales();
+  }
+
+  protected isMissing(locale: Locale): boolean {
+    return this.missingLocales().includes(locale);
+  }
+
+  private refreshMissingLocales(): void {
+    const current = this.form.controls.name.value.trim();
+    this.missingLocales.set(
+      LOCALES.map((l) => l.code).filter((code) =>
+        code === this.editingLocale() ? current.length === 0 : !(this.drafts.get(code) ?? '').trim(),
+      ),
+    );
   }
 
   onSubmit(): void {
@@ -196,24 +106,28 @@ export class PantryFormComponent implements OnInit {
       return;
     }
 
+    // Fold the visible name back in so the open tab is not lost.
+    this.drafts.set(this.editingLocale(), this.form.controls.name.value);
+
     const value = this.form.getRawValue();
+    const authoringLocale = this.editingLocale();
     const payload = {
-      name: value.name,
+      name: this.drafts.get(authoringLocale) ?? '',
       quantity: value.quantity,
       unit: value.unit as Unit,
       category: value.category as PantryCategory,
       ...(value.barcode ? { barcode: value.barcode } : {}),
       ...(value.expiryDate ? { expiryDate: value.expiryDate } : {}),
+      translations: [...this.drafts.entries()]
+        .filter(([locale, name]) => locale !== authoringLocale && name.trim().length > 0)
+        .map(([locale, name]) => ({ locale, name })),
     };
 
+    const done = () => this.router.navigate(['/pantry']);
     if (this.isEditMode()) {
-      this.pantryService.update(this.editId, payload).subscribe(() => {
-        this.router.navigate(['/pantry']);
-      });
+      this.pantryService.update(this.editId, payload, authoringLocale).subscribe(done);
     } else {
-      this.pantryService.create(payload).subscribe(() => {
-        this.router.navigate(['/pantry']);
-      });
+      this.pantryService.create(payload, authoringLocale).subscribe(done);
     }
   }
 }

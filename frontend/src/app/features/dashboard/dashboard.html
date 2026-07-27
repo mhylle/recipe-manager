@@ -1,0 +1,95 @@
+<div class="dashboard">
+  <!-- Hero -->
+  <header class="dashboard__hero">
+    <h1 class="dashboard__heading">{{ 'dashboard.heading' | t }} <em>{{ 'dashboard.headingEmphasis' | t }}</em></h1>
+    <p class="dashboard__subtitle">{{ 'dashboard.subtitle' | t }}</p>
+  </header>
+
+  <!-- READY TO CRAFT -->
+  <section class="dashboard__section" aria-labelledby="can-make-heading">
+    <div class="dashboard__section-header">
+      <div>
+        <span class="label-text" id="can-make-heading">{{ 'dashboard.canMake.label' | t }}</span>
+        <h2 class="dashboard__section-title">{{ 'dashboard.canMake.title' | t }}</h2>
+      </div>
+      @if (matchResult().canMakeNow.length > 0) {
+        <a routerLink="/recipes" class="dashboard__view-all">{{ 'dashboard.viewAll' | t }}</a>
+      }
+    </div>
+    @if (matchResult().canMakeNow.length === 0) {
+      <p class="dashboard__empty" role="status">{{ 'dashboard.canMake.empty' | t }}</p>
+    } @else {
+      <div class="dashboard__card-grid" role="list">
+        @for (recipe of matchResult().canMakeNow; track recipe.id; let i = $index) {
+          <a [routerLink]="['/recipes', recipe.id]"
+             class="card dashboard__recipe-card"
+             [class.dashboard__recipe-card--featured]="i === 0"
+             role="listitem">
+            @if (recipe.imageUrl) {
+              <img [src]="recipe.imageUrl" [alt]="recipe.name" class="dashboard__card-image" />
+            }
+            <div class="dashboard__card-body">
+              <h3 class="dashboard__card-title">{{ recipe.name }}</h3>
+              <p class="dashboard__card-desc">{{ recipe.description }}</p>
+              <span class="label-text">{{ 'dashboard.totalTime' | t: { minutes: recipe.prepTime + recipe.cookTime } }}</span>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- ALMOST THERE -->
+  <section class="dashboard__section" aria-labelledby="almost-heading">
+    <div class="dashboard__section-header">
+      <div>
+        <span class="label-text" id="almost-heading">{{ 'dashboard.almost.label' | t }}</span>
+        <h2 class="dashboard__section-title">{{ 'dashboard.almost.title' | t }}</h2>
+      </div>
+    </div>
+    @if (matchResult().almostCanMake.length === 0) {
+      <p class="dashboard__empty" role="status">{{ 'dashboard.empty' | t }}</p>
+    } @else {
+      <div class="dashboard__almost-grid" role="list">
+        @for (entry of matchResult().almostCanMake; track entry.recipe.id) {
+          <div class="card dashboard__almost-card" role="listitem">
+            <div class="dashboard__almost-top">
+              <a [routerLink]="['/recipes', entry.recipe.id]" class="dashboard__almost-name">
+                {{ entry.recipe.name }}
+              </a>
+              @if (entry.usesExpiringIngredients) {
+                <span class="dashboard__expiry-badge">{{ 'dashboard.almost.expiryBadge' | t }}</span>
+              }
+            </div>
+            <div class="dashboard__missing-pills">
+              @for (ing of entry.missingIngredients; track ing.name) {
+                <span class="chip">{{ ing.name }}</span>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <!-- THE INVENTORY -->
+  <section class="dashboard__section" aria-labelledby="missing-heading">
+    <div class="dashboard__section-header">
+      <div>
+        <span class="label-text" id="missing-heading">{{ 'dashboard.missing.label' | t }}</span>
+        <h2 class="dashboard__section-title">{{ 'dashboard.missing.title' | t }}</h2>
+      </div>
+    </div>
+    @if (matchResult().missingMany.length === 0) {
+      <p class="dashboard__empty" role="status">{{ 'dashboard.empty' | t }}</p>
+    } @else {
+      <ul class="dashboard__link-list" role="list">
+        @for (recipe of matchResult().missingMany; track recipe.id) {
+          <li>
+            <a [routerLink]="['/recipes', recipe.id]">{{ recipe.name }}</a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+</div>

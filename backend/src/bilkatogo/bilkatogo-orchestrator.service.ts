@@ -16,6 +16,22 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * English -> Danish grocery search terms.
+ *
+ * This predates localised content and is now a FALLBACK, not the primary path.
+ * Since phase L5, ingredient names are stored per locale, and a shopping list
+ * generated in a Danish session already carries Danish item names — for those,
+ * `translateToDanish` finds no entry and correctly returns the name unchanged.
+ *
+ * It still earns its place for two cases the translation tables cannot cover:
+ *   1. lists generated in English but sent to a Danish store;
+ *   2. items with no ingredient row behind them (merged or manually added).
+ *
+ * It is deliberately NOT wired to the translation tables: these are search terms
+ * tuned for BilkaToGo's catalogue ('mexican chocolate' -> 'mørk chokolade'), not
+ * translations of the ingredient. Keep the two concerns separate.
+ */
 const INGREDIENT_TRANSLATIONS: Record<string, string> = {
   // Produce
   'avocado': 'avocado',
@@ -254,7 +270,7 @@ export class BilkaToGoOrchestratorService {
         if (products.length === 0) {
           unmatched.push({
             itemName: item.name,
-            reason: 'No matching products found',
+            reason: 'noMatch',
           });
           continue;
         }
@@ -278,7 +294,7 @@ export class BilkaToGoOrchestratorService {
         );
         unmatched.push({
           itemName: item.name,
-          reason: `Error: ${error instanceof Error ? error.message : String(error)}`,
+          reason: 'error',
         });
       }
     }

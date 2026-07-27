@@ -56,43 +56,85 @@ enum DayOfWeek {
 }
 
 model Recipe {
-  id           String             @id @default(uuid())
-  name         String
-  description  String
-  servings     Int
-  instructions      String[]
+  id                String             @id @default(uuid())
+  servings          Int
   instructionImages String[]
   prepTime          Int
-  cookTime     Int
-  difficulty   Difficulty
-  tags         String[]
-  imageUrl     String?
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
-  ingredients  RecipeIngredient[]
-  mealEntries  MealPlanEntry[]
+  cookTime          Int
+  difficulty        Difficulty
+  // Tags stay CANONICAL (untranslated) on the base row: they are matching facets,
+  // not prose. The filter chips send these exact values and translate only their
+  // display label. Moving them into translations would break filtering.
+  tags              String[]
+  imageUrl          String?
+  // Which locale this recipe was authored in. Reads fall back to it when the
+  // requested locale has no translation, so text is never blank.
+  sourceLocale      String             @default("en")
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  ingredients       RecipeIngredient[]
+  mealEntries       MealPlanEntry[]
+  translations      RecipeTranslation[]
+}
+
+// All localised recipe prose lives here, including the source locale — there is no
+// second copy on Recipe to drift out of sync.
+model RecipeTranslation {
+  id           String   @id @default(uuid())
+  locale       String
+  name         String
+  description  String
+  instructions String[]
+  recipeId     String
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, locale])
+  @@index([locale])
 }
 
 model RecipeIngredient {
   id             String         @id @default(uuid())
-  name           String
   quantity       Float
   unit           Unit
   pantryCategory PantryCategory
   recipeId       String
   recipe         Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  translations   RecipeIngredientTranslation[]
+}
+
+model RecipeIngredientTranslation {
+  id           String           @id @default(uuid())
+  locale       String
+  name         String
+  ingredientId String
+  ingredient   RecipeIngredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([ingredientId, locale])
+  @@index([locale])
 }
 
 model PantryItem {
-  id          String         @id @default(uuid())
-  name        String
-  quantity    Float
-  unit        Unit
-  category    PantryCategory
-  barcode     String?
-  expiryDate  DateTime?
-  addedDate   DateTime       @default(now())
-  lastUpdated DateTime       @updatedAt
+  id           String         @id @default(uuid())
+  quantity     Float
+  unit         Unit
+  category     PantryCategory
+  barcode      String?
+  expiryDate   DateTime?
+  sourceLocale String         @default("en")
+  addedDate    DateTime       @default(now())
+  lastUpdated  DateTime       @updatedAt
+  translations PantryItemTranslation[]
+}
+
+model PantryItemTranslation {
+  id           String     @id @default(uuid())
+  locale       String
+  name         String
+  pantryItemId String
+  pantryItem   PantryItem @relation(fields: [pantryItemId], references: [id], onDelete: Cascade)
+
+  @@unique([pantryItemId, locale])
+  @@index([locale])
 }
 
 model MealPlan {

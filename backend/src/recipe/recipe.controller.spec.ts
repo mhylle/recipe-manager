@@ -93,9 +93,9 @@ describe('RecipeController', () => {
         tags: ['breakfast', 'quick'],
       };
 
-      const result = await controller.create(dto);
+      const result = await controller.create(dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith(dto);
+      expect(service.create).toHaveBeenCalledWith(dto, 'en', undefined);
       expect(result).toEqual(mockRecipe);
     });
   });
@@ -124,9 +124,9 @@ describe('RecipeController', () => {
     it('should return a single recipe', async () => {
       service.findById.mockResolvedValue(mockRecipe);
 
-      const result = await controller.findById('recipe-uuid-1');
+      const result = await controller.findById('recipe-uuid-1', 'en');
 
-      expect(service.findById).toHaveBeenCalledWith('recipe-uuid-1');
+      expect(service.findById).toHaveBeenCalledWith('recipe-uuid-1', 'en');
       expect(result).toEqual(mockRecipe);
     });
 
@@ -135,7 +135,7 @@ describe('RecipeController', () => {
         new NotFoundException('recipes with id missing-id not found'),
       );
 
-      await expect(controller.findById('missing-id')).rejects.toThrow(
+      await expect(controller.findById('missing-id', 'en')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -148,11 +148,16 @@ describe('RecipeController', () => {
 
       const result = await controller.update('recipe-uuid-1', {
         name: 'Blueberry Pancakes',
-      });
+      }, 'en');
 
-      expect(service.update).toHaveBeenCalledWith('recipe-uuid-1', {
+      expect(service.update).toHaveBeenCalledWith(
+        'recipe-uuid-1',
+        {
         name: 'Blueberry Pancakes',
-      });
+      },
+        'en',
+        undefined,
+      );
       expect(result.name).toBe('Blueberry Pancakes');
     });
   });

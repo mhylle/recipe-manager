@@ -1,0 +1,39 @@
+.recipe-filters {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.chip-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+.chip-group__label {
+  min-width: 4.5rem;
+}

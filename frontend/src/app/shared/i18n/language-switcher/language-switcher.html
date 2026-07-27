@@ -1,0 +1,11 @@
+<select
+  class="language-switcher"
+  [attr.aria-label]="'language.switcher.label' | t"
+  (change)="onSelect($event)"
+>
+  @for (option of locales; track option.code) {
+    <option [value]="option.code" [selected]="option.code === localeService.locale()">
+      {{ option.label }}
+    </option>
+  }
+</select>

@@ -1,0 +1,63 @@
+<div class="staples-page">
+  <div class="staples-page__header">
+    <h1>{{ 'staples.title' | t }}</h1>
+    <p class="staples-page__subtitle">{{ 'staples.subtitle' | t }}</p>
+  </div>
+
+  <div class="staples-page__grid">
+    <!-- Left: Add New Essential -->
+    <div class="card staples-page__add-card">
+      <h3>{{ 'staples.addTitle' | t }}</h3>
+      <div class="staples-page__add-form">
+        <label for="newStaple" class="sr-only">{{ 'staples.newStapleLabel' | t }}</label>
+        <input
+          id="newStaple"
+          type="text"
+          class="input"
+          [formControl]="newStapleControl"
+          [attr.placeholder]="'staples.newStaplePlaceholder' | t"
+          (keydown.enter)="addStaple()"
+          [attr.aria-label]="'staples.newStapleLabel' | t"
+        />
+        <button
+          type="button"
+          class="btn btn--primary"
+          (click)="addStaple()"
+          [disabled]="newStapleControl.invalid"
+        >
+          {{ 'common.actions.add' | t }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Right: Your Essentials -->
+    <div class="card staples-page__list-card">
+      <div class="staples-page__list-header">
+        <h3>{{ 'staples.listTitle' | t }}</h3>
+        <span class="label-text">{{ 'staples.itemCount' | t: { count: items().length } }}</span>
+      </div>
+
+      @if (items().length === 0) {
+        <p class="staples-page__empty" role="status">
+          {{ 'staples.empty' | t }}
+        </p>
+      } @else {
+        <ul class="staples-page__list" role="list">
+          @for (item of items(); track item) {
+            <li class="staples-page__item">
+              <span class="staples-page__item-name">{{ item }}</span>
+              <button
+                type="button"
+                class="btn btn--text"
+                (click)="removeStaple(item)"
+                [attr.aria-label]="'common.actions.removeNamed' | t: { name: item }"
+              >
+                {{ 'common.actions.remove' | t }}
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  </div>
+</div>

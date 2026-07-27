@@ -1,0 +1,58 @@
+<div class="meal-plan">
+  <div class="meal-plan__header">
+    <div>
+      <h1>{{ 'mealPlan.title' | t }}</h1>
+      <p class="meal-plan__subtitle">{{ 'mealPlan.subtitle' | t }}</p>
+    </div>
+    <div class="meal-plan__header-actions">
+      <span class="meal-plan__week-label">{{ 'mealPlan.weekOf' | t: { date: currentWeek() } }}</span>
+    </div>
+  </div>
+
+  <div class="grid-container">
+    <table class="meal-grid" [attr.aria-label]="'mealPlan.gridLabel' | t">
+      <thead>
+        <tr>
+          <th scope="col" class="meal-grid__corner"></th>
+          @for (day of days; track day) {
+            <th scope="col" class="meal-grid__day-header">
+              <span class="meal-grid__day-abbr">{{ day | enumLabel: 'dayOfWeekShort' }}</span>
+            </th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (meal of meals; track meal) {
+          <tr>
+            <th scope="row" class="meal-grid__meal-label">
+              <span class="meal-grid__meal-pill" [class.meal-grid__meal-pill--breakfast]="meal === 'breakfast'" [class.meal-grid__meal-pill--lunch]="meal === 'lunch'" [class.meal-grid__meal-pill--dinner]="meal === 'dinner'" [class.meal-grid__meal-pill--snack]="meal === 'snack'">{{ meal | enumLabel: 'mealType' }}</span>
+            </th>
+            @for (day of days; track day) {
+              <td class="meal-grid__cell">
+                @if (getEntry(day, meal); as entry) {
+                  <div class="meal-grid__entry">
+                    <span class="meal-grid__recipe-name">{{ getRecipeName(entry.recipeId) }}</span>
+                    <span class="meal-grid__servings">{{ 'mealPlan.servingsShort' | t: { count: entry.servings } }}</span>
+                    <div class="meal-grid__entry-actions">
+                      <button type="button" class="btn btn--small btn--ghost" (click)="confirmCooked(entry)" [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(entry.recipeId) }">{{ 'mealPlan.done' | t }}</button>
+                      <button type="button" class="btn btn--small btn--text" (click)="removeEntry(entry)" [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(entry.recipeId) }">{{ 'common.actions.remove' | t }}</button>
+                    </div>
+                  </div>
+                } @else {
+                  <button type="button" class="meal-grid__add-btn" (click)="openPicker(day, meal)" [attr.aria-label]="addRecipeLabel(day, meal)">+</button>
+                }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (showPicker()) {
+    <app-recipe-picker-dialog
+      (recipeSelected)="onRecipeSelected($event)"
+      (dialogClosed)="closePicker()"
+    />
+  }
+</div>

@@ -1,0 +1,165 @@
+<div class="recipe-form">
+  <h2>{{ (isEditMode() ? 'recipe.form.titleEdit' : 'recipe.form.titleAdd') | t }}</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+    <!-- Which language the prose fields below belong to. Independent of the UI
+         language, so you can write Danish while reading the UI in English. -->
+    <div class="lang-tabs" role="tablist" [attr.aria-label]="'recipe.form.languageTabs' | t">
+      @for (option of locales; track option.code) {
+        <button
+          type="button"
+          role="tab"
+          class="lang-tab"
+          [class.lang-tab--active]="editingLocale() === option.code"
+          [class.lang-tab--missing]="isMissing(option.code)"
+          [attr.aria-selected]="editingLocale() === option.code"
+          (click)="switchLocale(option.code)"
+        >
+          {{ option.label }}
+          @if (isMissing(option.code)) {
+            <span class="lang-tab__badge" [attr.title]="'recipe.form.missingTranslation' | t">&bull;</span>
+          }
+        </button>
+      }
+    </div>
+    @if (missingLocales().length > 0) {
+      <p class="lang-hint" role="status">{{ 'recipe.form.missingHint' | t }}</p>
+    }
+
+    <div class="form-group">
+      <label for="name">{{ 'recipe.form.name' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+      <input
+        id="name"
+        type="text"
+        class="input"
+        formControlName="name"
+        (input)="onNameInput()"
+        [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+        aria-required="true"
+      />
+      @if (form.controls.name.invalid && form.controls.name.touched) {
+        <p class="error" role="alert">{{ 'recipe.form.nameRequired' | t }}</p>
+      }
+    </div>
+
+    <div class="form-group">
+      <label for="description">{{ 'recipe.form.description' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+      <textarea
+        id="description"
+        class="input"
+        formControlName="description"
+        rows="3"
+        [attr.aria-invalid]="form.controls.description.invalid && form.controls.description.touched"
+        aria-required="true"
+      ></textarea>
+      @if (form.controls.description.invalid && form.controls.description.touched) {
+        <p class="error" role="alert">{{ 'recipe.form.descriptionRequired' | t }}</p>
+      }
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="servings">{{ 'recipe.form.servings' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <input
+          id="servings"
+          type="number"
+          class="input"
+          formControlName="servings"
+          min="1"
+          aria-required="true"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="prepTime">{{ 'recipe.form.prepTime' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <input
+          id="prepTime"
+          type="number"
+          class="input"
+          formControlName="prepTime"
+          min="0"
+          aria-required="true"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="cookTime">{{ 'recipe.form.cookTime' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <input
+          id="cookTime"
+          type="number"
+          class="input"
+          formControlName="cookTime"
+          min="0"
+          aria-required="true"
+        />
+      </div>
+
+      <div class="form-group">
+        <label for="difficulty">{{ 'recipe.form.difficulty' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+        <select id="difficulty" class="input" formControlName="difficulty" aria-required="true">
+          <option value="" disabled>{{ 'recipe.form.difficultyPlaceholder' | t }}</option>
+          @for (diff of difficultyOptions; track diff) {
+            <option [value]="diff">{{ diff | enumLabel: 'difficulty' }}</option>
+          }
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="tags">{{ 'recipe.form.tags' | t }}</label>
+      <input id="tags" type="text" class="input" formControlName="tags" [attr.placeholder]="'recipe.form.tagsPlaceholder' | t" />
+    </div>
+
+    <fieldset class="ingredients-section">
+      <legend>{{ 'recipe.form.ingredients' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></legend>
+      <div formArrayName="ingredients">
+        @for (ingredient of ingredientsArray.controls; track $index; let i = $index) {
+          <div class="ingredient-row" [formGroupName]="i">
+            <input type="text" class="input" formControlName="name" [attr.placeholder]="'recipe.form.ingredientNamePlaceholder' | t" [attr.aria-label]="'recipe.form.ingredientNameLabel' | t: { index: i + 1 }" />
+            <input type="number" class="input" formControlName="quantity" [attr.placeholder]="'recipe.form.ingredientQtyPlaceholder' | t" min="0" [attr.aria-label]="'recipe.form.ingredientQtyLabel' | t: { index: i + 1 }" />
+            <select class="input" formControlName="unit" [attr.aria-label]="'recipe.form.ingredientUnitLabel' | t: { index: i + 1 }">
+              @for (unit of unitOptions; track unit) {
+                <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+              }
+            </select>
+            <select class="input" formControlName="pantryCategory" [attr.aria-label]="'recipe.form.ingredientCategoryLabel' | t: { index: i + 1 }">
+              @for (cat of categoryOptions; track cat) {
+                <option [value]="cat">{{ cat | enumLabel: 'pantryCategory' }}</option>
+              }
+            </select>
+            <button
+              type="button"
+              class="btn btn--small btn--danger"
+              (click)="removeIngredient(i)"
+              [attr.aria-label]="'recipe.form.removeIngredient' | t: { index: i + 1 }"
+            >
+              {{ 'common.actions.remove' | t }}
+            </button>
+          </div>
+        }
+      </div>
+      <button type="button" class="btn btn--small btn--add" (click)="addIngredient()">
+        {{ 'recipe.form.addIngredient' | t }}
+      </button>
+    </fieldset>
+
+    <div class="form-group">
+      <label for="instructions">{{ 'recipe.form.instructions' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></label>
+      <textarea
+        id="instructions"
+        class="input"
+        formControlName="instructions"
+        rows="6"
+        [attr.placeholder]="'recipe.form.instructionsPlaceholder' | t"
+        aria-required="true"
+      ></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn--primary" [disabled]="form.invalid">
+        {{ (isEditMode() ? 'common.actions.update' : 'common.actions.create') | t }}
+      </button>
+      <a routerLink="/recipes" class="btn btn--ghost">{{ 'common.actions.cancel' | t }}</a>
+    </div>
+  </form>
+</div>

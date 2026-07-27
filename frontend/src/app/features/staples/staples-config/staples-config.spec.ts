@@ -31,7 +31,7 @@ describe('StaplesConfigComponent', () => {
   });
 
   it('should load and display staples', () => {
-    const items = fixture.nativeElement.querySelectorAll('.staples-config__item');
+    const items = fixture.nativeElement.querySelectorAll('.staples-page__item');
     expect(items.length).toBe(2);
     expect(items[0].textContent).toContain('salt');
     expect(items[1].textContent).toContain('pepper');
@@ -71,7 +71,7 @@ describe('StaplesConfigComponent', () => {
     component.ngOnInit();
     fixture.detectChanges();
 
-    const emptyMessage = fixture.nativeElement.querySelector('.staples-config__empty');
+    const emptyMessage = fixture.nativeElement.querySelector('.staples-page__empty');
     expect(emptyMessage).toBeTruthy();
     expect(emptyMessage.textContent).toContain('No staples configured');
   });

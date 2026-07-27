@@ -1,0 +1,136 @@
+.pantry-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.pantry-list__header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.pantry-list__subtitle {
+  font-family: var(--font-body);
+  color: var(--on-surface-variant);
+  font-size: 1rem;
+}
+
+.pantry-list__empty {
+  text-align: center;
+  padding: 3rem var(--spacing-card);
+  color: var(--on-surface-variant);
+}
+
+.pantry-list__category {
+  margin-bottom: 1.5rem;
+}
+
+.pantry-list__category-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: capitalize;
+  margin-bottom: 0.75rem;
+}
+
+.pantry-list__category-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--primary);
+}
+
+.pantry-list__row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 0;
+}
+
+.pantry-list__row + .pantry-list__row {
+  border-top: 1px solid var(--outline-variant);
+}
+
+.pantry-list__name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--on-surface);
+  text-decoration: none;
+}
+
+.pantry-list__name:hover {
+  color: var(--primary);
+}
+
+.pantry-list__qty {
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  min-width: 80px;
+  text-align: right;
+}
+
+.pantry-list__expiry {
+  min-width: 110px;
+  text-align: center;
+}
+
+.pantry-list__actions {
+  display: flex;
+  gap: 0.25rem;
+  min-width: 120px;
+  justify-content: flex-end;
+}
+
+.expiry-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-full);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.expiry-badge--expired {
+  background: var(--error-container);
+  color: var(--error);
+}
+
+.expiry-badge--expiring-soon {
+  background: var(--secondary-container);
+  color: var(--secondary);
+}
+
+.expiry-badge--fresh {
+  background: var(--primary-container);
+  color: var(--primary);
+}
+
+.expiry-badge--none {
+  color: var(--on-surface-variant);
+  opacity: 0.4;
+}
+
+@media (max-width: 640px) {
+  .pantry-list__header {
+    flex-direction: column;
+  }
+
+  .pantry-list__row {
+    flex-wrap: wrap;
+  }
+
+  .pantry-list__qty,
+  .pantry-list__expiry {
+    min-width: auto;
+    text-align: left;
+  }
+
+  .pantry-list__actions {
+    min-width: auto;
+    width: 100%;
+    justify-content: flex-start;
+  }
+}

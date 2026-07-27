@@ -54,7 +54,10 @@ describe('PantryService', () => {
 
       const result = await service.create(dto);
 
-      expect(repository.create).toHaveBeenCalledWith(dto);
+      expect(repository.create).toHaveBeenCalledWith(dto, {
+        sourceLocale: 'en',
+        translations: undefined,
+      });
       expect(result).toEqual(mockPantryItem);
       expect(result.id).toBeDefined();
       expect(result.addedDate).toBeDefined();
@@ -92,7 +95,7 @@ describe('PantryService', () => {
 
       const result = await service.findById('test-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('test-uuid-1');
+      expect(repository.findById).toHaveBeenCalledWith('test-uuid-1', 'en');
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -120,6 +123,9 @@ describe('PantryService', () => {
 
       expect(repository.update).toHaveBeenCalledWith('test-uuid-1', {
         quantity: 250,
+      }, {
+        locale: 'en',
+        translations: undefined,
       });
       expect(result.quantity).toBe(250);
       expect(result.lastUpdated).not.toBe(mockPantryItem.lastUpdated);

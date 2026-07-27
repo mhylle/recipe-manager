@@ -40,10 +40,11 @@ describe('BilkaToGoLoginDialogComponent', () => {
   });
 
   it('should have aria attributes on dialog', () => {
-    const backdrop = fixture.nativeElement.querySelector('.dialog-backdrop');
-    expect(backdrop.getAttribute('role')).toBe('dialog');
-    expect(backdrop.getAttribute('aria-label')).toBe('Log in to BilkaToGo');
-    expect(backdrop.getAttribute('aria-modal')).toBe('true');
+    // The dialog role/label/modal live on the dialog element itself, not the backdrop.
+    const dialog = fixture.nativeElement.querySelector('.dialog');
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    expect(dialog.getAttribute('aria-label')).toBe('Log in to BilkaToGo');
+    expect(dialog.getAttribute('aria-modal')).toBe('true');
   });
 
   it('should call login service on form submit', () => {

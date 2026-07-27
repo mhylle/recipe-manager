@@ -104,7 +104,8 @@ describe('BilkaToGoOrchestratorService', () => {
       expect(result.matched).toHaveLength(1);
       expect(result.unmatched).toHaveLength(1);
       expect(result.unmatched[0].itemName).toBe('Brød');
-      expect(result.unmatched[0].reason).toBe('No matching products found');
+      // A stable code, not prose — the UI translates it (see BilkaToGoUnmatchedReason).
+      expect(result.unmatched[0].reason).toBe('noMatch');
     });
 
     it('should throw UnauthorizedException when session is expired', async () => {
@@ -128,7 +129,8 @@ describe('BilkaToGoOrchestratorService', () => {
       expect(result.matched).toHaveLength(1);
       expect(result.unmatched).toHaveLength(1);
       expect(result.unmatched[0].itemName).toBe('Mælk');
-      expect(result.unmatched[0].reason).toContain('Network error');
+      // The raw error message is logged server-side, not surfaced to the user.
+      expect(result.unmatched[0].reason).toBe('error');
     });
 
     it('should skip checked items', async () => {
