@@ -19,4 +19,13 @@ describe('AppController', () => {
       expect(appController.getHello()).toBe('Hello World!');
     });
   });
+
+  describe('health', () => {
+    // The deploy workflow and the container HEALTHCHECK both poll GET /api/health.
+    // Without this route every deploy fails its health gate — which is exactly
+    // what happened, unnoticed, for six consecutive deploys.
+    it('should report ok so the deploy health gate passes', () => {
+      expect(appController.getHealth()).toEqual({ status: 'ok' });
+    });
+  });
 });
