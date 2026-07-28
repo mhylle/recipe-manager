@@ -403,3 +403,151 @@
   font-style: italic;
   color: var(--color-text-muted, #6b6b6b);
 }
+
+// --- Scale control -----------------------------------------------------------
+.scale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border, #e5e3dd);
+
+  &__presets {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  &__preset {
+    min-width: 2.75rem;
+    padding: 0.35rem 0.5rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    background: transparent;
+    border: 1px solid var(--color-border, #e5e3dd);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &:hover { border-color: var(--color-accent, #3e6a00); }
+
+    &--active {
+      background: var(--color-accent, #3e6a00);
+      border-color: var(--color-accent, #3e6a00);
+      color: #fff;
+    }
+  }
+
+  &__servings {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8125rem;
+  }
+
+  // Danish "Portioner" is longer than "Servings"; the row wraps rather than
+  // squeezing the input, which is why the label is not width-constrained.
+  &__servings-label { white-space: nowrap; }
+
+  &__servings-input {
+    width: 4rem;
+    padding: 0.3rem 0.4rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    border: 1px solid var(--color-border, #e5e3dd);
+    border-radius: 0.25rem;
+  }
+
+  &__note {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--color-text-muted, #6b6b6b);
+  }
+}
+
+// --- Step timers -------------------------------------------------------------
+.step-timers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.step-timer {
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--color-accent, #3e6a00);
+  background: transparent;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  cursor: pointer;
+
+  &:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+}
+
+// --- Running timers ----------------------------------------------------------
+.timer-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--color-surface, #f9f9f8);
+  border-bottom: 1px solid var(--color-border, #e5e3dd);
+}
+
+.timer-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.8125rem;
+  background: #fff;
+  border: 1px solid var(--color-border, #e5e3dd);
+  border-radius: 999px;
+
+  &--done {
+    border-color: var(--color-accent, #3e6a00);
+    background: color-mix(in srgb, var(--color-accent, #3e6a00) 10%, #fff);
+    // Draws the eye without being a strobe; respects reduced-motion below.
+    animation: timer-pulse 1.2s ease-in-out infinite;
+  }
+
+  &__time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+
+  &__label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 16rem;
+    color: var(--color-text-muted, #6b6b6b);
+  }
+
+  &__close {
+    padding: 0 0.2rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-muted, #6b6b6b);
+  }
+}
+
+@keyframes timer-pulse {
+  50% { background: color-mix(in srgb, var(--color-accent, #3e6a00) 24%, #fff); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-chip--done { animation: none; }
+}

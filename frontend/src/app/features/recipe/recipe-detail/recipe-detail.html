@@ -1,3 +1,22 @@
+@if (timers.all().length > 0) {
+  <aside class="timer-bar" [attr.aria-label]="'recipe.detail.timersLabel' | t">
+    @for (timer of timers.all(); track timer.id) {
+      <div class="timer-chip" [class.timer-chip--done]="timer.finished">
+        <span class="timer-chip__time" [attr.aria-live]="timer.finished ? 'assertive' : 'off'">
+          {{ timer.finished ? ('recipe.detail.timerDone' | t) : remaining(timer.remainingSeconds) }}
+        </span>
+        <span class="timer-chip__label">{{ timer.label }}</span>
+        <button
+          type="button"
+          class="timer-chip__close"
+          (click)="timers.cancel(timer.id)"
+          [attr.aria-label]="(timer.finished ? 'recipe.detail.timerDismiss' : 'recipe.detail.timerCancel') | t"
+        >&times;</button>
+      </div>
+    }
+  </aside>
+}
+
 @if (recipe()) {
   <article class="recipe-view">
     <!-- Hero Section -->
@@ -44,7 +63,7 @@
         <span class="info-item__icon" aria-hidden="true">&#127860;</span>
         <div class="info-item__text">
           <span class="info-item__label">{{ 'recipe.detail.servings' | t }}</span>
-          <span class="info-item__value">{{ recipe()!.servings }}</span>
+          <span class="info-item__value">{{ scaledServings() }}</span>
         </div>
       </div>
       <div class="info-item">
@@ -106,8 +125,37 @@
       <!-- Ingredients Panel -->
       <aside class="recipe-view__ingredients">
         <h2 class="section-heading">{{ 'recipe.detail.ingredients' | t }}</h2>
+
+        <div class="scale" role="group" [attr.aria-label]="'recipe.detail.scaleLabel' | t">
+          <div class="scale__presets">
+            @for (preset of scalePresets; track preset) {
+              <button
+                type="button"
+                class="scale__preset"
+                [class.scale__preset--active]="isPresetActive(preset)"
+                [attr.aria-pressed]="isPresetActive(preset)"
+                (click)="setMultiplier(preset)"
+              >{{ preset | localeNumber }}&times;</button>
+            }
+          </div>
+          <label class="scale__servings">
+            <span class="scale__servings-label">{{ 'recipe.detail.scaleServings' | t }}</span>
+            <input
+              type="number"
+              min="1"
+              step="1"
+              class="scale__servings-input"
+              [value]="scaledServings()"
+              (input)="setServings($any($event.target).value)"
+            />
+          </label>
+          @if (isScaled()) {
+            <p class="scale__note">{{ 'recipe.detail.scaleNote' | t }}</p>
+          }
+        </div>
+
         <ul class="ingredients-list" role="list">
-          @for (ing of recipe()!.ingredients; track $index) {
+          @for (ing of scaledIngredients(); track $index) {
             <li class="ingredient-item">
               <span class="ingredient-item__qty">{{ ing.quantity | localeNumber }} {{ ing.unit | enumLabel: 'unit' }}</span>
               <span class="ingredient-item__name">{{ ing.name }}</span>
@@ -129,6 +177,22 @@
                   <img [src]="recipe()!.instructionImages![i]" [alt]="'recipe.detail.stepAlt' | t: { number: i + 1 }" class="step-image" />
                 }
                 <p class="instruction-step__text">{{ step }}</p>
+                @if (stepDurations()[i]; as durations) {
+                  @if (durations.length > 0) {
+                    <div class="step-timers">
+                      @for (duration of durations; track duration.index) {
+                        <button
+                          type="button"
+                          class="step-timer"
+                          (click)="startTimer(i, duration)"
+                          [attr.aria-label]="'recipe.detail.startTimerFor' | t: { duration: duration.text, number: i + 1 }"
+                        >
+                          <span aria-hidden="true">&#9201;</span> {{ duration.text }}
+                        </button>
+                      }
+                    </div>
+                  }
+                }
               </div>
             </li>
           }
