@@ -258,6 +258,13 @@ export const en = {
   'mealPlan.picker.empty': 'No recipes available. Create some recipes first.',
   'mealPlan.picker.meta': '{{minutes}}min | {{servings}} servings',
 
+  'dashboard.inspiration.eyebrow': 'Inspiration for you',
+  'dashboard.inspiration.title': 'Three dishes to cook today.',
+  'dashboard.inspiration.empty': 'Add a few recipes and your suggestions will appear here.',
+  'dashboard.readiness.complete': 'Everything in stock',
+  'dashboard.readiness.partial': '{{have}} of {{total}} ingredients',
+  'dashboard.readiness.unknown': 'Needs a shop',
+
   'dashboard.heading': 'Welcome home,',
   'dashboard.headingEmphasis': 'Chef.',
   'dashboard.subtitle': 'See what you can craft from your pantry today.',
@@ -268,8 +275,8 @@ export const en = {
   'dashboard.almost.label': 'ALMOST THERE',
   'dashboard.almost.title': 'Just one or two pieces missing.',
   'dashboard.almost.expiryBadge': 'Use it soon!',
-  'dashboard.missing.label': 'THE INVENTORY',
-  'dashboard.missing.title': 'Awaiting replenishment.',
+  'dashboard.missing.label': 'NEEDS A SHOP',
+  'dashboard.missing.title': 'Worth a trip to the shops.',
   'dashboard.empty': 'No recipes in this category.',
   'dashboard.totalTime': '{{minutes}} min total',
 

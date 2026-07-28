@@ -233,6 +233,13 @@ export const da: Dictionary = {
   'mealPlan.picker.empty': 'Ingen opskrifter tilgængelige. Opret en opskrift først.',
   'mealPlan.picker.meta': '{{minutes}} min | {{servings}} portioner',
 
+  'dashboard.inspiration.eyebrow': 'Inspiration til dig',
+  'dashboard.inspiration.title': 'Tre retter at lave i dag.',
+  'dashboard.inspiration.empty': 'Tilføj et par opskrifter, så dukker dine forslag op her.',
+  'dashboard.readiness.complete': 'Alt på lager',
+  'dashboard.readiness.partial': '{{have}} af {{total}} ingredienser',
+  'dashboard.readiness.unknown': 'Kræver indkøb',
+
   'dashboard.heading': 'Velkommen hjem,',
   'dashboard.headingEmphasis': 'Chef.',
   'dashboard.subtitle': 'Se hvad du kan lave af det, du har i spisekammeret i dag.',
@@ -243,8 +250,8 @@ export const da: Dictionary = {
   'dashboard.almost.label': 'TÆT PÅ',
   'dashboard.almost.title': 'Der mangler kun en enkelt ting eller to.',
   'dashboard.almost.expiryBadge': 'Brug den snart!',
-  'dashboard.missing.label': 'RESTEN',
-  'dashboard.missing.title': 'Venter på genopfyldning.',
+  'dashboard.missing.label': 'KRÆVER INDKØB',
+  'dashboard.missing.title': 'Værd en tur i supermarkedet.',
   'dashboard.empty': 'Ingen opskrifter i denne kategori.',
   'dashboard.totalTime': '{{minutes}} min i alt',
 
