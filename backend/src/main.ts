@@ -4,9 +4,13 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module.js';
 import { ValidationPipe } from '@nestjs/common';
+import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // SsoAuthGuard reads the shared `auth_token` cookie; without this middleware
+  // req.cookies is undefined and every signed-in user looks anonymous.
+  app.use(cookieParser());
   app.enableCors({
     origin: process.env.CORS_ORIGIN ?? 'http://localhost:4200',
     credentials: true,

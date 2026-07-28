@@ -58,17 +58,19 @@
 
     <!-- Quick Actions (always visible near the top) -->
     <div class="recipe-view__quick-actions">
-      <button
-        type="button"
-        class="btn btn--primary"
-        [disabled]="addingToList()"
-        (click)="addToShoppingList()"
-      >
-        {{ (addingToList() ? 'recipe.detail.adding' : 'recipe.detail.addToShoppingList') | t }}
-      </button>
-      <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
-        {{ 'common.actions.edit' | t }}
-      </a>
+      @if (authService.isAuthenticated()) {
+        <button
+          type="button"
+          class="btn btn--primary"
+          [disabled]="addingToList()"
+          (click)="addToShoppingList()"
+        >
+          {{ (addingToList() ? 'recipe.detail.adding' : 'recipe.detail.addToShoppingList') | t }}
+        </button>
+        <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
+          {{ 'common.actions.edit' | t }}
+        </a>
+      }
       <a routerLink="/recipes" class="btn btn--ghost btn--small">
         {{ 'recipe.detail.allRecipes' | t }}
       </a>
@@ -144,15 +146,15 @@
 
     <!-- Secondary Actions -->
     <nav class="recipe-view__actions" [attr.aria-label]="'recipe.detail.actionsLabel' | t">
-      <button
-        type="button"
-        class="btn btn--text btn--small"
-        (click)="onDelete()"
-        [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe()!.name }"
-      >
-        {{ 'recipe.detail.delete' | t }}
-      </button>
-      @if (authService.isAdmin()) {
+      @if (authService.isAuthenticated()) {
+        <button
+          type="button"
+          class="btn btn--text btn--small"
+          (click)="onDelete()"
+          [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe()!.name }"
+        >
+          {{ 'recipe.detail.delete' | t }}
+        </button>
         <button
           type="button"
           class="btn btn--text btn--small"
@@ -161,6 +163,8 @@
         >
           {{ (regenerating() ? 'recipe.detail.generating' : 'recipe.detail.regenerate') | t }}
         </button>
+      } @else {
+        <p class="recipe-view__signin-hint">{{ 'recipe.detail.signInToEdit' | t }}</p>
       }
     </nav>
   </article>

@@ -136,6 +136,7 @@ export const da: Dictionary = {
   'recipe.detail.actionsLabel': 'Handlinger for opskrift',
   'recipe.detail.delete': 'Slet opskrift',
   'recipe.detail.regenerate': 'Generer billeder igen',
+  'recipe.detail.signInToEdit': 'Log ind på mhylle.com for at redigere denne opskrift.',
   'recipe.detail.generating': 'Genererer...',
   'recipe.detail.keepAwake': 'Hold skærmen tændt',
   'recipe.detail.keepAwakeOn': 'Skærmen forbliver tændt',
