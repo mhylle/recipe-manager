@@ -9,43 +9,12 @@
  * into a real Salling Group account and put groceries in a real basket; that is
  * not something to hand a language model without a human in the loop.
  */
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from '@modelcontextprotocol/sdk/types.js';
 
-import { buildResponse, buildError, getApiBase } from './lib/api-client.js';
-import * as recipes from './tools/recipes.js';
-import * as pantry from './tools/pantry.js';
-import * as planning from './tools/planning.js';
+import { getApiBase } from './lib/api-client.js';
+import { createServer } from './lib/server-factory.js';
 
-const modules = [recipes, pantry, planning];
-const definitions = modules.flatMap((m) => m.definitions);
-const handlers = Object.assign({}, ...modules.map((m) => m.handlers));
-
-const server = new Server(
-  { name: 'recipe-manager', version: '1.0.0' },
-  { capabilities: { tools: {} } },
-);
-
-server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: definitions }));
-
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name, arguments: args } = request.params;
-  const handler = handlers[name];
-  if (!handler) {
-    return buildError(new Error(`Unknown tool: ${name}`));
-  }
-  try {
-    return buildResponse(await handler(args ?? {}));
-  } catch (error) {
-    // Surface failures as tool errors rather than crashing the server — a bad
-    // id or an unreachable backend should be recoverable within the conversation.
-    return buildError(error);
-  }
-});
+const server = createServer();
 
 async function main() {
   // stderr only: stdout is the MCP transport, and anything written there

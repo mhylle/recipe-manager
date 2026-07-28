@@ -1,9 +1,24 @@
 {
   "mcpServers": {
     "recipe-manager": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://mhylle.com/mcp/recipe-manager",
+        "--header",
+        "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer YOUR_TOKEN_HERE",
+        "RECIPE_MANAGER_LOCALE": "da"
+      }
+    },
+    "recipe-manager-local": {
       "command": "node",
       "args": ["/absolute/path/to/recipe-manager/mcp-server/index.js"],
       "env": {
+        "RECIPE_MANAGER_API_URL": "http://localhost:3000/api",
         "RECIPE_MANAGER_LOCALE": "da"
       }
     }

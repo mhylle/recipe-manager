@@ -15,7 +15,53 @@ npm install
 Node 20+ is required. The only dependency is the MCP SDK; HTTP goes through the
 built-in `fetch`.
 
-## Connect it to Claude Desktop
+There are two ways to run it: **hosted** (recommended — always available, nothing
+running locally) and **local stdio** (for development against a local backend).
+
+## Hosted: connect to the deployed server
+
+The server runs on mhylle.com at `https://mhylle.com/mcp/recipe-manager`, so it is
+reachable whether or not this machine is on. It is protected by a bearer token —
+the tools can delete recipes, and the endpoint is public.
+
+Claude Desktop speaks stdio, so bridge to it with `mcp-remote`:
+
+```json
+{
+  "mcpServers": {
+    "recipe-manager": {
+      "command": "npx",
+      "args": [
+        "-y", "mcp-remote",
+        "https://mhylle.com/mcp/recipe-manager",
+        "--header", "Authorization:${AUTH_HEADER}"
+      ],
+      "env": {
+        "AUTH_HEADER": "Bearer YOUR_TOKEN_HERE",
+        "RECIPE_MANAGER_LOCALE": "da"
+      }
+    }
+  }
+}
+```
+
+The `Authorization:${AUTH_HEADER}` indirection is not decoration. Claude Desktop
+splits arguments on spaces, so writing `"Authorization: Bearer abc"` inline arrives
+as three separate arguments and the header is silently dropped. Keeping the space
+inside an environment variable is the documented way around it.
+
+The token lives in the `RECIPE_MANAGER_MCP_TOKEN` GitHub Secret on the
+`mhylle/recipe-manager` repo. It is never committed. To rotate it:
+
+```bash
+gh secret set RECIPE_MANAGER_MCP_TOKEN --repo mhylle/recipe-manager
+gh workflow run deploy.yml --repo mhylle/recipe-manager
+```
+
+Then update `AUTH_HEADER` in the Desktop config. Old tokens stop working the moment
+the new container starts.
+
+## Local: run over stdio
 
 Add this to your Claude Desktop config:
 
@@ -84,6 +130,27 @@ wsl.exe -d Ubuntu -e /usr/bin/env RECIPE_MANAGER_LOCALE=da /home/you/.local/bin/
 |---|---|---|
 | `RECIPE_MANAGER_API_URL` | `https://mhylle.com/api/recipe-manager/api` | Point at a local backend, e.g. `http://localhost:3000/api` |
 | `RECIPE_MANAGER_LOCALE` | `en` | Default content language, `en` or `da`. Any tool can override it per call. |
+| `RECIPE_MANAGER_MCP_TOKEN` | — | HTTP transport only. Required, minimum 32 chars; the process exits rather than serving unauthenticated. |
+| `PORT` | `3100` | HTTP transport only. |
+| `RECIPE_MANAGER_MCP_PATH` | `/mcp` | HTTP transport only. Path the MCP endpoint is served on. |
+
+## Hosting it yourself
+
+`http-server.js` is the HTTP entry point; `index.js` is the stdio one. Both build
+their tool surface from `lib/server-factory.js`, so the remote server cannot drift
+from the one you tested locally.
+
+```bash
+RECIPE_MANAGER_MCP_TOKEN=$(python3 -c 'import secrets;print(secrets.token_urlsafe(48))') \
+  node http-server.js
+```
+
+`/health` is unauthenticated and reports nothing but liveness. Everything on `/mcp`
+requires the bearer token, compared in constant time.
+
+Behind a reverse proxy, two settings matter: `proxy_buffering off` (the session
+holds an SSE stream open, and buffering would withhold every notification) and a
+long `proxy_read_timeout` (the default 60s kills idle sessions mid-conversation).
 
 ## What it can do
 
