@@ -1,3 +1,4 @@
+import { mondayOf } from '../../../shared/utils/week';
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { ShoppingListService } from '../shopping-list.service';
@@ -71,7 +72,7 @@ export class ShoppingListViewComponent {
     }
 
     // Load current week's meal plan to get its ID
-    const weekStart = this.getWeekStartDate();
+    const weekStart = mondayOf();
     this.mealPlanService.getByWeek(weekStart).subscribe((plan) => {
       this.currentMealPlanId = plan.id;
     });
@@ -130,12 +131,4 @@ export class ShoppingListViewComponent {
     });
   }
 
-  private getWeekStartDate(): string {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
-    return monday.toISOString().split('T')[0];
-  }
 }

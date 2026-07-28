@@ -11,6 +11,13 @@ import {
   isRecipeSort,
   sortRecipes,
 } from '../recipe-sort';
+import {
+  RECIPE_VIEW_MODES,
+  RecipeViewMode,
+  isRecipeViewMode,
+  readStoredViewMode,
+  writeStoredViewMode,
+} from '../recipe-view-mode';
 
 @Component({
   selector: 'app-recipe-list',
@@ -25,6 +32,11 @@ export class RecipeListComponent {
 
   readonly items = signal<Recipe[]>([]);
   private currentFilters: RecipeFilters | null = null;
+
+  readonly viewModes = RECIPE_VIEW_MODES;
+
+  /** Layout choice, remembered between visits. Defaults to the original cards. */
+  readonly viewMode = signal<RecipeViewMode>(readStoredViewMode());
 
   readonly sortOptions = RECIPE_SORT_OPTIONS;
   readonly sortOrder = signal<RecipeSort>(DEFAULT_RECIPE_SORT);
@@ -47,6 +59,19 @@ export class RecipeListComponent {
     const f = this.currentFilters;
     return !!(f.query || f.difficulty || f.maxPrepTime || f.tags
       || f.cuisines.length || f.proteins.length || f.courses.length);
+  }
+
+  /** First letter, for the gallery placeholder when a recipe has no photograph. */
+  initial(name: string): string {
+    return name.trim().charAt(0).toUpperCase();
+  }
+
+  onViewModeChange(mode: RecipeViewMode): void {
+    if (!isRecipeViewMode(mode)) {
+      return;
+    }
+    this.viewMode.set(mode);
+    writeStoredViewMode(mode);
   }
 
   onSortChange(event: Event): void {

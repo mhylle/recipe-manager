@@ -103,3 +103,199 @@
     gap: 0.75rem;
   }
 }
+
+/* --- Layout switcher --- */
+.recipe-list__view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.viewtoggle {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface-container-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-full);
+}
+
+.viewtoggle__option {
+  padding: 0.3rem 0.75rem;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.viewtoggle__option:hover {
+  color: var(--on-surface);
+}
+
+.viewtoggle__option--active {
+  color: var(--primary);
+  font-weight: 600;
+  background: var(--surface-container-lowest);
+  box-shadow: 0 1px 2px rgba(45, 52, 51, 0.08);
+}
+
+.viewtoggle__option:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* --- List view: one ruled row per recipe --- */
+.recipe-rows {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.recipe-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0.25rem;
+  border-bottom: 1px solid var(--outline-variant);
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+
+.recipe-row:hover {
+  background: var(--surface-container-low);
+  padding-left: 0.625rem;
+}
+
+.recipe-row__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recipe-row__meta {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  white-space: nowrap;
+}
+
+.recipe-row__actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* --- Gallery view: the photographs lead --- */
+.recipe-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.gallery-item {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.gallery-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(62, 106, 0, 0.35);
+  box-shadow: 0 12px 28px -18px rgba(45, 52, 51, 0.45);
+}
+
+.gallery-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.gallery-item__frame {
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--surface-container-high), var(--surface-container-low));
+}
+
+.gallery-item__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.gallery-item:hover .gallery-item__image {
+  transform: scale(1.03);
+}
+
+.gallery-item__monogram {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  color: var(--on-surface-variant);
+  opacity: 0.16;
+  line-height: 1;
+  user-select: none;
+}
+
+.gallery-item__body {
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.gallery-item__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
+  margin: 0;
+  color: var(--on-surface);
+}
+
+.gallery-item:hover .gallery-item__title {
+  color: var(--primary);
+}
+
+.gallery-item__meta {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+@media (max-width: 640px) {
+  .recipe-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.35rem;
+  }
+
+  .recipe-row__meta {
+    grid-column: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gallery-item,
+  .gallery-item__image,
+  .recipe-row {
+    transition: none;
+  }
+
+  .gallery-item:hover {
+    transform: none;
+  }
+
+  .gallery-item:hover .gallery-item__image {
+    transform: none;
+  }
+}

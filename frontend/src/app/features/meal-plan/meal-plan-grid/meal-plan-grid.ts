@@ -1,3 +1,4 @@
+import { mondayOf } from '../../../shared/utils/week';
 import { Component, ChangeDetectionStrategy, inject, signal, OnInit, computed } from '@angular/core';
 import { MealPlanService } from '../meal-plan.service';
 import { RecipeService } from '../../recipe/recipe.service';
@@ -43,7 +44,7 @@ export class MealPlanGridComponent {
   private readonly reload = reloadOnLocaleChange(() => this.loadPlan());
 
   private loadPlan(): void {
-    const weekStart = this.getWeekStartDate();
+    const weekStart = mondayOf();
     this.mealPlanService.getByWeek(weekStart).subscribe((plan) => {
       this.plan.set(plan);
     });
@@ -123,12 +124,4 @@ export class MealPlanGridComponent {
     });
   }
 
-  private getWeekStartDate(): string {
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const diff = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - diff);
-    return monday.toISOString().split('T')[0];
-  }
 }
