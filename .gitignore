@@ -35,3 +35,7 @@ backend/public/
 # Playwright MCP logs and screenshots
 .playwright-mcp/
 *.png
+# ...but the PWA icons are real source assets, not stray screenshots. Without
+# this the manifest ships referencing ten icons that 404, and the browser
+# silently declines to offer installation.
+!frontend/public/icons/*.png
