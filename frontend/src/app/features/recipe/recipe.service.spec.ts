@@ -87,6 +87,22 @@ describe('RecipeService', () => {
     httpTesting.verify();
   });
 
+  it('getAll survives a bare-array response from an older API', () => {
+    // The reverse of the incident: a client that expects the envelope must not
+    // crash if it meets a server that has not been migrated, or has rolled back.
+    let received: unknown[] | null = null;
+    let completed = false;
+    service.getAll().subscribe({
+      next: (recipes) => (received = recipes),
+      complete: () => (completed = true),
+    });
+
+    httpTesting.expectOne('/api/recipes?offset=0').flush([mockRecipe]);
+
+    expect(completed).toBe(true);
+    expect(received).toEqual([mockRecipe]);
+  });
+
   it('getById should call GET /api/recipes/:id', () => {
     service.getById('recipe-1').subscribe((recipe) => {
       expect(recipe).toEqual(mockRecipe);
