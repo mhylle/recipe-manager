@@ -39,8 +39,10 @@ export const tools = [
         ...localeProperty,
       },
     },
+    // getAll, not get: the API paginates, and a partial list reported as the
+    // whole collection is worse than an error, because nothing looks wrong.
     handler: ({ query, difficulty, maxPrepTime, tags, locale }) =>
-      api.get('/recipes', { locale, query: { q: query, difficulty, maxPrepTime, tags } }),
+      api.getAll('/recipes', { locale, query: { q: query, difficulty, maxPrepTime, tags } }),
   },
 
   {

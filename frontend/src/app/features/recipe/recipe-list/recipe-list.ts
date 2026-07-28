@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
 import { Recipe } from '../../../shared/models/recipe.model';
@@ -22,7 +23,7 @@ import {
 @Component({
   selector: 'app-recipe-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RecipeFiltersComponent, TranslatePipe, EnumLabelPipe],
+  imports: [RouterLink, RecipeFiltersComponent, TranslatePipe, EnumLabelPipe, NgOptimizedImage],
   templateUrl: './recipe-list.html',
   styleUrl: './recipe-list.scss',
 })

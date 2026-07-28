@@ -100,8 +100,36 @@ async function request(method, path, { body, locale, query } = {}) {
   return payload;
 }
 
+/**
+ * Every page of a paginated list endpoint, concatenated.
+ *
+ * The API answers lists as `{ data, meta }`. Returning only the first page would
+ * quietly drop everything past the default limit, and an assistant asked to
+ * "list my recipes" would confidently report an incomplete set — the worst kind
+ * of wrong, because nothing errors.
+ */
+async function getAllPages(path, opts = {}) {
+  const all = [];
+  let offset = 0;
+
+  for (;;) {
+    const page = await request('GET', path, {
+      ...opts,
+      query: { ...(opts.query || {}), offset },
+    });
+    // Tolerate a non-paginated response, so this helper is safe to point at an
+    // endpoint that has not been migrated yet.
+    if (Array.isArray(page)) return page;
+
+    all.push(...page.data);
+    offset += page.data.length;
+    if (page.data.length === 0 || !page.meta?.hasMore) return all;
+  }
+}
+
 export const api = {
   get: (path, opts) => request('GET', path, opts),
+  getAll: (path, opts) => getAllPages(path, opts),
   post: (path, body, opts) => request('POST', path, { ...opts, body }),
   patch: (path, body, opts) => request('PATCH', path, { ...opts, body }),
   put: (path, body, opts) => request('PUT', path, { ...opts, body }),

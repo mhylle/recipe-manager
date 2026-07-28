@@ -1,0 +1,30 @@
+
+// Shown when the service worker has a newer build waiting. Deliberately a
+// prompt, not an automatic reload: swapping the page out mid-recipe — or
+// mid-timer — is worse than a stale header for a few minutes.
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #fff;
+  background: var(--color-accent, #3e6a00);
+
+  &__action {
+    padding: 0.25rem 0.75rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: inherit;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    cursor: pointer;
+
+    &:hover { background: rgba(255, 255, 255, 0.15); }
+  }
+}

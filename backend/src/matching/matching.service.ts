@@ -8,6 +8,7 @@ import {
 } from '../shared/interfaces/recipe.interface.js';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface.js';
 import { getExpiryStatus } from '../pantry/helpers/expiry.helper.js';
+import { MAX_PAGE_LIMIT } from '../shared/pagination.js';
 
 export interface MissingIngredient {
   name: string;
@@ -36,9 +37,33 @@ export class MatchingService {
     private readonly staplesService: StaplesService,
   ) {}
 
+  /**
+   * Every recipe, paged through to exhaustion.
+   *
+   * "What can I cook" has to consider the whole collection — answering from the
+   * first page would silently stop suggesting anything added after the hundredth
+   * recipe, and would look like a ranking quirk rather than a missing read.
+   */
+  private async loadEveryRecipe(): Promise<Recipe[]> {
+    const all: Recipe[] = [];
+    let offset = 0;
+
+    for (;;) {
+      const page = await this.recipeService.findAll({}, undefined, {
+        limit: MAX_PAGE_LIMIT,
+        offset,
+      });
+      all.push(...page.data);
+      offset += page.data.length;
+      if (page.data.length === 0 || all.length >= page.total) {
+        return all;
+      }
+    }
+  }
+
   async matchRecipes(servingsOverride?: number): Promise<MatchResult> {
     const [recipes, pantryItems, staplesConfig] = await Promise.all([
-      this.recipeService.findAll(),
+      this.loadEveryRecipe(),
       this.pantryService.findAll(),
       this.staplesService.getStaples(),
     ]);

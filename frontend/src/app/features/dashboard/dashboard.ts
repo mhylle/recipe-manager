@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { DashboardService, MatchResult, AlmostCanMakeEntry } from './dashboard.service';
 import { TranslatePipe, reloadOnLocaleChange } from '../../shared/i18n';
@@ -7,7 +8,7 @@ import { Inspiration, dailySeed, pickInspiration } from './inspiration';
 @Component({
   selector: 'app-dashboard',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe],
+  imports: [RouterLink, TranslatePipe, NgOptimizedImage],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

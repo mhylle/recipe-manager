@@ -260,6 +260,9 @@
 .step-image {
   width: 100%;
   max-width: 400px;
+  // Required alongside the width/height attributes: without it the declared
+  // 1024 height wins and the square image renders as a 400x1024 column.
+  height: auto;
   border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
 }
@@ -404,6 +407,16 @@
   color: var(--color-text-muted, #6b6b6b);
 }
 
+// Scale presets, step-timer buttons and timer chips are the same pill. Declared
+// once and extended, so the rule set is emitted a single time.
+%pill {
+  font: inherit;
+  font-size: 0.8125rem;
+  border: 1px solid var(--color-border, #e5e3dd);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
 // --- Scale control -----------------------------------------------------------
 .scale {
   display: flex;
@@ -420,14 +433,10 @@
   }
 
   &__preset {
+    @extend %pill;
     min-width: 2.75rem;
     padding: 0.35rem 0.5rem;
-    font: inherit;
-    font-size: 0.8125rem;
     background: transparent;
-    border: 1px solid var(--color-border, #e5e3dd);
-    border-radius: 999px;
-    cursor: pointer;
     transition: background-color 0.15s ease, border-color 0.15s ease;
 
     &:hover { border-color: var(--color-accent, #3e6a00); }
@@ -477,14 +486,11 @@
 }
 
 .step-timer {
+  @extend %pill;
   padding: 0.3rem 0.7rem;
-  font: inherit;
-  font-size: 0.8125rem;
   color: var(--color-accent, #3e6a00);
   background: transparent;
-  border: 1px solid currentColor;
-  border-radius: 999px;
-  cursor: pointer;
+  border-color: currentColor;
 
   &:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
 }
@@ -503,15 +509,14 @@
 }
 
 .timer-chip {
+  @extend %pill;
   display: flex;
   align-items: center;
   gap: 0.5rem;
   max-width: 100%;
   padding: 0.35rem 0.6rem;
-  font-size: 0.8125rem;
   background: #fff;
-  border: 1px solid var(--color-border, #e5e3dd);
-  border-radius: 999px;
+  cursor: default;
 
   &--done {
     border-color: var(--color-accent, #3e6a00);
