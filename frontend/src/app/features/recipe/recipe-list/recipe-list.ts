@@ -1,9 +1,16 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
 import { Recipe } from '../../../shared/models/recipe.model';
 import { RecipeFiltersComponent, RecipeFilters } from '../recipe-filters/recipe-filters';
 import { EnumLabelPipe, LocaleService, TranslatePipe, reloadOnLocaleChange } from '../../../shared/i18n';
+import {
+  DEFAULT_RECIPE_SORT,
+  RECIPE_SORT_OPTIONS,
+  RecipeSort,
+  isRecipeSort,
+  sortRecipes,
+} from '../recipe-sort';
 
 @Component({
   selector: 'app-recipe-list',
@@ -19,6 +26,19 @@ export class RecipeListComponent {
   readonly items = signal<Recipe[]>([]);
   private currentFilters: RecipeFilters | null = null;
 
+  readonly sortOptions = RECIPE_SORT_OPTIONS;
+  readonly sortOrder = signal<RecipeSort>(DEFAULT_RECIPE_SORT);
+
+  /**
+   * What the template renders. Recomputes when the list, the chosen order or the
+   * LANGUAGE changes — the last one matters because names are translated and
+   * Danish collates æ/ø/å differently from English, so the correct order is not
+   * the same in both languages.
+   */
+  readonly sortedItems = computed(() =>
+    sortRecipes(this.items(), this.sortOrder(), this.locale.locale()),
+  );
+
   // Re-fetches on every language switch; API content is localised server-side.
   private readonly reload = reloadOnLocaleChange(() => this.loadItems());
 
@@ -27,6 +47,13 @@ export class RecipeListComponent {
     const f = this.currentFilters;
     return !!(f.query || f.difficulty || f.maxPrepTime || f.tags
       || f.cuisines.length || f.proteins.length || f.courses.length);
+  }
+
+  onSortChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (isRecipeSort(value)) {
+      this.sortOrder.set(value);
+    }
   }
 
   onFiltersChanged(filters: RecipeFilters): void {
@@ -80,7 +107,9 @@ export class RecipeListComponent {
           filters.proteins.some((p) => r.tags.some((t) => t.toLowerCase() === p.toLowerCase())));
       }
       if (filters?.courses?.length) {
-        const nonMainCourses = ['dessert', 'appetizer', 'soup', 'snack'];
+        // 'Main' is defined by exclusion, so every other course must be listed
+        // here — otherwise e.g. a sourdough loaf is counted as a main dish.
+        const nonMainCourses = ['dessert', 'appetizer', 'soup', 'snack', 'baking'];
         filtered = filtered.filter((r) => {
           const rTags = r.tags.map((t) => t.toLowerCase());
           return filters.courses.some((c) => {

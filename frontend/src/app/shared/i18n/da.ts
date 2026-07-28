@@ -45,6 +45,13 @@ export const da: Dictionary = {
   'recipe.list.prep': 'Forb.: {{minutes}} min',
   'recipe.list.cook': 'Tilb.: {{minutes}} min',
   'recipe.list.servings': '{{count}} portioner',
+  'recipe.sort.label': 'Sortér efter',
+  'recipe.sort.nameAsc': 'Navn (A\u2013Å)',
+  'recipe.sort.nameDesc': 'Navn (Å\u2013A)',
+  'recipe.sort.timeAsc': 'Hurtigste først',
+  'recipe.sort.timeDesc': 'Længste først',
+  'recipe.sort.difficultyAsc': 'Nemmeste først',
+
   'recipe.list.prepLabel': 'Forberedelsestid',
   'recipe.list.cookLabel': 'Tilberedningstid',
   'recipe.list.servingsLabel': 'Portioner',
@@ -79,6 +86,7 @@ export const da: Dictionary = {
   'recipe.filters.course.appetizer': 'Forret',
   'recipe.filters.course.soup': 'Suppe',
   'recipe.filters.course.snack': 'Snack',
+  'recipe.filters.course.baking': 'Bagværk',
 
   'recipe.form.titleAdd': 'Tilføj opskrift',
   'recipe.form.titleEdit': 'Rediger opskrift',

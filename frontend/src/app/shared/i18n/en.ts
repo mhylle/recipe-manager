@@ -69,6 +69,13 @@ export const en = {
   'recipe.list.prep': 'Prep: {{minutes}}min',
   'recipe.list.cook': 'Cook: {{minutes}}min',
   'recipe.list.servings': '{{count}} servings',
+  'recipe.sort.label': 'Sort by',
+  'recipe.sort.nameAsc': 'Name (A\u2013Z)',
+  'recipe.sort.nameDesc': 'Name (Z\u2013A)',
+  'recipe.sort.timeAsc': 'Quickest first',
+  'recipe.sort.timeDesc': 'Longest first',
+  'recipe.sort.difficultyAsc': 'Easiest first',
+
   'recipe.list.prepLabel': 'Prep time',
   'recipe.list.cookLabel': 'Cook time',
   'recipe.list.servingsLabel': 'Servings',
@@ -106,6 +113,7 @@ export const en = {
   'recipe.filters.course.appetizer': 'Appetizer',
   'recipe.filters.course.soup': 'Soup',
   'recipe.filters.course.snack': 'Snack',
+  'recipe.filters.course.baking': 'Baking',
 
   'recipe.form.titleAdd': 'Add Recipe',
   'recipe.form.titleEdit': 'Edit Recipe',
