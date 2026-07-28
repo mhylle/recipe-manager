@@ -14,6 +14,12 @@ import { Recipe } from '../../../shared/models/recipe.model';
 import { AuthService } from '../../../shared/services/auth.service';
 import { WakeLockService } from '../../../shared/services/wake-lock.service';
 import {
+  CookingTimerService,
+  formatRemaining,
+} from '../../../shared/services/cooking-timer.service';
+import { SCALE_PRESETS, scaleFactor, scaleIngredients, type ScaleSelection } from '../recipe-scale';
+import { parseStepDurations, type StepDuration } from '../step-duration';
+import {
   EnumLabelPipe,
   LocaleNumberPipe,
   LocaleService,
@@ -37,14 +43,50 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   private readonly locale = inject(LocaleService);
   // Exposed to the template so the toggle can reflect real lock state.
   readonly wakeLock = inject(WakeLockService);
+  readonly timers = inject(CookingTimerService);
 
   readonly recipe = signal<Recipe | null>(null);
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
 
+  readonly scalePresets = SCALE_PRESETS;
+  readonly scale = signal<ScaleSelection>({ mode: 'multiplier', multiplier: 1 });
+
   readonly totalTime = computed(() => {
     const r = this.recipe();
     return r ? r.prepTime + r.cookTime : 0;
+  });
+
+  readonly factor = computed(() => {
+    const r = this.recipe();
+    return r ? scaleFactor(this.scale(), r.servings) : 1;
+  });
+
+  readonly isScaled = computed(() => this.factor() !== 1);
+
+  /** Servings after scaling — what the ingredient list below now makes. */
+  readonly scaledServings = computed(() => {
+    const r = this.recipe();
+    if (!r) return 0;
+    return Math.max(1, Math.round(r.servings * this.factor()));
+  });
+
+  readonly scaledIngredients = computed(() => {
+    const r = this.recipe();
+    return r ? scaleIngredients(r.ingredients, this.factor()) : [];
+  });
+
+  /**
+   * Timeable durations per step, indexed the same as `instructions`.
+   *
+   * Recomputed when the language changes because the step text changes with it,
+   * and the unit words are language-specific.
+   */
+  readonly stepDurations = computed<StepDuration[][]>(() => {
+    const r = this.recipe();
+    const activeLocale = this.locale.locale();
+    if (!r) return [];
+    return r.instructions.map((step) => parseStepDurations(step, activeLocale));
   });
 
   // Re-fetches on every language switch; API content is localised server-side.
@@ -57,12 +99,55 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     // The lock must not outlive the recipe that asked for it — walking away from
     // the page should not leave a phone burning its battery on a bright screen.
+    // Timers deliberately DO outlive it: leaving the page to check the pantry
+    // should not silently cancel a proving countdown.
     void this.wakeLock.disable();
   }
 
   toggleWakeLock(): void {
     void this.wakeLock.toggle();
   }
+
+  // --- Scaling -------------------------------------------------------------
+
+  setMultiplier(multiplier: number): void {
+    this.scale.set({ mode: 'multiplier', multiplier });
+  }
+
+  setServings(value: string): void {
+    const servings = Number(value);
+    if (Number.isFinite(servings) && servings > 0) {
+      this.scale.set({ mode: 'servings', servings });
+    }
+  }
+
+  isPresetActive(multiplier: number): boolean {
+    const current = this.scale();
+    return current.mode === 'multiplier' && current.multiplier === multiplier;
+  }
+
+  // --- Timers --------------------------------------------------------------
+
+  startTimer(stepIndex: number, duration: StepDuration): void {
+    const r = this.recipe();
+    if (!r) return;
+    // Permission is requested here because this is a user gesture; asking on
+    // page load is both rude and, in most browsers, ignored.
+    void this.timers.requestNotificationPermission();
+    this.timers.start(
+      this.locale.translate('recipe.detail.timerLabel', {
+        number: stepIndex + 1,
+        name: r.name,
+      }),
+      duration.seconds,
+    );
+  }
+
+  remaining(seconds: number): string {
+    return formatRemaining(seconds);
+  }
+
+  // --- Data ----------------------------------------------------------------
 
   private loadRecipe(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -90,15 +175,19 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
     if (!currentRecipe) return;
 
     this.addingToList.set(true);
-    this.shoppingListService.generateFromRecipe(currentRecipe.id, currentRecipe.servings).subscribe({
-      next: (list) => {
-        this.addingToList.set(false);
-        this.router.navigate(['/shopping-list'], { queryParams: { id: list.id } });
-      },
-      error: () => {
-        this.addingToList.set(false);
-      },
-    });
+    // Scaled servings, not the recipe's own — the list should match what the
+    // ingredient panel is currently showing.
+    this.shoppingListService
+      .generateFromRecipe(currentRecipe.id, this.scaledServings())
+      .subscribe({
+        next: (list) => {
+          this.addingToList.set(false);
+          this.router.navigate(['/shopping-list'], { queryParams: { id: list.id } });
+        },
+        error: () => {
+          this.addingToList.set(false);
+        },
+      });
   }
 
   regenerateImages(): void {
