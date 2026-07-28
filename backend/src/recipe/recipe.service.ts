@@ -93,8 +93,9 @@ export class RecipeService {
     dto: UpdateRecipeDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: RecipeTranslationInput[],
+    sourceLocale?: Locale,
   ): Promise<Recipe> {
-    return this.recipeRepository.update(id, dto, { locale, translations });
+    return this.recipeRepository.update(id, dto, { locale, translations, sourceLocale });
   }
 
   async delete(id: string): Promise<void> {

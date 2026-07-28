@@ -156,7 +156,8 @@ describe('RecipeController', () => {
         name: 'Blueberry Pancakes',
       },
         'en',
-        undefined,
+        undefined, // translations
+        undefined, // sourceLocale
       );
       expect(result.name).toBe('Blueberry Pancakes');
     });
