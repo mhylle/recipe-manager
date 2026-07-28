@@ -260,9 +260,6 @@
 .step-image {
   width: 100%;
   max-width: 400px;
-  // Required alongside the width/height attributes: without it the declared
-  // 1024 height wins and the square image renders as a 400x1024 column.
-  height: auto;
   border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
 }

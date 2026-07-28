@@ -7,7 +7,6 @@ import {
   OnInit,
   OnDestroy,
 } from '@angular/core';
-import { NgOptimizedImage } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
 import { ShoppingListService } from '../../shopping-list/shopping-list.service';
@@ -31,7 +30,7 @@ import {
 @Component({
   selector: 'app-recipe-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, EnumLabelPipe, LocaleNumberPipe, NgOptimizedImage],
+  imports: [RouterLink, TranslatePipe, EnumLabelPipe, LocaleNumberPipe],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
 })

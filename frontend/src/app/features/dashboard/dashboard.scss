@@ -98,24 +98,14 @@
   }
 }
 
-// The height lives on the frame, not the image: a `fill` image is sized by its
-// positioned parent, so a height set on the image itself does nothing — and
-// without a positioned parent it escapes and covers the whole card.
-.dashboard__card-frame {
-  position: relative;
-  height: 180px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.dashboard__recipe-card--featured .dashboard__card-frame {
-  height: 240px;
-}
-
 .dashboard__card-image {
   width: 100%;
-  height: 100%;
+  height: 180px;
   object-fit: cover;
+}
+
+.dashboard__recipe-card--featured .dashboard__card-image {
+  height: 240px;
 }
 
 .dashboard__card-body {
