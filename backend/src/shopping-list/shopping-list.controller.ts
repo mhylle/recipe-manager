@@ -8,7 +8,6 @@ export class ShoppingListController {
   constructor(private readonly shoppingListService: ShoppingListService) {}
 
   @UseGuards(SsoAuthGuard)
-
   @Post('generate/:mealPlanId')
   async generate(
     @Param('mealPlanId') mealPlanId: string,
@@ -17,7 +16,6 @@ export class ShoppingListController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Post('from-recipe/:recipeId')
   async generateFromRecipe(
     @Param('recipeId') recipeId: string,
@@ -33,7 +31,6 @@ export class ShoppingListController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Patch(':id/items/:index')
   async toggleItem(
     @Param('id') id: string,

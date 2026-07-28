@@ -14,7 +14,6 @@ export class StaplesController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Put()
   async updateStaples(@Body() dto: UpdateStaplesDto): Promise<StaplesConfig> {
     return this.staplesService.updateStaples(dto);

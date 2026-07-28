@@ -1,12 +1,14 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { RecipeService, RecipeSearchFilters } from './recipe.service.js';
-import { CreateRecipeDto } from './dto/create-recipe.dto.js';
-import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
+import {
+  CreateRecipeRequestDto,
+  UpdateRecipeRequestDto,
+} from './dto/recipe-request.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
-import type { Locale } from '../shared/i18n/locale.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
+import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 
 @Controller('recipes')
@@ -14,10 +16,9 @@ export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
 
   @UseGuards(SsoAuthGuard)
-
   @Post()
   async create(
-    @Body() dto: CreateRecipeDto & { translations?: RecipeTranslationInput[] },
+    @Body() dto: CreateRecipeRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
     return this.recipeService.create(dto, locale, dto.translations);
@@ -60,22 +61,16 @@ export class RecipeController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body()
-    dto: UpdateRecipeDto & {
-      translations?: RecipeTranslationInput[];
-      sourceLocale?: Locale;
-    },
+    @Body() dto: UpdateRecipeRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
     return this.recipeService.update(id, dto, locale, dto.translations, dto.sourceLocale);
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id') id: string): Promise<void> {
@@ -83,7 +78,6 @@ export class RecipeController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Post(':id/regenerate-images')
   async regenerateImages(
     @Param('id') id: string,
