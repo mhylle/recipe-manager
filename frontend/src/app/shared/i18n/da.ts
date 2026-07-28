@@ -137,6 +137,9 @@ export const da: Dictionary = {
   'recipe.detail.delete': 'Slet opskrift',
   'recipe.detail.regenerate': 'Generer billeder igen',
   'recipe.detail.generating': 'Genererer...',
+  'recipe.detail.keepAwake': 'Hold skærmen tændt',
+  'recipe.detail.keepAwakeOn': 'Skærmen forbliver tændt',
+  'recipe.detail.keepAwakeHint': 'Forhindrer skærmen i at gå i dvale, mens du laver mad.',
   'recipe.detail.loading': 'Indlæser opskrift...',
 
   'pantry.list.title': 'Spisekammeret',

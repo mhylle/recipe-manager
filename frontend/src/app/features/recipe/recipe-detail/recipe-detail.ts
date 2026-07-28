@@ -1,9 +1,18 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  inject,
+  signal,
+  computed,
+  OnInit,
+  OnDestroy,
+} from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
 import { ShoppingListService } from '../../shopping-list/shopping-list.service';
 import { Recipe } from '../../../shared/models/recipe.model';
 import { AuthService } from '../../../shared/services/auth.service';
+import { WakeLockService } from '../../../shared/services/wake-lock.service';
 import {
   EnumLabelPipe,
   LocaleNumberPipe,
@@ -19,13 +28,15 @@ import {
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
 })
-export class RecipeDetailComponent implements OnInit {
+export class RecipeDetailComponent implements OnInit, OnDestroy {
   private readonly recipeService = inject(RecipeService);
   private readonly shoppingListService = inject(ShoppingListService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   readonly authService = inject(AuthService);
   private readonly locale = inject(LocaleService);
+  // Exposed to the template so the toggle can reflect real lock state.
+  readonly wakeLock = inject(WakeLockService);
 
   readonly recipe = signal<Recipe | null>(null);
   readonly regenerating = signal(false);
@@ -41,6 +52,16 @@ export class RecipeDetailComponent implements OnInit {
 
   ngOnInit(): void {
     this.authService.checkAuth();
+  }
+
+  ngOnDestroy(): void {
+    // The lock must not outlive the recipe that asked for it — walking away from
+    // the page should not leave a phone burning its battery on a bright screen.
+    void this.wakeLock.disable();
+  }
+
+  toggleWakeLock(): void {
+    void this.wakeLock.toggle();
   }
 
   private loadRecipe(): void {

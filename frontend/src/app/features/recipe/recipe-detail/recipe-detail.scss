@@ -367,3 +367,30 @@
     flex-wrap: wrap;
   }
 }
+
+/* --- Keep-screen-on toggle --- */
+.wake-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.wake-toggle--on {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.wake-toggle__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full);
+  background: var(--outline-variant);
+  transition: background 0.2s ease;
+}
+
+/* Lit only while a lock is genuinely held — it goes dark when the tab is hidden
+   and the platform takes the lock back, so the indicator never overstates. */
+.wake-toggle__dot--live {
+  background: var(--primary);
+  box-shadow: 0 0 0 3px rgba(62, 106, 0, 0.15);
+}

@@ -164,6 +164,9 @@ export const en = {
   'recipe.detail.delete': 'Delete recipe',
   'recipe.detail.regenerate': 'Regenerate images',
   'recipe.detail.generating': 'Generating...',
+  'recipe.detail.keepAwake': 'Keep screen on',
+  'recipe.detail.keepAwakeOn': 'Screen stays on',
+  'recipe.detail.keepAwakeHint': 'Stops the screen dimming while you cook.',
   'recipe.detail.loading': 'Loading recipe...',
 
   'pantry.list.title': 'The Pantry',
