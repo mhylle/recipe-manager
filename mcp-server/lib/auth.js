@@ -48,6 +48,24 @@ export function extractBearer(headerValue) {
   return match ? match[1].trim() : null;
 }
 
+/**
+ * The credential the caller presented, from either accepted header.
+ *
+ * `Authorization: Bearer <token>` is the standard and what a spec-compliant
+ * client sends. `X-MCP-Token: <token>` exists because the bearer scheme requires
+ * a space, and on Windows the stdio bridge is launched through `npx.cmd`, which
+ * cmd.exe re-parses — an argument containing a space can arrive split in two and
+ * the header is silently dropped. A space-free header sidesteps that entirely.
+ */
+export function presentedToken(headers) {
+  const bearer = extractBearer(headers.authorization);
+  if (bearer) {
+    return bearer;
+  }
+  const direct = headers['x-mcp-token'];
+  return typeof direct === 'string' && direct.trim().length > 0 ? direct.trim() : null;
+}
+
 export function isAuthorised(headers, expected) {
-  return tokenMatches(extractBearer(headers.authorization), expected);
+  return tokenMatches(presentedToken(headers), expected);
 }

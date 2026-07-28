@@ -59,6 +59,30 @@ describe('isAuthorised', () => {
   test('rejects a wrong token', () => {
     assert.equal(isAuthorised({ authorization: 'Bearer nope' }, SECRET), false);
   });
+
+  test('accepts the space-free X-MCP-Token header', () => {
+    // The whole reason this header exists: a value with no space survives
+    // cmd.exe re-parsing on Windows, where `Bearer <token>` can arrive split.
+    assert.equal(isAuthorised({ 'x-mcp-token': SECRET }, SECRET), true);
+  });
+
+  test('rejects a wrong X-MCP-Token', () => {
+    assert.equal(isAuthorised({ 'x-mcp-token': 'nope' }, SECRET), false);
+  });
+
+  test('does not let an empty X-MCP-Token through', () => {
+    assert.equal(isAuthorised({ 'x-mcp-token': '   ' }, SECRET), false);
+  });
+
+  test('a valid X-MCP-Token does not rescue a malformed Authorization header', () => {
+    // Authorization wins when present and parseable; a client sending both a
+    // broken bearer and a good fallback should still be told the bearer is bad,
+    // rather than silently succeeding on a header it did not mean to rely on.
+    assert.equal(
+      isAuthorised({ authorization: 'Bearer wrong', 'x-mcp-token': SECRET }, SECRET),
+      false,
+    );
+  });
 });
 
 describe('requireToken', () => {
