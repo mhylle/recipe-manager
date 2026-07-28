@@ -50,6 +50,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
+          platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/recipe-manager-backend:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/recipe-manager-backend:latest
@@ -62,6 +63,7 @@ jobs:
           context: ./frontend
           file: ./frontend/Dockerfile
           push: true
+          platforms: linux/amd64
           build-args: |
             BASE_HREF=/recipe-manager/
           tags: |
@@ -76,6 +78,7 @@ jobs:
           context: ./mcp-server
           file: ./mcp-server/Dockerfile
           push: true
+          platforms: linux/amd64
           tags: |
             ghcr.io/${{ github.repository_owner }}/recipe-manager-mcp:${{ steps.meta.outputs.version }}
             ghcr.io/${{ github.repository_owner }}/recipe-manager-mcp:latest

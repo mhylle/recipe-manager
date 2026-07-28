@@ -59,6 +59,8 @@ export const en = {
   'common.actions.reset': 'Reset',
   'common.actions.all': 'All',
   'common.confirm.delete': 'Are you sure you want to delete "{{name}}"?',
+  'common.update.available': 'A new version is available.',
+  'common.update.reload': 'Reload',
   'common.requiredMarker': '*',
   'common.unknown': 'Unknown',
 

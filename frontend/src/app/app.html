@@ -1,1 +1,9 @@
+@if (appUpdate.updateAvailable()) {
+  <div class="update-banner" role="status">
+    <span class="update-banner__text">{{ 'common.update.available' | t }}</span>
+    <button type="button" class="update-banner__action" (click)="reloadForUpdate()">
+      {{ 'common.update.reload' | t }}
+    </button>
+  </div>
+}
 <router-outlet />

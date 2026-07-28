@@ -35,6 +35,8 @@ export const da: Dictionary = {
   'common.actions.reset': 'Nulstil',
   'common.actions.all': 'Alle',
   'common.confirm.delete': 'Er du sikker på, at du vil slette "{{name}}"?',
+  'common.update.available': 'En ny version er klar.',
+  'common.update.reload': 'Genindlæs',
   'common.requiredMarker': '*',
   'common.unknown': 'Ukendt',
 
