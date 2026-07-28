@@ -34,21 +34,20 @@ Claude Desktop speaks stdio, so bridge to it with `mcp-remote`:
       "args": [
         "-y", "mcp-remote",
         "https://mhylle.com/mcp/recipe-manager",
-        "--header", "Authorization:${AUTH_HEADER}"
-      ],
-      "env": {
-        "AUTH_HEADER": "Bearer YOUR_TOKEN_HERE",
-        "RECIPE_MANAGER_LOCALE": "da"
-      }
+        "--header", "X-MCP-Token:YOUR_TOKEN_HERE"
+      ]
     }
   }
 }
 ```
 
-The `Authorization:${AUTH_HEADER}` indirection is not decoration. Claude Desktop
-splits arguments on spaces, so writing `"Authorization: Bearer abc"` inline arrives
-as three separate arguments and the header is silently dropped. Keeping the space
-inside an environment variable is the documented way around it.
+**Why `X-MCP-Token` rather than `Authorization: Bearer`.** The server accepts both,
+and a spec-compliant client should send the bearer header. But the bearer scheme
+requires a space, and on Windows this bridge launches through `npx.cmd`, which
+cmd.exe re-parses — an argument containing a space can arrive split in two, and the
+header is then dropped with no error, leaving a confusing OAuth-discovery failure
+in its place. `X-MCP-Token:<token>` has no space anywhere, so nothing can split it.
+On macOS and Linux either form works.
 
 The token lives in the `RECIPE_MANAGER_MCP_TOKEN` GitHub Secret on the
 `mhylle/recipe-manager` repo. It is never committed. To rotate it:
@@ -58,8 +57,8 @@ gh secret set RECIPE_MANAGER_MCP_TOKEN --repo mhylle/recipe-manager
 gh workflow run deploy.yml --repo mhylle/recipe-manager
 ```
 
-Then update `AUTH_HEADER` in the Desktop config. Old tokens stop working the moment
-the new container starts.
+Then update the header value in the Desktop config. Old tokens stop working the
+moment the new container starts.
 
 ## Local: run over stdio
 
@@ -130,7 +129,7 @@ wsl.exe -d Ubuntu -e /usr/bin/env RECIPE_MANAGER_LOCALE=da /home/you/.local/bin/
 |---|---|---|
 | `RECIPE_MANAGER_API_URL` | `https://mhylle.com/api/recipe-manager/api` | Point at a local backend, e.g. `http://localhost:3000/api` |
 | `RECIPE_MANAGER_LOCALE` | `en` | Default content language, `en` or `da`. Any tool can override it per call. |
-| `RECIPE_MANAGER_MCP_TOKEN` | — | HTTP transport only. Required, minimum 32 chars; the process exits rather than serving unauthenticated. |
+| `RECIPE_MANAGER_MCP_TOKEN` | — | HTTP transport only. Required, minimum 32 chars; the process exits rather than serving unauthenticated. Accepted as `Authorization: Bearer <token>` or `X-MCP-Token: <token>`. |
 | `PORT` | `3100` | HTTP transport only. |
 | `RECIPE_MANAGER_MCP_PATH` | `/mcp` | HTTP transport only. Path the MCP endpoint is served on. |
 
