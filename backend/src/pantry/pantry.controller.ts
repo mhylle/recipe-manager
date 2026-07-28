@@ -1,11 +1,13 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { PantryService } from './pantry.service.js';
-import { CreatePantryItemDto } from './dto/create-pantry-item.dto.js';
-import { UpdatePantryItemDto } from './dto/update-pantry-item.dto.js';
+import {
+  CreatePantryItemRequestDto,
+  UpdatePantryItemRequestDto,
+} from './dto/pantry-request.dto.js';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
-import type { Locale } from '../shared/i18n/locale.js';
 import type { PantryTranslationInput } from './pantry.repository.js';
+import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 
 @Controller('pantry')
@@ -13,10 +15,9 @@ export class PantryController {
   constructor(private readonly pantryService: PantryService) {}
 
   @UseGuards(SsoAuthGuard)
-
   @Post()
   async create(
-    @Body() dto: CreatePantryItemDto & { translations?: PantryTranslationInput[] },
+    @Body() dto: CreatePantryItemRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<PantryItem> {
     return this.pantryService.create(dto, locale, dto.translations);
@@ -55,18 +56,16 @@ export class PantryController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() dto: UpdatePantryItemDto & { translations?: PantryTranslationInput[] },
+    @Body() dto: UpdatePantryItemRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<PantryItem> {
     return this.pantryService.update(id, dto, locale, dto.translations);
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id') id: string): Promise<void> {

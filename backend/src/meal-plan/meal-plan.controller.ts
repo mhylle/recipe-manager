@@ -23,7 +23,6 @@ export class MealPlanController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Post(':id/entries')
   async addEntry(
     @Param('id') id: string,
@@ -33,7 +32,6 @@ export class MealPlanController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Delete(':id/entries/:index')
   async removeEntry(
     @Param('id') id: string,
@@ -43,7 +41,6 @@ export class MealPlanController {
   }
 
   @UseGuards(SsoAuthGuard)
-
   @Post(':id/entries/:index/confirm')
   async confirmCooked(
     @Param('id') id: string,
