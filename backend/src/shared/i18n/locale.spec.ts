@@ -1,4 +1,4 @@
-import { resolveLocale, pickTranslation, DEFAULT_LOCALE } from './locale.js';
+import { resolveLocale, pickTranslation, isLocale, DEFAULT_LOCALE } from './locale.js';
 
 describe('resolveLocale', () => {
   it('resolves a simple tag', () => {
@@ -32,6 +32,21 @@ describe('resolveLocale', () => {
     expect(resolveLocale('')).toBe(DEFAULT_LOCALE);
     expect(resolveLocale(';;;')).toBe(DEFAULT_LOCALE);
     expect(resolveLocale('da;q=notanumber')).toBe('da');
+  });
+});
+
+describe('isLocale', () => {
+  it('accepts only the supported set', () => {
+    expect(isLocale('en')).toBe(true);
+    expect(isLocale('da')).toBe(true);
+  });
+
+  it('rejects junk that would otherwise poison the fallback chain', () => {
+    // A recipe whose sourceLocale is unrecognised can never match its own
+    // fallback, so an unvalidated write breaks that row permanently.
+    for (const bad of ['klingon', 'EN', 'en-US', '', null, undefined, 3, {}]) {
+      expect(isLocale(bad)).toBe(false);
+    }
   });
 });
 

@@ -1,8 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
-import { DEFAULT_LOCALE, Locale, pickTranslation } from '../shared/i18n/locale.js';
+import {
+  DEFAULT_LOCALE,
+  Locale,
+  SUPPORTED_LOCALES,
+  isLocale,
+  pickTranslation,
+} from '../shared/i18n/locale.js';
 
 /** Text a caller supplies for one language. */
 export interface RecipeTranslationInput {
@@ -17,10 +23,17 @@ export interface RecipeTranslationInput {
 const RECIPE_INCLUDE = {
   // `orderBy` is load-bearing, not cosmetic: `ingredientNames` in a translation
   // payload is aligned by POSITION, so an unordered read would attach names to
-  // the wrong ingredients.
-  ingredients: { include: { translations: true }, orderBy: { id: 'asc' } },
+  // the wrong ingredients. `sortOrder` is the author's order; `id` breaks ties
+  // deterministically for rows written before the column existed.
+  ingredients: {
+    include: { translations: true },
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+  },
   translations: true,
-} as const;
+  // `satisfies` rather than `as const`: a const assertion makes the orderBy array
+  // readonly, which Prisma's argument types reject, while still giving the
+  // literal types RecipeGetPayload needs below.
+} satisfies Prisma.RecipeInclude;
 
 /**
  * The exact shape Prisma returns for RECIPE_INCLUDE. Derived rather than
@@ -63,6 +76,7 @@ export class RecipeRepository {
         },
         ingredients: {
           create: data.ingredients.map((ing, index) => ({
+            sortOrder: index,
             quantity: ing.quantity,
             unit: ing.unit,
             pantryCategory: ing.pantryCategory,
@@ -119,7 +133,17 @@ export class RecipeRepository {
   async update(
     id: string,
     data: Partial<Recipe>,
-    options: { locale?: Locale; translations?: RecipeTranslationInput[] } = {},
+    options: {
+      locale?: Locale;
+      translations?: RecipeTranslationInput[];
+      /**
+       * Correct the recipe's authoring language. Needed because the initial
+       * localisation migration tagged every row 'en', including recipes that
+       * were actually written in Danish — leaving their fallback pointing at
+       * the wrong language.
+       */
+      sourceLocale?: Locale;
+    } = {},
   ): Promise<Recipe> {
     const existing = await this.prisma.recipe.findUnique({
       where: { id },
@@ -142,6 +166,17 @@ export class RecipeRepository {
     if (data.difficulty !== undefined) updateData.difficulty = data.difficulty;
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    if (options.sourceLocale !== undefined) {
+      // Reject anything outside the supported set. An unrecognised sourceLocale
+      // is worse than useless: reads fall back to it, so a junk value silently
+      // breaks the fallback chain for that recipe forever.
+      if (!isLocale(options.sourceLocale)) {
+        throw new BadRequestException(
+          `sourceLocale must be one of: ${SUPPORTED_LOCALES.join(', ')}`,
+        );
+      }
+      updateData.sourceLocale = options.sourceLocale;
+    }
 
     await this.prisma.$transaction(async (tx) => {
       if (Object.keys(updateData).length > 0) {
@@ -170,6 +205,7 @@ export class RecipeRepository {
           await tx.recipeIngredient.create({
             data: {
               recipeId: id,
+              sortOrder: index,
               quantity: ing.quantity,
               unit: ing.unit,
               pantryCategory: ing.pantryCategory,

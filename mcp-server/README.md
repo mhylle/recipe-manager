@@ -40,6 +40,44 @@ Add this to your Claude Desktop config:
 Use an **absolute** path — Claude Desktop does not resolve relative ones. Restart
 Claude Desktop afterwards; the tools appear under the connector menu.
 
+### Running Claude Desktop on Windows against WSL
+
+If Claude Desktop is on Windows and the repo lives in WSL, it cannot execute a
+Linux path directly — it has to go through `wsl.exe`:
+
+```json
+{
+  "mcpServers": {
+    "recipe-manager": {
+      "command": "wsl.exe",
+      "args": [
+        "-d", "Ubuntu",
+        "-e",
+        "/usr/bin/env",
+        "RECIPE_MANAGER_LOCALE=da",
+        "/home/you/.local/bin/node",
+        "/home/you/path/to/recipe-manager/mcp-server/index.js"
+      ]
+    }
+  }
+}
+```
+
+Two things that will otherwise waste an afternoon:
+
+- **Use the absolute path to `node`.** `wsl.exe -e` execs directly without a login
+  shell, so anything installed via nvm or into `~/.local/bin` is *not* on `PATH`.
+  Plain `node` fails with "command not found". Find yours with `which node`.
+- **Set env vars with `/usr/bin/env`, not a shell.** A wrapper like `bash -lc`
+  loads your profile, and anything it prints to stdout corrupts the MCP protocol
+  stream. `env` sets the variable without starting a shell.
+
+Verify the whole chain from a Windows terminal before restarting Claude Desktop:
+
+```
+wsl.exe -d Ubuntu -e /usr/bin/env RECIPE_MANAGER_LOCALE=da /home/you/.local/bin/node --version
+```
+
 ### Configuration
 
 | Variable | Default | Purpose |

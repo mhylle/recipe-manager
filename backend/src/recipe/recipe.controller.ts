@@ -69,10 +69,14 @@ export class RecipeController {
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() dto: UpdateRecipeDto & { translations?: RecipeTranslationInput[] },
+    @Body()
+    dto: UpdateRecipeDto & {
+      translations?: RecipeTranslationInput[];
+      sourceLocale?: Locale;
+    },
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
-    return this.recipeService.update(id, dto, locale, dto.translations);
+    return this.recipeService.update(id, dto, locale, dto.translations, dto.sourceLocale);
   }
 
   @Delete(':id')

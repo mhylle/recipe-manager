@@ -94,6 +94,10 @@ model RecipeTranslation {
 
 model RecipeIngredient {
   id             String         @id @default(uuid())
+  // Author-defined position within the recipe. Ingredient order is meaningful —
+  // it tracks the method and groups sub-preparations — and ordering by `id`
+  // (a random uuid) shuffles it. ShoppingListItem carries one for the same reason.
+  sortOrder      Int            @default(0)
   quantity       Float
   unit           Unit
   pantryCategory PantryCategory
