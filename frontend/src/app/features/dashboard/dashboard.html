@@ -1,26 +1,80 @@
 <div class="dashboard">
-  <!-- Hero -->
-  <header class="dashboard__hero">
-    <h1 class="dashboard__heading">{{ 'dashboard.heading' | t }} <em>{{ 'dashboard.headingEmphasis' | t }}</em></h1>
-    <p class="dashboard__subtitle">{{ 'dashboard.subtitle' | t }}</p>
-  </header>
+  <!-- Inspiration: the page opens with the answer to "what do I cook tonight?"
+       rather than a greeting. -->
+  <section class="inspo" aria-labelledby="inspo-heading">
+    <div class="inspo__head">
+      <div>
+        <span class="label-text" id="inspo-heading">{{ 'dashboard.inspiration.eyebrow' | t }}</span>
+        <h1 class="inspo__title">{{ 'dashboard.inspiration.title' | t }}</h1>
+      </div>
+      <a routerLink="/recipes" class="inspo__all">{{ 'dashboard.viewAll' | t }}</a>
+    </div>
+
+    @if (inspiration().length === 0) {
+      <p class="dashboard__empty" role="status">{{ 'dashboard.inspiration.empty' | t }}</p>
+    } @else {
+      <div class="inspo__grid" role="list">
+        @for (item of inspiration(); track item.recipe.id; let first = $first) {
+          <a
+            [routerLink]="['/recipes', item.recipe.id]"
+            class="dish"
+            [class.dish--lead]="first"
+            role="listitem"
+          >
+            <div class="dish__frame">
+              @if (item.recipe.imageUrl) {
+                <img [src]="item.recipe.imageUrl" [alt]="item.recipe.name" class="dish__image" />
+              } @else {
+                <span class="dish__monogram" aria-hidden="true">{{ initial(item.recipe.name) }}</span>
+              }
+            </div>
+
+            <div class="dish__body">
+              <h2 class="dish__name">{{ item.recipe.name }}</h2>
+              @if (first) {
+                <p class="dish__desc">{{ item.recipe.description }}</p>
+              }
+              <span class="dish__meta">{{ 'dashboard.totalTime' | t: { minutes: totalTime(item.recipe) } }}</span>
+
+              <!-- Readiness: what makes a suggestion actionable rather than decorative. -->
+              <div class="readiness">
+                <div class="readiness__rule" aria-hidden="true">
+                  <span class="readiness__fill" [style.width.%]="readinessPercent(item)"></span>
+                </div>
+                <span class="readiness__text">
+                  @if (item.have === null) {
+                    {{ 'dashboard.readiness.unknown' | t }}
+                  } @else if (item.have === item.total) {
+                    {{ 'dashboard.readiness.complete' | t }}
+                  } @else {
+                    {{ 'dashboard.readiness.partial' | t: { have: item.have, total: item.total } }}
+                  }
+                </span>
+              </div>
+            </div>
+          </a>
+        }
+      </div>
+    }
+  </section>
 
   <!-- READY TO CRAFT -->
+  @if (matchResult().canMakeNow.length === 0 || remainingCanMake().length > 0) {
   <section class="dashboard__section" aria-labelledby="can-make-heading">
     <div class="dashboard__section-header">
       <div>
         <span class="label-text" id="can-make-heading">{{ 'dashboard.canMake.label' | t }}</span>
         <h2 class="dashboard__section-title">{{ 'dashboard.canMake.title' | t }}</h2>
       </div>
-      @if (matchResult().canMakeNow.length > 0) {
+      @if (remainingCanMake().length > 0) {
         <a routerLink="/recipes" class="dashboard__view-all">{{ 'dashboard.viewAll' | t }}</a>
       }
     </div>
-    @if (matchResult().canMakeNow.length === 0) {
+    @if (remainingCanMake().length === 0) {
       <p class="dashboard__empty" role="status">{{ 'dashboard.canMake.empty' | t }}</p>
     } @else {
       <div class="dashboard__card-grid" role="list">
-        @for (recipe of matchResult().canMakeNow; track recipe.id; let i = $index) {
+        @for (recipe of remainingCanMake(); track recipe.id; let i = $index) {
           <a [routerLink]="['/recipes', recipe.id]"
              class="card dashboard__recipe-card"
              [class.dashboard__recipe-card--featured]="i === 0"
@@ -38,8 +92,10 @@
       </div>
     }
   </section>
+  }
 
   <!-- ALMOST THERE -->
+  @if (matchResult().almostCanMake.length === 0 || remainingAlmost().length > 0) {
   <section class="dashboard__section" aria-labelledby="almost-heading">
     <div class="dashboard__section-header">
       <div>
@@ -47,11 +103,11 @@
         <h2 class="dashboard__section-title">{{ 'dashboard.almost.title' | t }}</h2>
       </div>
     </div>
-    @if (matchResult().almostCanMake.length === 0) {
+    @if (remainingAlmost().length === 0) {
       <p class="dashboard__empty" role="status">{{ 'dashboard.empty' | t }}</p>
     } @else {
       <div class="dashboard__almost-grid" role="list">
-        @for (entry of matchResult().almostCanMake; track entry.recipe.id) {
+        @for (entry of remainingAlmost(); track entry.recipe.id) {
           <div class="card dashboard__almost-card" role="listitem">
             <div class="dashboard__almost-top">
               <a [routerLink]="['/recipes', entry.recipe.id]" class="dashboard__almost-name">
@@ -71,8 +127,10 @@
       </div>
     }
   </section>
+  }
 
-  <!-- THE INVENTORY -->
+  <!-- NEEDS A SHOP -->
+  @if (matchResult().missingMany.length === 0 || remainingMissing().length > 0) {
   <section class="dashboard__section" aria-labelledby="missing-heading">
     <div class="dashboard__section-header">
       <div>
@@ -80,16 +138,18 @@
         <h2 class="dashboard__section-title">{{ 'dashboard.missing.title' | t }}</h2>
       </div>
     </div>
-    @if (matchResult().missingMany.length === 0) {
+    @if (remainingMissing().length === 0) {
       <p class="dashboard__empty" role="status">{{ 'dashboard.empty' | t }}</p>
     } @else {
-      <ul class="dashboard__link-list" role="list">
-        @for (recipe of matchResult().missingMany; track recipe.id) {
-          <li>
-            <a [routerLink]="['/recipes', recipe.id]">{{ recipe.name }}</a>
-          </li>
+      <div class="dashboard__shop-list" role="list">
+        @for (recipe of remainingMissing(); track recipe.id) {
+          <a [routerLink]="['/recipes', recipe.id]" class="shop-item" role="listitem">
+            <span class="shop-item__name">{{ recipe.name }}</span>
+            <span class="shop-item__meta">{{ 'dashboard.totalTime' | t: { minutes: recipe.prepTime + recipe.cookTime } }}</span>
+          </a>
         }
-      </ul>
+      </div>
     }
   </section>
+  }
 </div>

@@ -64,6 +64,35 @@ describe('RecipeListComponent', () => {
     fixture.detectChanges();
   });
 
+  it('should render cards in alphabetical order by default, not fetch order', () => {
+    // The service returns Pancakes before Pasta Carbonara; 'Aioli' is appended
+    // LAST by the mock, so if the component rendered fetch order it would come
+    // third. Alphabetically it must come first.
+    mockRecipeService.getAll.mockReturnValue(
+      of([...mockRecipes, { ...mockRecipes[0], id: 'recipe-3', name: 'Aioli' }]),
+    );
+    component.loadItems();
+    fixture.detectChanges();
+
+    const titles = Array.from(
+      fixture.nativeElement.querySelectorAll('.recipe-card__title'),
+    ).map((el) => (el as HTMLElement).textContent!.trim());
+    expect(titles).toEqual(['Aioli', 'Pancakes', 'Pasta Carbonara']);
+  });
+
+  it('should re-order when a different sort is chosen', () => {
+    const select: HTMLSelectElement =
+      fixture.nativeElement.querySelector('.recipe-list__sort select');
+    select.value = 'name-desc';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    const titles = Array.from(
+      fixture.nativeElement.querySelectorAll('.recipe-card__title'),
+    ).map((el) => (el as HTMLElement).textContent!.trim());
+    expect(titles).toEqual(['Pasta Carbonara', 'Pancakes']);
+  });
+
   it('should render list of recipe cards', () => {
     const cards = fixture.nativeElement.querySelectorAll('.recipe-card');
     expect(cards.length).toBe(2);

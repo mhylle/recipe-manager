@@ -205,3 +205,303 @@
 .dashboard__link-list li a:hover {
   color: var(--primary);
 }
+
+/* ============================================================
+   Inspiration — the dashboard's opening statement.
+   Asymmetric on purpose: one lead dish carries the eye, two
+   companions follow. Three equal cards would give no hierarchy.
+   ============================================================ */
+
+.inspo {
+  margin-bottom: var(--spacing-section);
+}
+
+.inspo__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.inspo__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--on-surface);
+  margin: 0.35rem 0 0;
+}
+
+.inspo__all {
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--outline-variant);
+  padding-bottom: 2px;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.inspo__all:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+/* Lead dish spans both rows of the left column; the two companions stack right. */
+.inspo__grid {
+  display: grid;
+  grid-template-columns: 1.35fr 1fr;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  min-height: 22rem;
+}
+
+.dish {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-decoration: none;
+  color: inherit;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.dish:hover {
+  transform: translateY(-2px);
+  border-color: rgba(62, 106, 0, 0.35);
+  box-shadow: 0 12px 28px -18px rgba(45, 52, 51, 0.45);
+}
+
+.dish:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* The lead occupies the full-height left column. */
+.dish--lead {
+  grid-row: 1 / span 2;
+}
+
+/* Companions are horizontal: small frame beside the text. */
+.dish:not(.dish--lead) {
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.dish__frame {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, var(--surface-container-high), var(--surface-container-low));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dish--lead .dish__frame {
+  flex: 1;
+  min-height: 0;
+}
+
+.dish:not(.dish--lead) .dish__frame {
+  width: 30%;
+  min-width: 5.5rem;
+  max-width: 9rem;
+}
+
+.dish__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+
+.dish:hover .dish__image {
+  transform: scale(1.03);
+}
+
+/* Quiet stand-in when a dish has no photograph — the initial set in the
+   display serif, rather than a broken-image slot or a stock icon. */
+.dish__monogram {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 4vw, 3.25rem);
+  font-weight: 400;
+  color: var(--on-surface-variant);
+  opacity: 0.16;
+  line-height: 1;
+  user-select: none;
+}
+
+.dish__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem 1.125rem;
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+/* Only the lead pushes its readiness to the floor — it has the height to carry
+   the gap. Companions stay compact, or they read as half-empty. */
+.dish--lead .dish__body {
+  justify-content: flex-start;
+}
+
+.dish__meta {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.dish--lead .dish__body {
+  padding: 1.5rem;
+}
+
+.dish__name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--on-surface);
+  margin: 0;
+  font-size: 1rem;
+}
+
+.dish--lead .dish__name {
+  font-size: clamp(1.25rem, 2vw, 1.65rem);
+}
+
+.dish:hover .dish__name {
+  color: var(--primary);
+}
+
+.dish__desc {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--on-surface-variant);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --- Readiness: the signature element ---
+   How close the pantry is to this dish. A hairline rule rather than a chunky
+   progress bar, so it reads as editorial marginalia, not a download. */
+.readiness {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.6rem;
+}
+
+.dish--lead .readiness {
+  margin-top: auto;
+}
+
+.readiness__rule {
+  position: relative;
+  height: 2px;
+  background: var(--outline-variant);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.readiness__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--primary);
+  border-radius: inherit;
+  transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.readiness__text {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+/* --- Needs a shop: was a bare <ul> of links; now a scannable ruled list --- */
+.dashboard__shop-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.shop-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0.25rem;
+  border-bottom: 1px solid var(--outline-variant);
+  text-decoration: none;
+  color: var(--on-surface);
+  transition: background 0.15s ease, padding-left 0.15s ease;
+}
+
+.shop-item:hover {
+  background: var(--surface-container-low);
+  padding-left: 0.625rem;
+  color: var(--primary);
+}
+
+.shop-item:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.shop-item__name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+}
+
+.shop-item__meta {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+@media (max-width: 860px) {
+  .inspo__grid {
+    grid-template-columns: 1fr;
+    grid-template-rows: none;
+    min-height: 0;
+  }
+
+  .dish--lead {
+    grid-row: auto;
+  }
+
+  .dish--lead .dish__frame {
+    aspect-ratio: 16 / 10;
+    flex: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dish,
+  .dish__image,
+  .readiness__fill {
+    transition: none;
+  }
+
+  .dish:hover {
+    transform: none;
+  }
+
+  .dish:hover .dish__image {
+    transform: none;
+  }
+}

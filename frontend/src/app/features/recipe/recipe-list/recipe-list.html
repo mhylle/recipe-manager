@@ -1,7 +1,19 @@
 <div class="recipe-list">
   <div class="recipe-list__header">
     <h2>{{ 'recipe.list.title' | t }}</h2>
-    <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
+    <div class="recipe-list__header-actions">
+      <label class="recipe-list__sort">
+        <span class="label-text">{{ 'recipe.sort.label' | t }}</span>
+        <select class="input" [value]="sortOrder()" (change)="onSortChange($event)">
+          @for (option of sortOptions; track option.value) {
+            <option [value]="option.value" [selected]="option.value === sortOrder()">
+              {{ option.labelKey | t }}
+            </option>
+          }
+        </select>
+      </label>
+      <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
+    </div>
   </div>
 
   <app-recipe-filters (filtersChanged)="onFiltersChanged($event)" />
@@ -12,7 +24,7 @@
     </p>
   } @else {
     <div class="recipe-list__grid" role="list">
-      @for (recipe of items(); track recipe.id) {
+      @for (recipe of sortedItems(); track recipe.id) {
         <div class="card recipe-card" role="listitem">
           <div class="recipe-card__header">
             <a [routerLink]="['/recipes', recipe.id]" class="recipe-card__title">{{ recipe.name }}</a>

@@ -55,6 +55,7 @@ export class RecipeFiltersComponent {
     { value: 'Appetizer', labelKey: 'recipe.filters.course.appetizer' },
     { value: 'Soup', labelKey: 'recipe.filters.course.soup' },
     { value: 'Snack', labelKey: 'recipe.filters.course.snack' },
+    { value: 'Baking', labelKey: 'recipe.filters.course.baking' },
   ];
 
   readonly searchControl = new FormControl('', { nonNullable: true });
