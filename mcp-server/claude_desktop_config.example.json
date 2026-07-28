@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "recipe-manager": {
+      "command": "node",
+      "args": ["/absolute/path/to/recipe-manager/mcp-server/index.js"],
+      "env": {
+        "RECIPE_MANAGER_LOCALE": "da"
+      }
+    }
+  }
+}
