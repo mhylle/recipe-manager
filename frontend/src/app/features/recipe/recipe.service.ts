@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { EMPTY, Observable } from 'rxjs';
-import { expand, reduce } from 'rxjs/operators';
+import { expand, map, reduce } from 'rxjs/operators';
 import { Recipe } from '../../shared/models/recipe.model';
 import { RecipeTranslation } from '../../shared/models/translation.model';
 import { bcp47Of, type Locale } from '../../shared/i18n';
@@ -11,6 +11,25 @@ import { environment } from '../../../environments/environment';
 interface PagedRecipes {
   data: Recipe[];
   meta: { total: number; limit: number; offset: number; hasMore: boolean };
+}
+
+/**
+ * Accept either response shape.
+ *
+ * When the list moved to a `{data, meta}` envelope, every browser holding a
+ * cached copy of the previous bundle got the new response and crashed on
+ * `TypeError: i is not iterable` — an empty recipe list that looked like data
+ * loss until the service worker updated a load later. Tolerating both shapes
+ * costs three lines and means the next contract change cannot do that again.
+ */
+function normalisePage(response: PagedRecipes | Recipe[], offset: number): PagedRecipes {
+  if (Array.isArray(response)) {
+    return {
+      data: response,
+      meta: { total: response.length, limit: response.length, offset, hasMore: false },
+    };
+  }
+  return response;
 }
 
 /** A write payload plus the other languages' text for the same recipe. */
@@ -45,9 +64,9 @@ export class RecipeService {
   }
 
   private fetchPage(offset: number): Observable<PagedRecipes> {
-    return this.http.get<PagedRecipes>(this.baseUrl, {
-      params: { offset: String(offset) },
-    });
+    return this.http
+      .get<PagedRecipes | Recipe[]>(this.baseUrl, { params: { offset: String(offset) } })
+      .pipe(map((response) => normalisePage(response, offset)));
   }
 
   getById(id: string): Observable<Recipe> {
