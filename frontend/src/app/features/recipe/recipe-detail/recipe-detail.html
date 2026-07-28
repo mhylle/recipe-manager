@@ -72,6 +72,22 @@
       <a routerLink="/recipes" class="btn btn--ghost btn--small">
         {{ 'recipe.detail.allRecipes' | t }}
       </a>
+
+      <!-- Only rendered where the platform actually supports it; a dead toggle
+           is worse than no toggle. -->
+      @if (wakeLock.supported()) {
+        <button
+          type="button"
+          class="btn btn--ghost btn--small wake-toggle"
+          [class.wake-toggle--on]="wakeLock.enabled()"
+          [attr.aria-pressed]="wakeLock.enabled()"
+          [attr.title]="'recipe.detail.keepAwakeHint' | t"
+          (click)="toggleWakeLock()"
+        >
+          <span class="wake-toggle__dot" [class.wake-toggle__dot--live]="wakeLock.active()" aria-hidden="true"></span>
+          {{ (wakeLock.enabled() ? 'recipe.detail.keepAwakeOn' : 'recipe.detail.keepAwake') | t }}
+        </button>
+      }
     </div>
 
     <!-- Tags -->
