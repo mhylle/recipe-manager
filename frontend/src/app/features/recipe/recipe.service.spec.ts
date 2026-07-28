@@ -42,9 +42,49 @@ describe('RecipeService', () => {
       expect(recipes).toEqual([mockRecipe]);
     });
 
-    const req = httpTesting.expectOne('/api/recipes');
+    const req = httpTesting.expectOne('/api/recipes?offset=0');
     expect(req.request.method).toBe('GET');
-    req.flush([mockRecipe]);
+    req.flush({ data: [mockRecipe], meta: { total: 1, limit: 100, offset: 0, hasMore: false } });
+  });
+
+  it('getAll follows hasMore until every page is loaded', () => {
+    // The API paginates. Stopping at the first page would silently hide every
+    // recipe past the limit and read as a sorting bug, not a missing fetch.
+    const second = { ...mockRecipe, id: 'recipe-2', name: 'Second' };
+    let received: unknown[] = [];
+    service.getAll().subscribe((recipes) => {
+      received = recipes;
+    });
+
+    httpTesting
+      .expectOne('/api/recipes?offset=0')
+      .flush({ data: [mockRecipe], meta: { total: 2, limit: 1, offset: 0, hasMore: true } });
+    httpTesting
+      .expectOne('/api/recipes?offset=1')
+      .flush({ data: [second], meta: { total: 2, limit: 1, offset: 1, hasMore: false } });
+
+    expect(received).toEqual([mockRecipe, second]);
+  });
+
+  it('getAll stops on an empty page rather than looping forever', () => {
+    // A server reporting hasMore while returning no rows would leave the offset
+    // standing still and spin requests until the tab died.
+    let completed = false;
+    let received: unknown[] | null = null;
+    service.getAll().subscribe({
+      next: (recipes) => (received = recipes),
+      complete: () => (completed = true),
+    });
+
+    httpTesting
+      .expectOne('/api/recipes?offset=0')
+      .flush({ data: [], meta: { total: 9, limit: 100, offset: 0, hasMore: true } });
+
+    // Completion is the real assertion. Without it the test passes even when the
+    // loop never terminates, because reduce simply never emits.
+    expect(completed).toBe(true);
+    expect(received).toEqual([]);
+    httpTesting.verify();
   });
 
   it('getById should call GET /api/recipes/:id', () => {

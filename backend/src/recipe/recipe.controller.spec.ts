@@ -103,20 +103,23 @@ describe('RecipeController', () => {
   describe('GET /api/recipes', () => {
     it('should return an array of recipes', async () => {
       const recipes = [mockRecipe];
-      service.findAll.mockResolvedValue(recipes);
+      service.findAll.mockResolvedValue({ data: recipes, total: 1, limit: 100, offset: 0 });
 
       const result = await controller.findAll();
 
       expect(service.findAll).toHaveBeenCalled();
-      expect(result).toEqual(recipes);
+      expect(result.data).toEqual(recipes);
+      expect(result.meta).toEqual({ total: 1, limit: 100, offset: 0, hasMore: false });
     });
 
     it('should return empty array when no recipes exist', async () => {
-      service.findAll.mockResolvedValue([]);
+      service.findAll.mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 });
 
       const result = await controller.findAll();
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(result.meta.hasMore).toBe(false);
     });
   });
 

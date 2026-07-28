@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
+import { Difficulty } from '../shared/enums/index.js';
 import {
   DEFAULT_LOCALE,
   Locale,
@@ -9,6 +10,20 @@ import {
   isLocale,
   pickTranslation,
 } from '../shared/i18n/locale.js';
+import {
+  normalisePageRequest,
+  type PageRequest,
+  type Paged,
+} from '../shared/pagination.js';
+
+/** Filters the recipe list accepts. Every one is applied in SQL. */
+export interface RecipeSearchFilters {
+  tags?: string[];
+  difficulty?: Difficulty;
+  maxPrepTime?: number;
+  maxCookTime?: number;
+  query?: string;
+}
 
 /** Text a caller supplies for one language. */
 export interface RecipeTranslationInput {
@@ -42,6 +57,17 @@ const RECIPE_INCLUDE = {
  */
 type RecipeRow = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
 
+/**
+ * Tags in their canonical form: lowercase, trimmed, de-duplicated, sorted.
+ *
+ * Filtering compares them exactly in SQL now, so a stray 'Baking' alongside
+ * 'baking' would make the same facet behave differently on two recipes — which
+ * is exactly the drift the normalisation migration had to clean up.
+ */
+function canonicalTags(tags: string[]): string[] {
+  return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))].sort();
+}
+
 @Injectable()
 export class RecipeRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -63,7 +89,7 @@ export class RecipeRepository {
         prepTime: data.prepTime,
         cookTime: data.cookTime,
         difficulty: data.difficulty,
-        tags: data.tags,
+        tags: canonicalTags(data.tags),
         imageUrl: data.imageUrl,
         sourceLocale,
         translations: {
@@ -94,9 +120,87 @@ export class RecipeRepository {
     return this.toInterface(result, sourceLocale);
   }
 
-  async findAll(locale: Locale = DEFAULT_LOCALE): Promise<Recipe[]> {
-    const results = await this.prisma.recipe.findMany({ include: RECIPE_INCLUDE });
-    return results.map((r) => this.toInterface(r, locale));
+  /**
+   * A page of recipes, filtered in SQL.
+   *
+   * Filtering used to run in JavaScript over every row. That meant reading the
+   * whole table — with all ingredients and all translations — to return three
+   * results, and it made pagination impossible to do honestly, because the true
+   * total was only known after loading everything.
+   */
+  async findAll(
+    filters: RecipeSearchFilters = {},
+    locale: Locale = DEFAULT_LOCALE,
+    page: PageRequest = {},
+  ): Promise<Paged<Recipe>> {
+    const where = this.buildWhere(filters, locale);
+    const { limit, offset } = normalisePageRequest(page);
+
+    // One round trip for the page, one for the count. The count must use the
+    // same WHERE or `total` describes a different query than `data`.
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.recipe.findMany({
+        where,
+        include: RECIPE_INCLUDE,
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        skip: offset,
+        take: limit,
+      }),
+      this.prisma.recipe.count({ where }),
+    ]);
+
+    return { data: rows.map((r) => this.toInterface(r, locale)), total, limit, offset };
+  }
+
+  /**
+   * Translate the filters into a Prisma WHERE.
+   *
+   * The text query is the awkward one. It has to match what the reader actually
+   * sees, and what they see is the requested locale's translation when it exists
+   * and the recipe's source-locale translation when it does not. Prisma cannot
+   * compare a related row's `locale` against the parent's `sourceLocale` column,
+   * so the fallback arm is expressed as "has no translation in the requested
+   * locale, and some translation matches" — which, with two supported locales,
+   * can only be the source translation.
+   */
+  private buildWhere(filters: RecipeSearchFilters, locale: Locale): Prisma.RecipeWhereInput {
+    const where: Prisma.RecipeWhereInput = {};
+
+    if (filters.difficulty) {
+      where.difficulty = filters.difficulty;
+    }
+    if (filters.maxPrepTime !== undefined) {
+      where.prepTime = { lte: filters.maxPrepTime };
+    }
+    if (filters.maxCookTime !== undefined) {
+      where.cookTime = { lte: filters.maxCookTime };
+    }
+    if (filters.tags && filters.tags.length > 0) {
+      // Tags are stored canonically lowercase (see the normalisation migration),
+      // so an exact array match is now the case-insensitive match it used to be.
+      where.tags = { hasEvery: filters.tags.map((t) => t.trim().toLowerCase()) };
+    }
+
+    if (filters.query) {
+      const contains = filters.query;
+      const matches: Prisma.RecipeTranslationWhereInput = {
+        OR: [
+          { name: { contains, mode: 'insensitive' } },
+          { description: { contains, mode: 'insensitive' } },
+        ],
+      };
+      where.OR = [
+        { translations: { some: { locale, ...matches } } },
+        {
+          AND: [
+            { translations: { none: { locale } } },
+            { translations: { some: matches } },
+          ],
+        },
+      ];
+    }
+
+    return where;
   }
 
   async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Recipe> {
@@ -164,7 +268,7 @@ export class RecipeRepository {
     if (data.prepTime !== undefined) updateData.prepTime = data.prepTime;
     if (data.cookTime !== undefined) updateData.cookTime = data.cookTime;
     if (data.difficulty !== undefined) updateData.difficulty = data.difficulty;
-    if (data.tags !== undefined) updateData.tags = data.tags;
+    if (data.tags !== undefined) updateData.tags = canonicalTags(data.tags);
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (options.sourceLocale !== undefined) {
       // Reject anything outside the supported set. An unrecognised sourceLocale

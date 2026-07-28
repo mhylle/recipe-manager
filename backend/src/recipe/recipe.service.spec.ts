@@ -136,21 +136,23 @@ describe('RecipeService', () => {
         mockRecipe,
         { ...mockRecipe, id: 'recipe-uuid-2', name: 'Omelette' },
       ];
-      repository.findAll.mockResolvedValue(recipes);
+      repository.findAll.mockResolvedValue({ data: recipes, total: 2, limit: 100, offset: 0 });
 
       const result = await service.findAll();
 
       expect(repository.findAll).toHaveBeenCalled();
-      expect(result).toEqual(recipes);
-      expect(result).toHaveLength(2);
+      expect(result.data).toEqual(recipes);
+      expect(result.data).toHaveLength(2);
+      expect(result.total).toBe(2);
     });
 
     it('should return empty array when no recipes exist', async () => {
-      repository.findAll.mockResolvedValue([]);
+      repository.findAll.mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 });
 
       const result = await service.findAll();
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
     });
   });
 

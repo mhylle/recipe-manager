@@ -7,6 +7,7 @@ import {
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
+import { toPagedResponse, type PagedResponse } from '../shared/pagination.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
@@ -31,8 +32,10 @@ export class RecipeController {
     @Query('maxPrepTime') maxPrepTime?: string,
     @Query('maxCookTime') maxCookTime?: string,
     @Query('tags') tags?: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
     @ReqLocale() locale: Locale = 'en',
-  ): Promise<Recipe[]> {
+  ): Promise<PagedResponse<Recipe>> {
     const filters: RecipeSearchFilters = {};
     if (query) filters.query = query;
     if (difficulty) filters.difficulty = difficulty as Difficulty;
@@ -40,10 +43,11 @@ export class RecipeController {
     if (maxCookTime) filters.maxCookTime = parseInt(maxCookTime, 10);
     if (tags) filters.tags = tags.split(',').map((t) => t.trim());
 
-    return this.recipeService.findAll(
-      Object.keys(filters).length > 0 ? filters : undefined,
-      locale,
-    );
+    const paged = await this.recipeService.findAll(filters, locale, {
+      limit: limit === undefined ? undefined : Number(limit),
+      offset: offset === undefined ? undefined : Number(offset),
+    });
+    return toPagedResponse(paged);
   }
 
   @Get(':id')

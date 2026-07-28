@@ -9,6 +9,11 @@ import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
 
+/** Wrap fixtures in the paged envelope findAll now returns. */
+function page<T>(data: T[]) {
+  return { data, total: data.length, limit: 100, offset: 0 };
+}
+
 describe('MatchingService', () => {
   let service: MatchingService;
   let pantryService: jest.Mocked<PantryService>;
@@ -95,7 +100,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -126,7 +131,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -157,7 +162,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -184,7 +189,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -222,7 +227,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -267,7 +272,7 @@ describe('MatchingService', () => {
       items: ['Salt', 'Pepper', 'Oil'],
     });
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 
@@ -295,7 +300,7 @@ describe('MatchingService', () => {
     );
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     // Request 8 servings = 400g flour needed, only have 300g
     const result = await service.matchRecipes(8);
@@ -342,7 +347,7 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue([recipe]);
+    recipeService.findAll.mockResolvedValue(page([recipe]));
 
     const result = await service.matchRecipes();
 

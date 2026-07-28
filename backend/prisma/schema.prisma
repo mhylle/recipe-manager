@@ -75,6 +75,11 @@ model Recipe {
   ingredients       RecipeIngredient[]
   mealEntries       MealPlanEntry[]
   translations      RecipeTranslation[]
+
+  // The recipe list filters on difficulty and the two times, and orders by
+  // createdAt. These are the columns the WHERE and ORDER BY now touch.
+  @@index([difficulty])
+  @@index([createdAt])
 }
 
 // All localised recipe prose lives here, including the source locale — there is no
@@ -104,6 +109,12 @@ model RecipeIngredient {
   recipeId       String
   recipe         Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   translations   RecipeIngredientTranslation[]
+
+  // Serves both the join by recipeId and the ordered read, since a composite
+  // index also answers lookups on its leading column. Declared here because it
+  // existed only in the 20260728110000 migration — schema drift that the next
+  // `prisma migrate dev` would have silently tried to drop.
+  @@index([recipeId, sortOrder])
 }
 
 model RecipeIngredientTranslation {
@@ -159,6 +170,10 @@ model MealPlanEntry {
   mealPlanId String
   mealPlan   MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
+
+  @@index([mealPlanId])
+  // Also serves the cascade delete when a recipe is removed.
+  @@index([recipeId])
 }
 
 model ShoppingList {
@@ -179,6 +194,8 @@ model ShoppingListItem {
   shoppingListId String
   shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
   sortOrder      Int          @default(0)
+
+  @@index([shoppingListId])
 }
 
 model StaplesConfig {

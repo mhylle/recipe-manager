@@ -6,15 +6,15 @@ import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ImageGenerationService } from '../image-generation/image-generation.service.js';
 import { DEFAULT_LOCALE, Locale } from '../shared/i18n/locale.js';
-import { RecipeTranslationInput } from './recipe.repository.js';
+import {
+  RecipeTranslationInput,
+  type RecipeSearchFilters,
+} from './recipe.repository.js';
+import type { PageRequest, Paged } from '../shared/pagination.js';
 
-export interface RecipeSearchFilters {
-  tags?: string[];
-  difficulty?: Difficulty;
-  maxPrepTime?: number;
-  maxCookTime?: number;
-  query?: string;
-}
+// Re-exported: callers have always imported the filter shape from the service.
+export type { RecipeSearchFilters };
+
 
 @Injectable()
 export class RecipeService {
@@ -71,13 +71,13 @@ export class RecipeService {
   }
 
   async findAll(
-    filters?: RecipeSearchFilters,
+    filters: RecipeSearchFilters = {},
     locale: Locale = DEFAULT_LOCALE,
-  ): Promise<Recipe[]> {
-    // Filters run AFTER localisation so a text query matches what the user reads.
-    const recipes = await this.recipeRepository.findAll(locale);
-    if (!filters) return recipes;
-    return this.applyFilters(recipes, filters);
+    page: PageRequest = {},
+  ): Promise<Paged<Recipe>> {
+    // Filtering, ordering and paging all happen in SQL. The text query still
+    // matches what the reader sees — the repository resolves that per locale.
+    return this.recipeRepository.findAll(filters, locale, page);
   }
 
   async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Recipe> {
@@ -102,40 +102,4 @@ export class RecipeService {
     return this.recipeRepository.delete(id);
   }
 
-  private applyFilters(
-    recipes: Recipe[],
-    filters: RecipeSearchFilters,
-  ): Recipe[] {
-    let result = recipes;
-
-    if (filters.query) {
-      const q = filters.query.toLowerCase();
-      result = result.filter(
-        (r) =>
-          r.name.toLowerCase().includes(q) ||
-          r.description.toLowerCase().includes(q),
-      );
-    }
-
-    if (filters.difficulty) {
-      result = result.filter((r) => r.difficulty === filters.difficulty);
-    }
-
-    if (filters.maxPrepTime !== undefined) {
-      result = result.filter((r) => r.prepTime <= filters.maxPrepTime!);
-    }
-
-    if (filters.maxCookTime !== undefined) {
-      result = result.filter((r) => r.cookTime <= filters.maxCookTime!);
-    }
-
-    if (filters.tags && filters.tags.length > 0) {
-      const filterTags = filters.tags.map((t) => t.toLowerCase());
-      result = result.filter((r) =>
-        filterTags.every((tag) => r.tags.some((t) => t.toLowerCase() === tag)),
-      );
-    }
-
-    return result;
-  }
 }
