@@ -24,6 +24,22 @@ services:
     networks:
       - mhylle_app-network
 
+  mcp:
+    image: ${MCP_IMAGE:-ghcr.io/mhylle/recipe-manager-mcp:latest}
+    build: !reset null
+    container_name: recipe-manager-mcp
+    environment:
+      - PORT=3100
+      - RECIPE_MANAGER_API_URL=http://recipe-manager-backend:3000/api
+      # No default. The server refuses to start without it, which is the point —
+      # this endpoint is public and its tools can delete recipes.
+      - RECIPE_MANAGER_MCP_TOKEN=${RECIPE_MANAGER_MCP_TOKEN:?set RECIPE_MANAGER_MCP_TOKEN}
+    ports:
+      - "127.0.0.1:3100:3100"
+    restart: unless-stopped
+    networks:
+      - mhylle_app-network
+
 networks:
   mhylle_app-network:
     external: true
