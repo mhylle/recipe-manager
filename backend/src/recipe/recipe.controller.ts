@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Body,
-  Param,
-  Query,
-  HttpCode,
-} from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
 import { RecipeService, RecipeSearchFilters } from './recipe.service.js';
 import { CreateRecipeDto } from './dto/create-recipe.dto.js';
 import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
@@ -17,10 +7,13 @@ import { Difficulty } from '../shared/enums/index.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
+import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 
 @Controller('recipes')
 export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
+
+  @UseGuards(SsoAuthGuard)
 
   @Post()
   async create(
@@ -66,6 +59,8 @@ export class RecipeController {
     return this.recipeService.findAllTranslations(id);
   }
 
+  @UseGuards(SsoAuthGuard)
+
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -79,11 +74,15 @@ export class RecipeController {
     return this.recipeService.update(id, dto, locale, dto.translations, dto.sourceLocale);
   }
 
+  @UseGuards(SsoAuthGuard)
+
   @Delete(':id')
   @HttpCode(204)
   async delete(@Param('id') id: string): Promise<void> {
     return this.recipeService.delete(id);
   }
+
+  @UseGuards(SsoAuthGuard)
 
   @Post(':id/regenerate-images')
   async regenerateImages(

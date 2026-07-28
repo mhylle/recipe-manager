@@ -106,12 +106,19 @@ jobs:
           # Bearer token for the public MCP endpoint. Same rule as every other
           # secret here: GitHub Secrets only, never the server's .env.
           RECIPE_MANAGER_MCP_TOKEN: ${{ secrets.RECIPE_MANAGER_MCP_TOKEN }}
+          # Shared SSO signing key — verifies the auth_token cookie on write
+          # routes. GitHub Secrets only: the server .env copy has historically
+          # carried a trailing newline that breaks signature verification.
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          # Machine credential for the MCP server, scoped to this app alone so a
+          # compromise there cannot forge tokens for the rest of the estate.
+          RECIPE_MANAGER_SERVICE_TOKEN: ${{ secrets.RECIPE_MANAGER_SERVICE_TOKEN }}
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN
           script: |
             set -e
             echo "=== Deploying Recipe Manager ==="
@@ -122,11 +129,14 @@ jobs:
             # Fail before touching anything if the MCP token is missing. The MCP
             # process would refuse to start anyway; failing here makes the reason
             # obvious instead of surfacing as a crash-looping container.
-            if [ -z "$RECIPE_MANAGER_MCP_TOKEN" ]; then
-              echo "RECIPE_MANAGER_MCP_TOKEN secret is not set — refusing to deploy."
-              echo "Set it with: gh secret set RECIPE_MANAGER_MCP_TOKEN --repo mhylle/recipe-manager"
-              exit 1
-            fi
+            for required in RECIPE_MANAGER_MCP_TOKEN JWT_SECRET RECIPE_MANAGER_SERVICE_TOKEN; do
+              eval "value=\$$required"
+              if [ -z "$value" ]; then
+                echo "$required secret is not set — refusing to deploy."
+                echo "Set it with: gh secret set $required --repo mhylle/recipe-manager"
+                exit 1
+              fi
+            done
 
             # Login to GHCR
             echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
@@ -153,6 +163,8 @@ jobs:
               -e CORS_ORIGIN="https://mhylle.com" \
               -e PORT=3000 \
               -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
+              -e JWT_SECRET="${JWT_SECRET}" \
+              -e RECIPE_MANAGER_SERVICE_TOKEN="${RECIPE_MANAGER_SERVICE_TOKEN}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
               --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \
@@ -189,6 +201,7 @@ jobs:
               -e PORT=3100 \
               -e RECIPE_MANAGER_API_URL="http://recipe-manager-backend:3000/api" \
               -e RECIPE_MANAGER_MCP_TOKEN="${RECIPE_MANAGER_MCP_TOKEN}" \
+              -e RECIPE_MANAGER_SERVICE_TOKEN="${RECIPE_MANAGER_SERVICE_TOKEN}" \
               -p 127.0.0.1:3100:3100 \
               --health-cmd="wget -q -O- http://localhost:3100/health || exit 1" \
               --health-interval=30s \
@@ -253,6 +266,37 @@ jobs:
               exit 1
             fi
             echo "Unauthenticated MCP request correctly rejected (401)."
+
+            # Prove the write guard is closed, on the real deployed backend.
+            # The DELETE targets a uuid that does not exist, so even a total
+            # guard failure cannot destroy data — but it still distinguishes the
+            # two outcomes: 401 means the guard ran first, 404 means it did not.
+            echo "Checking the write guard..."
+            GHOST=00000000-0000-0000-0000-000000000000
+            DELETE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE "http://localhost:8006/api/recipes/$GHOST")
+            # Status alone is ambiguous here: BilkaToGo answers 401 for bad
+            # credentials too, so an unguarded endpoint that simply failed the
+            # real login would look identical. Match the guard's own message.
+            BILKA_BODY=$(curl -s -X POST http://localhost:8006/api/bilkatogo/login \
+              -H 'Content-Type: application/json' -d '{"email":"probe@example.com","password":"probe"}')
+            case "$BILKA_BODY" in
+              *"Missing authentication token"*) BILKA_STATUS=401 ;;
+              *) BILKA_STATUS="unguarded ($BILKA_BODY)" ;;
+            esac
+            # The control. Without a route that is SUPPOSED to be open, a
+            # backend that 401s everything (or is simply down) would look like a
+            # pass on both checks above.
+            READ_STATUS=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8006/api/recipes)
+
+            echo "  DELETE /recipes/<ghost> -> $DELETE_STATUS (want 401)"
+            echo "  POST /bilkatogo/login   -> $BILKA_STATUS (want 401)"
+            echo "  GET /recipes            -> $READ_STATUS (want 200, control)"
+            if [ "$DELETE_STATUS" != "401" ] || [ "$BILKA_STATUS" != "401" ] || [ "$READ_STATUS" != "200" ]; then
+              echo "Write guard is not behaving as expected. Failing the deploy."
+              docker logs recipe-manager-backend --tail 30
+              exit 1
+            fi
+            echo "Write guard verified: writes rejected, reads still public."
 
             # Clean up old images
             docker image prune -f

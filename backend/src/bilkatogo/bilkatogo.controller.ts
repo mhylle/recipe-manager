@@ -1,11 +1,13 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards } from '@nestjs/common';
 import { BilkaToGoAuthService } from './bilkatogo-auth.service.js';
 import { BilkaToGoOrchestratorService } from './bilkatogo-orchestrator.service.js';
 import { BilkaToGoLoginDto } from './dto/bilkatogo-login.dto.js';
 import { SendToBilkaToGoDto } from './dto/send-to-bilkatogo.dto.js';
 import type { BilkaToGoSendResult } from './interfaces/bilkatogo.interfaces.js';
+import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 
 @Controller('bilkatogo')
+@UseGuards(SsoAuthGuard)
 export class BilkaToGoController {
   constructor(
     private readonly authService: BilkaToGoAuthService,

@@ -5,8 +5,8 @@
  * error shapes. Uses the built-in fetch (Node 20+), so the server has exactly one
  * runtime dependency: the MCP SDK itself.
  *
- * The API is unauthenticated — recipe-manager has no login — so there is no token
- * handling here. If that ever changes, this is the one place to add it.
+ * Reads are public. Writes require a credential, so every request carries the
+ * service token when one is configured — see requestHeaders() below.
  */
 
 const DEFAULT_API_BASE = 'https://mhylle.com/api/recipe-manager/api';
@@ -36,6 +36,31 @@ function acceptLanguage(locale) {
   return BCP47[wanted] || BCP47.en;
 }
 
+/**
+ * Headers for an API call.
+ *
+ * The backend guards every write behind the shared SSO session or a
+ * recipe-manager-scoped service token. The MCP server has no browser session, so
+ * it presents the service token. Sent on reads too — harmless, since the guard
+ * only runs on guarded routes, and it means a read and a write cannot end up
+ * authenticated differently.
+ *
+ * Absent token is not an error here: a local stdio server pointed at a dev
+ * backend has nothing to authenticate against, and reads still work. Writes will
+ * fail with the backend's own 401, which says more than a guess would.
+ */
+function requestHeaders(locale) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Accept-Language': acceptLanguage(locale),
+  };
+  const serviceToken = process.env.RECIPE_MANAGER_SERVICE_TOKEN;
+  if (serviceToken) {
+    headers['X-Service-Token'] = serviceToken;
+  }
+  return headers;
+}
+
 async function request(method, path, { body, locale, query } = {}) {
   const url = new URL(getApiBase() + path);
   for (const [k, v] of Object.entries(query || {})) {
@@ -46,10 +71,7 @@ async function request(method, path, { body, locale, query } = {}) {
   try {
     response = await fetch(url, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept-Language': acceptLanguage(locale),
-      },
+      headers: requestHeaders(locale),
       body: body === undefined ? undefined : JSON.stringify(body),
       signal: AbortSignal.timeout(30_000),
     });

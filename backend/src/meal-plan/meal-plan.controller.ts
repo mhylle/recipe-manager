@@ -1,17 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Delete,
-  Body,
-  Param,
-  Query,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
 import { MealPlanService } from './meal-plan.service.js';
 import { DeductionService } from './deduction/deduction.service.js';
 import { AddMealPlanEntryDto } from './dto/add-meal-plan-entry.dto.js';
 import type { MealPlan } from '../shared/interfaces/meal-plan.interface.js';
+import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 
 @Controller('meal-plans')
 export class MealPlanController {
@@ -30,6 +22,8 @@ export class MealPlanController {
     return this.mealPlanService.findById(id);
   }
 
+  @UseGuards(SsoAuthGuard)
+
   @Post(':id/entries')
   async addEntry(
     @Param('id') id: string,
@@ -38,6 +32,8 @@ export class MealPlanController {
     return this.mealPlanService.addEntry(id, dto);
   }
 
+  @UseGuards(SsoAuthGuard)
+
   @Delete(':id/entries/:index')
   async removeEntry(
     @Param('id') id: string,
@@ -45,6 +41,8 @@ export class MealPlanController {
   ): Promise<MealPlan> {
     return this.mealPlanService.removeEntry(id, index);
   }
+
+  @UseGuards(SsoAuthGuard)
 
   @Post(':id/entries/:index/confirm')
   async confirmCooked(

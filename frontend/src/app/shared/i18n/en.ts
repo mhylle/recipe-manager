@@ -163,6 +163,7 @@ export const en = {
   'recipe.detail.actionsLabel': 'Recipe actions',
   'recipe.detail.delete': 'Delete recipe',
   'recipe.detail.regenerate': 'Regenerate images',
+  'recipe.detail.signInToEdit': 'Sign in at mhylle.com to edit this recipe.',
   'recipe.detail.generating': 'Generating...',
   'recipe.detail.keepAwake': 'Keep screen on',
   'recipe.detail.keepAwakeOn': 'Screen stays on',

@@ -394,3 +394,12 @@
   background: var(--primary);
   box-shadow: 0 0 0 3px rgba(62, 106, 0, 0.15);
 }
+
+// Shown in place of the write actions when nobody is signed in. The buttons are
+// hidden rather than disabled because the server would reject them anyway.
+.recipe-view__signin-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  font-style: italic;
+  color: var(--color-text-muted, #6b6b6b);
+}
