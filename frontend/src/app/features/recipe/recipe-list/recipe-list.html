@@ -70,7 +70,7 @@
             <a [routerLink]="['/recipes', recipe.id]" class="gallery-item" role="listitem">
               <div class="gallery-item__frame">
                 @if (recipe.imageUrl) {
-                  <img [ngSrc]="recipe.imageUrl!" [alt]="recipe.name" class="gallery-item__image" fill />
+                  <img [src]="recipe.imageUrl" [alt]="recipe.name" class="gallery-item__image" />
                 } @else {
                   <span class="gallery-item__monogram" aria-hidden="true">{{ initial(recipe.name) }}</span>
                 }

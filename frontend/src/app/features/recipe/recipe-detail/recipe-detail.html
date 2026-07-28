@@ -23,11 +23,9 @@
     <div class="recipe-view__hero" [class.recipe-view__hero--no-image]="!recipe()!.imageUrl">
       @if (recipe()!.imageUrl) {
         <img
-          [ngSrc]="recipe()!.imageUrl!"
+          [src]="recipe()!.imageUrl"
           [alt]="recipe()!.name"
           class="recipe-view__hero-image"
-          fill
-          priority
         />
         <div class="recipe-view__hero-overlay"></div>
       }
@@ -176,15 +174,7 @@
               <span class="instruction-step__number" aria-hidden="true">{{ i + 1 }}</span>
               <div class="instruction-step__content">
                 @if (recipe()!.instructionImages?.[i]) {
-                  <!-- Generated images are all 1024x1024; the declared size reserves the box so
-                       the step text does not jump when each one loads. -->
-                  <img
-                    [ngSrc]="recipe()!.instructionImages![i]"
-                    [alt]="'recipe.detail.stepAlt' | t: { number: i + 1 }"
-                    class="step-image"
-                    width="1024"
-                    height="1024"
-                  />
+                  <img [src]="recipe()!.instructionImages![i]" [alt]="'recipe.detail.stepAlt' | t: { number: i + 1 }" class="step-image" />
                 }
                 <p class="instruction-step__text">{{ step }}</p>
                 @if (stepDurations()[i]; as durations) {
