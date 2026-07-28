@@ -87,8 +87,8 @@ describe('DashboardComponent', () => {
     // The lead dish is what carries the layout's hierarchy.
     expect(fixture.nativeElement.querySelectorAll('.dish--lead').length).toBe(1);
 
-    // Readiness is the point of the section — a suggestion without it is decoration.
-    expect(fixture.nativeElement.querySelector('.readiness__text')).toBeTruthy();
+    // The measure is the point of the section — a suggestion without it is decoration.
+    expect(fixture.nativeElement.querySelector('.measure__text')).toBeTruthy();
   });
 
   it('shows the three buckets once there is more than the hero can hold', () => {
@@ -156,9 +156,12 @@ describe('DashboardComponent', () => {
     component.loadMatchResults();
     fixture.detectChanges();
 
-    // Every bucket is genuinely empty here, so each shows its message — plus the
-    // inspiration section's own.
+    // Nothing to suggest, so the page says so ONCE and stops. The three bucket
+    // sections render nothing at all rather than three headings over empty
+    // space — a heading with no content told the reader less than silence, and
+    // cost most of a screen to do it.
     const emptyMessages = fixture.nativeElement.querySelectorAll('.dashboard__empty');
-    expect(emptyMessages.length).toBe(4);
+    expect(emptyMessages.length).toBe(1);
+    expect(fixture.nativeElement.querySelectorAll('.section-head').length).toBe(0);
   });
 });
