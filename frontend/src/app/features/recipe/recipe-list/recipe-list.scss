@@ -221,6 +221,10 @@
 }
 
 .gallery-item__frame {
+  // Required by the `fill` image inside: fill renders position:absolute, so
+  // without a positioned parent it anchors to the nearest positioned ancestor
+  // and covers the page instead of this 4:3 box.
+  position: relative;
   aspect-ratio: 4 / 3;
   overflow: hidden;
   display: flex;

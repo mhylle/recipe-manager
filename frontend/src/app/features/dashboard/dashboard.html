@@ -80,7 +80,9 @@
              [class.dashboard__recipe-card--featured]="i === 0"
              role="listitem">
             @if (recipe.imageUrl) {
-              <img [ngSrc]="recipe.imageUrl!" [alt]="recipe.name" class="dashboard__card-image" fill />
+              <div class="dashboard__card-frame">
+                <img [ngSrc]="recipe.imageUrl!" [alt]="recipe.name" class="dashboard__card-image" fill />
+              </div>
             }
             <div class="dashboard__card-body">
               <h3 class="dashboard__card-title">{{ recipe.name }}</h3>
