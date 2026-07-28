@@ -45,6 +45,11 @@ export const da: Dictionary = {
   'recipe.list.prep': 'Forb.: {{minutes}} min',
   'recipe.list.cook': 'Tilb.: {{minutes}} min',
   'recipe.list.servings': '{{count}} portioner',
+  'recipe.view.label': 'Visning',
+  'recipe.view.cards': 'Kort',
+  'recipe.view.list': 'Liste',
+  'recipe.view.gallery': 'Galleri',
+
   'recipe.sort.label': 'Sortér efter',
   'recipe.sort.nameAsc': 'Navn (A\u2013Å)',
   'recipe.sort.nameDesc': 'Navn (Å\u2013A)',

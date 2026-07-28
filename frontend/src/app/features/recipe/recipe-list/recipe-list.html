@@ -2,6 +2,25 @@
   <div class="recipe-list__header">
     <h2>{{ 'recipe.list.title' | t }}</h2>
     <div class="recipe-list__header-actions">
+      <!-- Layout choice. A segmented control rather than a select: three options,
+           always visible, one click to switch. -->
+      <div class="recipe-list__view">
+        <span class="label-text">{{ 'recipe.view.label' | t }}</span>
+        <div class="viewtoggle" role="group" [attr.aria-label]="'recipe.view.label' | t">
+          @for (mode of viewModes; track mode.value) {
+            <button
+              type="button"
+              class="viewtoggle__option"
+              [class.viewtoggle__option--active]="viewMode() === mode.value"
+              [attr.aria-pressed]="viewMode() === mode.value"
+              (click)="onViewModeChange(mode.value)"
+            >
+              {{ mode.labelKey | t }}
+            </button>
+          }
+        </div>
+      </div>
+
       <label class="recipe-list__sort">
         <span class="label-text">{{ 'recipe.sort.label' | t }}</span>
         <select class="input" [value]="sortOrder()" (change)="onSortChange($event)">
@@ -12,6 +31,7 @@
           }
         </select>
       </label>
+
       <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
     </div>
   </div>
@@ -23,32 +43,79 @@
       {{ (hasActiveFilters() ? 'recipe.list.empty.filtered' : 'recipe.list.empty.none') | t }}
     </p>
   } @else {
-    <div class="recipe-list__grid" role="list">
-      @for (recipe of sortedItems(); track recipe.id) {
-        <div class="card recipe-card" role="listitem">
-          <div class="recipe-card__header">
-            <a [routerLink]="['/recipes', recipe.id]" class="recipe-card__title">{{ recipe.name }}</a>
-            <span class="recipe-card__difficulty" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
-          </div>
-          <p class="recipe-card__description">{{ recipe.description }}</p>
-          <div class="recipe-card__meta">
-            <span class="recipe-card__time" [attr.aria-label]="'recipe.list.prepLabel' | t">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
-            <span class="recipe-card__time" [attr.aria-label]="'recipe.list.cookLabel' | t">{{ 'recipe.list.cook' | t: { minutes: recipe.cookTime } }}</span>
-            <span class="recipe-card__servings" [attr.aria-label]="'recipe.list.servingsLabel' | t">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
-          </div>
-          @if (recipe.tags.length > 0) {
-            <div class="recipe-card__tags">
-              @for (tag of recipe.tags; track tag) {
-                <span class="tag">{{ tag }}</span>
-              }
+    @switch (viewMode()) {
+      @case ('list') {
+        <!-- One ruled row per recipe: scannable when you already know what you want. -->
+        <div class="recipe-rows" role="list">
+          @for (recipe of sortedItems(); track recipe.id) {
+            <div class="recipe-row" role="listitem">
+              <a [routerLink]="['/recipes', recipe.id]" class="recipe-row__title">{{ recipe.name }}</a>
+              <span class="recipe-row__badge" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
+              <span class="recipe-row__meta">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
+              <span class="recipe-row__meta">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
+              <div class="recipe-row__actions">
+                <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small btn--ghost">{{ 'common.actions.edit' | t }}</a>
+                <button type="button" class="btn btn--small btn--text" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+              </div>
             </div>
           }
-          <div class="recipe-card__actions">
-            <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small">{{ 'common.actions.edit' | t }}</a>
-            <button type="button" class="btn btn--small btn--danger" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
-          </div>
         </div>
       }
-    </div>
+
+      @case ('gallery') {
+        <!-- Image-led. Recipes without a photograph get a monogram rather than a
+             broken frame, so the grid stays even. -->
+        <div class="recipe-gallery" role="list">
+          @for (recipe of sortedItems(); track recipe.id) {
+            <a [routerLink]="['/recipes', recipe.id]" class="gallery-item" role="listitem">
+              <div class="gallery-item__frame">
+                @if (recipe.imageUrl) {
+                  <img [src]="recipe.imageUrl" [alt]="recipe.name" class="gallery-item__image" />
+                } @else {
+                  <span class="gallery-item__monogram" aria-hidden="true">{{ initial(recipe.name) }}</span>
+                }
+              </div>
+              <div class="gallery-item__body">
+                <h3 class="gallery-item__title">{{ recipe.name }}</h3>
+                <span class="gallery-item__meta">
+                  {{ recipe.difficulty | enumLabel: 'difficulty' }}
+                  &middot; {{ 'recipe.list.servings' | t: { count: recipe.servings } }}
+                </span>
+              </div>
+            </a>
+          }
+        </div>
+      }
+
+      @default {
+        <div class="recipe-list__grid" role="list">
+          @for (recipe of sortedItems(); track recipe.id) {
+            <div class="card recipe-card" role="listitem">
+              <div class="recipe-card__header">
+                <a [routerLink]="['/recipes', recipe.id]" class="recipe-card__title">{{ recipe.name }}</a>
+                <span class="recipe-card__difficulty" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
+              </div>
+              <p class="recipe-card__description">{{ recipe.description }}</p>
+              <div class="recipe-card__meta">
+                <span class="recipe-card__time" [attr.aria-label]="'recipe.list.prepLabel' | t">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
+                <span class="recipe-card__time" [attr.aria-label]="'recipe.list.cookLabel' | t">{{ 'recipe.list.cook' | t: { minutes: recipe.cookTime } }}</span>
+                <span class="recipe-card__servings" [attr.aria-label]="'recipe.list.servingsLabel' | t">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
+              </div>
+              @if (recipe.tags.length > 0) {
+                <div class="recipe-card__tags">
+                  @for (tag of recipe.tags; track tag) {
+                    <span class="tag">{{ tag }}</span>
+                  }
+                </div>
+              }
+              <div class="recipe-card__actions">
+                <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small">{{ 'common.actions.edit' | t }}</a>
+                <button type="button" class="btn btn--small btn--danger" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    }
   }
 </div>

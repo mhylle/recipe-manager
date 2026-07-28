@@ -69,6 +69,11 @@ export const en = {
   'recipe.list.prep': 'Prep: {{minutes}}min',
   'recipe.list.cook': 'Cook: {{minutes}}min',
   'recipe.list.servings': '{{count}} servings',
+  'recipe.view.label': 'View',
+  'recipe.view.cards': 'Cards',
+  'recipe.view.list': 'List',
+  'recipe.view.gallery': 'Gallery',
+
   'recipe.sort.label': 'Sort by',
   'recipe.sort.nameAsc': 'Name (A\u2013Z)',
   'recipe.sort.nameDesc': 'Name (Z\u2013A)',
