@@ -1,0 +1,22 @@
+{
+  "name": "recipe-manager-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for The Atelier Kitchen — browse recipes, manage the pantry, plan meals and build shopping lists from Claude Desktop.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "recipe-manager-mcp-server": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test 'tests/*.test.js'"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "keywords": ["mcp", "recipes", "claude-desktop"],
+  "license": "MIT"
+}
