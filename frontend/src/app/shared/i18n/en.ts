@@ -289,6 +289,8 @@ export const en = {
   'dashboard.headingEmphasis': 'Chef.',
   'dashboard.subtitle': 'See what you can craft from your pantry today.',
   'dashboard.viewAll': 'View all',
+  'dashboard.ledger.more': '{{count}} more in the library',
+  'dashboard.ledger.browseAll': 'Browse all recipes',
   'dashboard.canMake.label': 'READY TO CRAFT',
   'dashboard.canMake.title': 'Available ingredients matched.',
   'dashboard.canMake.empty': 'No recipes can be made with current pantry items.',

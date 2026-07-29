@@ -57,6 +57,22 @@ export class DashboardComponent {
     this.matchResult().missingMany.filter((r) => !this.featuredIds().has(r.id)),
   );
 
+  /**
+   * How many entries the browse ledger shows before deferring to the library.
+   *
+   * Not a cap on what exists — the overflow count is printed next to the link,
+   * so the page never implies the list ended. Forty-six recipes you cannot cook
+   * tonight is reference material, and reference material belongs behind one
+   * click rather than under three screens of scroll.
+   */
+  private readonly BROWSE_LIMIT = 8;
+
+  readonly browseList = computed(() => this.remainingMissing().slice(0, this.BROWSE_LIMIT));
+
+  readonly browseOverflow = computed(() =>
+    Math.max(0, this.remainingMissing().length - this.BROWSE_LIMIT),
+  );
+
   totalTime(recipe: { prepTime: number; cookTime: number }): number {
     return recipe.prepTime + recipe.cookTime;
   }

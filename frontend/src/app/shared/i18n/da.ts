@@ -264,6 +264,8 @@ export const da: Dictionary = {
   'dashboard.headingEmphasis': 'Chef.',
   'dashboard.subtitle': 'Se hvad du kan lave af det, du har i spisekammeret i dag.',
   'dashboard.viewAll': 'Se alle',
+  'dashboard.ledger.more': '{{count}} flere i samlingen',
+  'dashboard.ledger.browseAll': 'Se alle opskrifter',
   'dashboard.canMake.label': 'KLAR TIL AT LAVE',
   'dashboard.canMake.title': 'Alle ingredienser er på lager.',
   'dashboard.canMake.empty': 'Ingen opskrifter kan laves med de nuværende varer i spisekammeret.',
