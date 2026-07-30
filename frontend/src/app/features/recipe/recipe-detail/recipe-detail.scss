@@ -269,6 +269,11 @@
   font-size: 1rem;
   line-height: 1.6;
   color: var(--on-surface);
+  /* Honour line breaks an author put in a step. Some steps are a choice rather
+     than a sentence — four yeast quantities against four rise times — and
+     collapsing that into one paragraph hides the very thing being compared.
+     pre-line, not pre: it wraps normally and ignores indentation. */
+  white-space: pre-line;
 }
 
 /* ===== Image Placeholder ===== */
