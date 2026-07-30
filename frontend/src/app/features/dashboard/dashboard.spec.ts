@@ -92,23 +92,32 @@ describe('DashboardComponent', () => {
   });
 
   it('shows the three buckets once there is more than the hero can hold', () => {
-    // With only one recipe per bucket all three are promoted into the hero, and
-    // a section with nothing left to show is omitted rather than claiming "no
-    // recipes". Give each bucket a spare so the sections have something to say.
+    // A section with nothing left to show renders nothing, so each bucket needs
+    // a leftover after the hero has taken its pick.
+    //
+    // Four per bucket, not two: the hero takes three, and WHICH three depends on
+    // dailySeed(new Date()). With two per bucket the seed could empty one
+    // entirely — which is exactly what happened, making this test pass or fail
+    // according to the calendar. Four guarantees a survivor whatever the date.
+    const spares = (n: number) =>
+      Array.from({ length: n }, (_, i) => i);
+
     mockDashboardService.getMatchResults.mockReturnValue(
       of({
-        // Four cookable: the hero takes three (its highest tier), one is left over.
-        canMakeNow: [
-          mockResult.canMakeNow[0],
-          { ...mockResult.canMakeNow[0], id: 'x1a', name: 'Spare A1' },
-          { ...mockResult.canMakeNow[0], id: 'x1b', name: 'Spare A2' },
-          { ...mockResult.canMakeNow[0], id: 'x1c', name: 'Spare A3' },
-        ],
-        almostCanMake: [
-          mockResult.almostCanMake[0],
-          { ...mockResult.almostCanMake[0], recipe: { ...mockResult.almostCanMake[0].recipe, id: 'x2', name: 'Spare B' } },
-        ],
-        missingMany: [mockResult.missingMany[0], { ...mockResult.missingMany[0], id: 'x3', name: 'Spare C' }],
+        canMakeNow: spares(4).map((i) => ({
+          ...mockResult.canMakeNow[0],
+          id: `x1${i}`,
+          name: `Spare A${i}`,
+        })),
+        almostCanMake: spares(4).map((i) => ({
+          ...mockResult.almostCanMake[0],
+          recipe: { ...mockResult.almostCanMake[0].recipe, id: `x2${i}`, name: `Spare B${i}` },
+        })),
+        missingMany: spares(4).map((i) => ({
+          ...mockResult.missingMany[0],
+          id: `x3${i}`,
+          name: `Spare C${i}`,
+        })),
       }),
     );
     component.loadMatchResults();
