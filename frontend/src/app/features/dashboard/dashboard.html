@@ -4,17 +4,16 @@
        numerals carry real information instead of decorating the layout. -->
   <section class="tonight" aria-labelledby="inspo-heading">
     <header class="tonight__head">
-      <span class="eyebrow" id="inspo-heading">{{ 'dashboard.inspiration.eyebrow' | t }}</span>
-      <h1 class="tonight__title">{{ 'dashboard.inspiration.title' | t }}</h1>
+      <span class="eyebrow" id="inspo-heading">
+        {{ (kitchenAvailable() ? 'dashboard.inspiration.eyebrow' : 'dashboard.guest.eyebrow') | t }}
+      </span>
+      <h1 class="tonight__title">
+        {{ (kitchenAvailable() ? 'dashboard.inspiration.title' : 'dashboard.guest.title') | t }}
+      </h1>
       <a routerLink="/recipes" class="tonight__all">{{ 'dashboard.viewAll' | t }}</a>
     </header>
 
-    @if (!kitchenAvailable()) {
-      <p class="dashboard__empty" role="status">
-        {{ 'dashboard.kitchenLocked' | t }}
-        <button type="button" class="dashboard__signin" (click)="signIn()">{{ 'login.signIn' | t }}</button>
-      </p>
-    } @else if (inspiration().length === 0) {
+    @if (inspiration().length === 0) {
       <p class="dashboard__empty" role="status">{{ 'dashboard.inspiration.empty' | t }}</p>
     } @else {
       <ol class="tonight__grid">
@@ -40,6 +39,7 @@
                 <!-- The measure: how much of this recipe the kitchen already
                      holds. Set as a fraction against a rule, so it reads as a
                      measurement rather than as a loading bar. -->
+                @if (kitchenAvailable()) {
                 <div class="measure">
                   <span class="measure__rule" aria-hidden="true">
                     <span class="measure__fill" [style.width.%]="readinessPercent(item)"></span>
@@ -54,6 +54,7 @@
                     }
                   </span>
                 </div>
+                }
               </div>
             </a>
           </li>

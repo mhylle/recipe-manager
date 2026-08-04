@@ -11,8 +11,8 @@ import {
   EnumLabelPipe,
   LocaleService,
   TranslatePipe,
-  reloadOnLocaleChange,
 } from '../../../shared/i18n';
+import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 
 @Component({
   selector: 'app-meal-plan-grid',
@@ -41,7 +41,7 @@ export class MealPlanGridComponent {
   });
 
   // Re-fetches on every language switch; recipe names are localised server-side.
-  private readonly reload = reloadOnLocaleChange(() => this.loadPlan());
+  private readonly reload = reloadOnKitchenChange(() => this.loadPlan());
 
   private loadPlan(): void {
     const weekStart = mondayOf();

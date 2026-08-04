@@ -1,9 +1,11 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { DashboardComponent } from './dashboard';
 import { DashboardService, MatchResult } from './dashboard.service';
+import { RecipeService } from '../recipe/recipe.service';
+import { PantryContextService } from '../../shared/services/pantry-context.service';
 import { Difficulty } from '../../shared/enums/difficulty.enum';
 import { Unit } from '../../shared/enums/unit.enum';
 import { PantryCategory } from '../../shared/enums/pantry-category.enum';
@@ -12,6 +14,7 @@ describe('DashboardComponent', () => {
   let fixture: ComponentFixture<DashboardComponent>;
   let component: DashboardComponent;
   let mockDashboardService: { getMatchResults: ReturnType<typeof vi.fn> };
+  let mockRecipeService: { getAll: ReturnType<typeof vi.fn> };
 
   const mockResult: MatchResult = {
     canMakeNow: [
@@ -62,6 +65,7 @@ describe('DashboardComponent', () => {
   };
 
   beforeEach(async () => {
+    mockRecipeService = { getAll: vi.fn().mockReturnValue(of([])) };
     mockDashboardService = {
       getMatchResults: vi.fn().mockReturnValue(of(mockResult)),
     };
@@ -71,6 +75,7 @@ describe('DashboardComponent', () => {
       providers: [
         provideRouter([]),
         { provide: DashboardService, useValue: mockDashboardService },
+        { provide: RecipeService, useValue: mockRecipeService },
       ],
     }).compileComponents();
 
@@ -89,6 +94,42 @@ describe('DashboardComponent', () => {
 
     // The measure is the point of the section — a suggestion without it is decoration.
     expect(fixture.nativeElement.querySelector('.measure__text')).toBeTruthy();
+  });
+
+  it('RE-FETCHES when the signed-in kitchen changes', () => {
+    // The reported bug: signing in did not reload the page, so the dashboard
+    // kept showing the signed-out view until a manual refresh.
+    const context = TestBed.inject(PantryContextService);
+    const before = mockDashboardService.getMatchResults.mock.calls.length;
+
+    context.revision.update((n) => n + 1);
+    fixture.detectChanges();
+
+    expect(mockDashboardService.getMatchResults.mock.calls.length).toBe(before + 1);
+  });
+
+  it('falls back to the public library when there is no kitchen', () => {
+    // A guest gets the recipes rather than a locked page. Everything lands in
+    // missingMany, so readiness renders as unknown rather than as a claim about
+    // a pantry they do not have.
+    mockDashboardService.getMatchResults.mockReturnValue(
+      throwError(() => ({ status: 401 })),
+    );
+    mockRecipeService.getAll.mockReturnValue(of([mockResult.canMakeNow[0]]));
+
+    component.loadMatchResults();
+    fixture.detectChanges();
+
+    expect(component.kitchenAvailable()).toBe(false);
+    expect(mockRecipeService.getAll).toHaveBeenCalled();
+    expect(component.matchResult().missingMany).toHaveLength(1);
+    expect(component.matchResult().canMakeNow).toEqual([]);
+  });
+
+  it('does not ask for the library when the kitchen loads fine', () => {
+    // A signed-in visitor must not pay for a second full recipe fetch.
+    expect(mockRecipeService.getAll).not.toHaveBeenCalled();
+    expect(component.kitchenAvailable()).toBe(true);
   });
 
   it('shows the three buckets once there is more than the hero can hold', () => {
