@@ -161,3 +161,15 @@
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-sm);
 }
+
+.pantry-state__action {
+  margin-left: 0.5rem;
+  font: inherit;
+  font-size: inherit;
+  color: var(--primary);
+  background: none;
+  border: none;
+  border-bottom: 1px solid currentColor;
+  padding: 0 0 0.05rem;
+  cursor: pointer;
+}

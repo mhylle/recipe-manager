@@ -1,6 +1,11 @@
 @switch (context.state()) {
   @case ('anonymous') {
-    <p class="pantry-state" role="status">{{ 'pantry.state.signIn' | t }}</p>
+    <p class="pantry-state" role="status">
+      {{ 'pantry.state.signIn' | t }}
+      <button type="button" class="pantry-state__action" (click)="signIn()">
+        {{ 'login.signIn' | t }}
+      </button>
+    </p>
   }
   @case ('no-pantry') {
     <p class="pantry-state" role="status">{{ 'pantry.state.noPantry' | t }}</p>

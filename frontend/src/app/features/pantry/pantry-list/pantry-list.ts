@@ -7,6 +7,7 @@ import { ExpiryStatusPipe } from '../../../shared/pipes/expiry-status.pipe';
 import { PantryFiltersComponent, PantryFilters } from '../pantry-filters/pantry-filters';
 import { PantrySharingComponent } from '../pantry-sharing/pantry-sharing';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
+import { LoginPromptService } from '../../../shared/services/login-prompt.service';
 import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 import {
   EnumLabelPipe,
@@ -33,6 +34,7 @@ export class PantryListComponent {
    * you only check the item count.
    */
   readonly context = inject(PantryContextService);
+  private readonly loginPrompt = inject(LoginPromptService);
   readonly items = signal<PantryItem[]>([]);
   private currentFilters: PantryFilters | null = null;
 
@@ -54,6 +56,10 @@ export class PantryListComponent {
     // Resolve the kitchen alongside its contents, so the page can explain an
     // empty list rather than just showing one.
     this.context.load();
+  }
+
+  signIn(): void {
+    this.loginPrompt.open();
   }
 
   hasActiveFilters(): boolean {

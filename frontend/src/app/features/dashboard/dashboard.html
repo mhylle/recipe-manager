@@ -10,7 +10,10 @@
     </header>
 
     @if (!kitchenAvailable()) {
-      <p class="dashboard__empty" role="status">{{ 'dashboard.kitchenLocked' | t }}</p>
+      <p class="dashboard__empty" role="status">
+        {{ 'dashboard.kitchenLocked' | t }}
+        <button type="button" class="dashboard__signin" (click)="signIn()">{{ 'login.signIn' | t }}</button>
+      </p>
     } @else if (inspiration().length === 0) {
       <p class="dashboard__empty" role="status">{{ 'dashboard.inspiration.empty' | t }}</p>
     } @else {
