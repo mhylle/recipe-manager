@@ -3,10 +3,16 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { PantryController } from './pantry.controller';
 import { PantryService } from './pantry.service';
+import { PantryAccessService } from './pantry-access.service';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
+
+/** The controller now resolves its kitchen from the caller, so tests need one. */
+const martinUser = {
+  id: 'u-martin', ssoSubject: 's-martin', email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+};
 
 describe('PantryController', () => {
   let controller: PantryController;
@@ -33,7 +39,14 @@ describe('PantryController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PantryController],
-      providers: [{ provide: PantryService, useValue: mockService }],
+      providers: [{ provide: PantryService, useValue: mockService },
+        {
+          // Membership resolution has its own spec. Here it just hands back the
+          // kitchen so the controller's delegation is what is being tested.
+          provide: PantryAccessService,
+          useValue: { resolve: jest.fn().mockResolvedValue('p-test'), listForUser: jest.fn() },
+        },
+      ],
     })// The controller is the unit here. Whether the guard admits a caller is
       // SsoAuthGuard's own concern and is covered in its spec; wiring the real
       // one in would drag the user directory and Prisma into a controller test.
@@ -56,9 +69,9 @@ describe('PantryController', () => {
         category: PantryCategory.BAKING,
       };
 
-      const result = await controller.create(dto, 'en');
+      const result = await controller.create(martinUser, dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith(dto, 'en', undefined);
+      expect(service.create).toHaveBeenCalledWith('p-test', dto, 'en', undefined);
       expect(result).toEqual(mockPantryItem);
     });
   });
@@ -68,7 +81,7 @@ describe('PantryController', () => {
       const items = [mockPantryItem];
       service.findAll.mockResolvedValue(items);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(martinUser);
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result).toEqual(items);
@@ -77,7 +90,7 @@ describe('PantryController', () => {
     it('should return empty array when no items exist', async () => {
       service.findAll.mockResolvedValue([]);
 
-      const result = await controller.findAll();
+      const result = await controller.findAll(martinUser);
 
       expect(result).toEqual([]);
     });
@@ -87,9 +100,9 @@ describe('PantryController', () => {
     it('should return a single pantry item', async () => {
       service.findById.mockResolvedValue(mockPantryItem);
 
-      const result = await controller.findById('test-uuid-1', 'en');
+      const result = await controller.findById(martinUser, 'test-uuid-1', 'en');
 
-      expect(service.findById).toHaveBeenCalledWith('test-uuid-1', 'en');
+      expect(service.findById).toHaveBeenCalledWith('p-test', 'test-uuid-1', 'en');
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -98,7 +111,7 @@ describe('PantryController', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(controller.findById('missing-id', 'en')).rejects.toThrow(
+      await expect(controller.findById(martinUser, 'missing-id', 'en')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -109,9 +122,9 @@ describe('PantryController', () => {
       const updatedItem = { ...mockPantryItem, quantity: 250 };
       service.update.mockResolvedValue(updatedItem);
 
-      const result = await controller.update('test-uuid-1', { quantity: 250 }, 'en');
+      const result = await controller.update(martinUser, 'test-uuid-1', { quantity: 250 }, 'en');
 
-      expect(service.update).toHaveBeenCalledWith(
+      expect(service.update).toHaveBeenCalledWith('p-test', 
         'test-uuid-1',
         {
         quantity: 250,
@@ -127,9 +140,9 @@ describe('PantryController', () => {
     it('should delete the pantry item', async () => {
       service.delete.mockResolvedValue(undefined);
 
-      await controller.delete('test-uuid-1');
+      await controller.delete(martinUser, 'test-uuid-1');
 
-      expect(service.delete).toHaveBeenCalledWith('test-uuid-1');
+      expect(service.delete).toHaveBeenCalledWith('p-test', 'test-uuid-1');
     });
 
     it('should throw NotFoundException for missing item', async () => {
@@ -137,7 +150,7 @@ describe('PantryController', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(controller.delete('missing-id')).rejects.toThrow(
+      await expect(controller.delete(martinUser, 'missing-id')).rejects.toThrow(
         NotFoundException,
       );
     });

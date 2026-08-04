@@ -12,20 +12,22 @@ export class PantryService {
   constructor(private readonly pantryRepository: PantryRepository) {}
 
   async create(
+    pantryId: string,
     dto: CreatePantryItemDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: PantryTranslationInput[],
   ): Promise<PantryItem> {
-    return this.pantryRepository.create(dto, { sourceLocale: locale, translations });
+    return this.pantryRepository.create(pantryId, dto, { sourceLocale: locale, translations });
   }
 
   async findAll(
+    pantryId: string,
     query?: string,
     category?: string,
     locale: Locale = DEFAULT_LOCALE,
   ): Promise<PantryItem[]> {
     // Search AFTER localisation so a Danish query matches Danish names.
-    const items = await this.pantryRepository.findAll(locale);
+    const items = await this.pantryRepository.findAll(pantryId, locale);
     let result = items;
 
     if (query) {
@@ -42,32 +44,34 @@ export class PantryService {
     return result;
   }
 
-  async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
-    return this.pantryRepository.findById(id, locale);
+  async findById(pantryId: string, id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
+    return this.pantryRepository.findById(pantryId, id, locale);
   }
 
-  async findAllTranslations(id: string): Promise<PantryTranslationInput[]> {
-    return this.pantryRepository.findAllTranslations(id);
+  async findAllTranslations(pantryId: string, id: string): Promise<PantryTranslationInput[]> {
+    return this.pantryRepository.findAllTranslations(pantryId, id);
   }
 
   async update(
+    pantryId: string,
     id: string,
     dto: UpdatePantryItemDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: PantryTranslationInput[],
   ): Promise<PantryItem> {
-    return this.pantryRepository.update(id, dto, { locale, translations });
+    return this.pantryRepository.update(pantryId, id, dto, { locale, translations });
   }
 
-  async delete(id: string): Promise<void> {
-    return this.pantryRepository.delete(id);
+  async delete(pantryId: string, id: string): Promise<void> {
+    return this.pantryRepository.delete(pantryId, id);
   }
 
   async getExpiringItems(
+    pantryId: string,
     withinDays: number,
     locale: Locale = DEFAULT_LOCALE,
   ): Promise<PantryItem[]> {
-    const items = await this.pantryRepository.findAll(locale);
+    const items = await this.pantryRepository.findAll(pantryId, locale);
     const now = new Date();
     const cutoff = new Date(now);
     cutoff.setDate(cutoff.getDate() + withinDays);

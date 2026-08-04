@@ -1,0 +1,57 @@
+@if (context.current(); as pantry) {
+  <section class="sharing" [attr.aria-label]="'pantry.sharing.heading' | t">
+    <header class="sharing__head">
+      <span class="eyebrow">{{ 'pantry.sharing.eyebrow' | t }}</span>
+      <h2 class="sharing__title">{{ 'pantry.sharing.heading' | t: { name: pantry.name } }}</h2>
+    </header>
+
+    <ul class="sharing__members" role="list">
+      @for (member of members(); track member.userId) {
+        <li class="sharing__member">
+          <span class="sharing__name">
+            {{ member.displayName }}
+            @if (member.isYou) {
+              <span class="sharing__you">{{ 'pantry.sharing.you' | t }}</span>
+            }
+          </span>
+          <span class="sharing__role">
+            {{ (member.role === 'owner' ? 'pantry.sharing.owner' : 'pantry.sharing.member') | t }}
+          </span>
+          @if (pantry.isOwner || member.isYou) {
+            <button
+              type="button"
+              class="sharing__remove"
+              (click)="remove(member)"
+              [attr.aria-label]="(member.isYou ? 'pantry.sharing.leave' : 'pantry.sharing.removeNamed') | t: { name: member.displayName }"
+            >
+              {{ (member.isYou ? 'pantry.sharing.leave' : 'pantry.sharing.remove') | t }}
+            </button>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (pantry.isOwner) {
+      <form class="sharing__invite" (ngSubmit)="invite()">
+        <label class="sharing__label" for="invite-email">{{ 'pantry.sharing.inviteLabel' | t }}</label>
+        <div class="sharing__row">
+          <input
+            id="invite-email"
+            type="email"
+            class="sharing__input"
+            [formControl]="emailControl"
+            [attr.placeholder]="'pantry.sharing.invitePlaceholder' | t"
+          />
+          <button type="submit" class="btn btn--primary btn--small" [disabled]="busy() || emailControl.invalid">
+            {{ 'pantry.sharing.invite' | t }}
+          </button>
+        </div>
+        <p class="sharing__hint">{{ 'pantry.sharing.accountRequired' | t }}</p>
+      </form>
+    }
+
+    @if (error(); as message) {
+      <p class="sharing__error" role="alert">{{ message }}</p>
+    }
+  </section>
+}

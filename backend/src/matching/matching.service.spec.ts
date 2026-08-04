@@ -102,7 +102,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.canMakeNow).toHaveLength(1);
     expect(result.canMakeNow[0].name).toBe('Pancakes');
@@ -133,7 +133,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(1);
@@ -164,7 +164,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.almostCanMake).toHaveLength(1);
     expect(result.almostCanMake[0].missingIngredients).toHaveLength(1);
@@ -191,7 +191,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.almostCanMake).toHaveLength(1);
     expect(result.almostCanMake[0].missingIngredients).toHaveLength(2);
@@ -229,7 +229,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(0);
@@ -274,7 +274,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     // Salt, Pepper, Oil are staples so only Flour counts, and we have it
     expect(result.canMakeNow).toHaveLength(1);
@@ -303,7 +303,7 @@ describe('MatchingService', () => {
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
     // Request 8 servings = 400g flour needed, only have 300g
-    const result = await service.matchRecipes(8);
+    const result = await service.matchRecipes('p-test', 8);
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(1);
@@ -349,7 +349,7 @@ describe('MatchingService', () => {
     pantryService.findAll.mockResolvedValue(pantry);
     recipeService.findAll.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes();
+    const result = await service.matchRecipes('p-test');
 
     expect(result.missingMany).toHaveLength(1);
     expect(result.canMakeNow).toHaveLength(0);

@@ -111,6 +111,12 @@
       }
     </div>
 
+    @if (recipe()!.createdBy) {
+      <p class="recipe-view__byline">
+        {{ 'recipe.detail.addedBy' | t: { name: recipe()!.createdBy!.displayName } }}
+      </p>
+    }
+
     <!-- Tags -->
     @if (recipe()!.tags.length > 0) {
       <div class="recipe-view__tags">

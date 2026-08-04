@@ -61,11 +61,11 @@ export class MatchingService {
     }
   }
 
-  async matchRecipes(servingsOverride?: number): Promise<MatchResult> {
+  async matchRecipes(pantryId: string, servingsOverride?: number): Promise<MatchResult> {
     const [recipes, pantryItems, staplesConfig] = await Promise.all([
       this.loadEveryRecipe(),
-      this.pantryService.findAll(),
-      this.staplesService.getStaples(),
+      this.pantryService.findAll(pantryId),
+      this.staplesService.getStaples(pantryId),
     ]);
 
     const stapleNames = new Set(

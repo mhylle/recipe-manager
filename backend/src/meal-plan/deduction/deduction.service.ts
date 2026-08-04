@@ -16,10 +16,10 @@ export class DeductionService {
     private readonly pantryService: PantryService,
   ) {}
 
-  async getEffectivePantry(): Promise<EffectivePantryItem[]> {
+  async getEffectivePantry(pantryId: string): Promise<EffectivePantryItem[]> {
     const [pantryItems, mealPlans] = await Promise.all([
-      this.pantryService.findAll(),
-      this.mealPlanService.findAll(),
+      this.pantryService.findAll(pantryId),
+      this.mealPlanService.findAll(pantryId),
     ]);
 
     // Build deduction map: key = "name|category", value = total reserved quantity
@@ -50,8 +50,8 @@ export class DeductionService {
     });
   }
 
-  async confirmCooked(mealPlanId: string, entryIndex: number): Promise<void> {
-    const plan = await this.mealPlanService.findById(mealPlanId);
+  async confirmCooked(pantryId: string, mealPlanId: string, entryIndex: number): Promise<void> {
+    const plan = await this.mealPlanService.findById(pantryId, mealPlanId);
     const entry = plan.entries[entryIndex];
     if (!entry) return;
 
@@ -60,7 +60,7 @@ export class DeductionService {
       const scaleFactor = entry.servings / recipe.servings;
 
       // Deduct from pantry
-      const pantryItems = await this.pantryService.findAll();
+      const pantryItems = await this.pantryService.findAll(pantryId);
       for (const ingredient of recipe.ingredients) {
         const pantryItem = pantryItems.find(
           (item) =>
@@ -70,7 +70,7 @@ export class DeductionService {
         if (pantryItem) {
           const deductQty = ingredient.quantity * scaleFactor;
           const newQty = Math.max(0, pantryItem.quantity - deductQty);
-          await this.pantryService.update(pantryItem.id, { quantity: newQty });
+          await this.pantryService.update(pantryId, pantryItem.id, { quantity: newQty });
         }
       }
     } catch {
@@ -78,6 +78,6 @@ export class DeductionService {
     }
 
     // Remove the entry from the meal plan
-    await this.mealPlanService.removeEntry(mealPlanId, entryIndex);
+    await this.mealPlanService.removeEntry(pantryId, mealPlanId, entryIndex);
   }
 }

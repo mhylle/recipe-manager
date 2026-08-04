@@ -77,7 +77,7 @@ describe('BilkaToGoOrchestratorService', () => {
       searchService.searchProduct.mockResolvedValue([mockProduct]);
       cartService.addItem.mockResolvedValue(undefined);
 
-      const result = await service.sendToCart('list-001', 'session-001');
+      const result = await service.sendToCart('p-test', 'list-001', 'session-001');
 
       expect(result.matched).toHaveLength(2);
       expect(result.unmatched).toHaveLength(0);
@@ -99,7 +99,7 @@ describe('BilkaToGoOrchestratorService', () => {
         .mockResolvedValueOnce([]);
       cartService.addItem.mockResolvedValue(undefined);
 
-      const result = await service.sendToCart('list-001', 'session-001');
+      const result = await service.sendToCart('p-test', 'list-001', 'session-001');
 
       expect(result.matched).toHaveLength(1);
       expect(result.unmatched).toHaveLength(1);
@@ -112,7 +112,7 @@ describe('BilkaToGoOrchestratorService', () => {
       authService.getSessionCookies.mockReturnValue(null);
 
       await expect(
-        service.sendToCart('list-001', 'expired-session'),
+        service.sendToCart('p-test', 'list-001', 'expired-session'),
       ).rejects.toThrow(UnauthorizedException);
     });
 
@@ -124,7 +124,7 @@ describe('BilkaToGoOrchestratorService', () => {
         .mockResolvedValueOnce([mockProduct]);
       cartService.addItem.mockResolvedValue(undefined);
 
-      const result = await service.sendToCart('list-001', 'session-001');
+      const result = await service.sendToCart('p-test', 'list-001', 'session-001');
 
       expect(result.matched).toHaveLength(1);
       expect(result.unmatched).toHaveLength(1);
@@ -145,7 +145,7 @@ describe('BilkaToGoOrchestratorService', () => {
       authService.getSessionCookies.mockReturnValue('auth=abc123');
       shoppingListService.findById.mockResolvedValue(allCheckedList);
 
-      const result = await service.sendToCart('list-001', 'session-001');
+      const result = await service.sendToCart('p-test', 'list-001', 'session-001');
 
       expect(result.matched).toHaveLength(0);
       expect(result.unmatched).toHaveLength(0);

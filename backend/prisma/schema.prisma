@@ -69,7 +69,50 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  ownedPantries     Pantry[]       @relation("PantryOwner")
+  pantryMemberships PantryMember[]
+  createdRecipes    Recipe[]
+
   @@index([email])
+}
+
+/// A kitchen. The unit of sharing.
+///
+/// Items belong to the pantry, not to a person: when one member uses the last of
+/// the flour it is gone for everyone, which is what a shared pantry means.
+/// Per-person ownership would leave two flour rows and no answer to "have we got
+/// flour?", and could not express one person belonging to two kitchens.
+model Pantry {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("PantryOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members       PantryMember[]
+  items         PantryItem[]
+  staples       StaplesConfig?
+  mealPlans     MealPlan[]
+  shoppingLists ShoppingList[]
+
+  @@index([ownerId])
+}
+
+/// Who may use a kitchen. Sharing is adding a row here.
+model PantryMember {
+  id       String   @id @default(uuid())
+  pantryId String
+  pantry   Pantry   @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// owner | member. The owner may not leave while others remain — a pantry
+  /// with no owner is a support problem.
+  role     String   @default("member")
+  joinedAt DateTime @default(now())
+
+  @@unique([pantryId, userId])
+  @@index([userId])
 }
 
 model Recipe {
@@ -87,6 +130,11 @@ model Recipe {
   // Which locale this recipe was authored in. Reads fall back to it when the
   // requested locale has no translation, so text is never blank.
   sourceLocale      String             @default("en")
+  /// Who added this recipe. Attribution, not access control — every user sees
+  /// every recipe. Restrict, never Cascade: deleting a person must not delete
+  /// the family's cookbook.
+  createdById       String
+  createdBy         User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   ingredients       RecipeIngredient[]
@@ -97,6 +145,7 @@ model Recipe {
   // createdAt. These are the columns the WHERE and ORDER BY now touch.
   @@index([difficulty])
   @@index([createdAt])
+  @@index([createdById])
 }
 
 // All localised recipe prose lives here, including the source locale — there is no
@@ -147,6 +196,8 @@ model RecipeIngredientTranslation {
 
 model PantryItem {
   id           String         @id @default(uuid())
+  pantryId     String
+  pantry       Pantry         @relation(fields: [pantryId], references: [id], onDelete: Cascade)
   quantity     Float
   unit         Unit
   category     PantryCategory
@@ -156,6 +207,8 @@ model PantryItem {
   addedDate    DateTime       @default(now())
   lastUpdated  DateTime       @updatedAt
   translations PantryItemTranslation[]
+
+  @@index([pantryId])
 }
 
 model PantryItemTranslation {
@@ -171,10 +224,17 @@ model PantryItemTranslation {
 
 model MealPlan {
   id            String          @id @default(uuid())
-  weekStartDate String          @unique
+  pantryId      String
+  pantry        Pantry          @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+  /// Unique PER PANTRY, not globally. A global unique meant the second
+  /// household could not plan a week the first had already planned.
+  weekStartDate String
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   entries       MealPlanEntry[]
+
+  @@unique([pantryId, weekStartDate])
+  @@index([pantryId])
 }
 
 model MealPlanEntry {
@@ -195,11 +255,15 @@ model MealPlanEntry {
 
 model ShoppingList {
   id            String             @id @default(uuid())
+  pantryId      String
+  pantry        Pantry             @relation(fields: [pantryId], references: [id], onDelete: Cascade)
   mealPlanId    String
   generatedDate DateTime           @default(now())
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
   items         ShoppingListItem[]
+
+  @@index([pantryId])
 }
 
 model ShoppingListItem {
@@ -215,7 +279,10 @@ model ShoppingListItem {
   @@index([shoppingListId])
 }
 
+/// One per pantry. Was a single global row keyed "default".
 model StaplesConfig {
-  id    String   @id @default("default")
-  items String[]
+  id       String   @id @default(uuid())
+  pantryId String   @unique
+  pantry   Pantry   @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+  items    String[]
 }

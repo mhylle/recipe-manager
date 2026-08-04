@@ -8,6 +8,8 @@ import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
 import { toPagedResponse, type PagedResponse } from '../shared/pagination.js';
+import { CurrentUser } from '../shared/auth/current-user.decorator.js';
+import type { LocalUser } from '../shared/auth/user.service.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
@@ -19,10 +21,11 @@ export class RecipeController {
   @UseGuards(SsoAuthGuard)
   @Post()
   async create(
+    @CurrentUser() user: LocalUser,
     @Body() dto: CreateRecipeRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
-    return this.recipeService.create(dto, locale, dto.translations);
+    return this.recipeService.create(user.id, dto, locale, dto.translations);
   }
 
   @Get()

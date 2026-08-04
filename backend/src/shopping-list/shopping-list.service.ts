@@ -23,11 +23,11 @@ export class ShoppingListService {
     private readonly staplesService: StaplesService,
   ) {}
 
-  async generate(mealPlanId: string): Promise<ShoppingList> {
-    const plan = await this.mealPlanService.findById(mealPlanId);
+  async generate(pantryId: string, mealPlanId: string): Promise<ShoppingList> {
+    const plan = await this.mealPlanService.findById(pantryId, mealPlanId);
     const [pantryItems, staplesConfig] = await Promise.all([
-      this.pantryService.findAll(),
-      this.staplesService.getStaples(),
+      this.pantryService.findAll(pantryId),
+      this.staplesService.getStaples(pantryId),
     ]);
 
     const stapleNames = new Set(
@@ -77,18 +77,18 @@ export class ShoppingListService {
       }
     }
 
-    return this.shoppingListRepository.create({
+    return this.shoppingListRepository.create(pantryId, {
       mealPlanId,
       generatedDate: new Date().toISOString(),
       items: shoppingItems,
     });
   }
 
-  async generateFromRecipe(recipeId: string, servings?: number): Promise<ShoppingList> {
+  async generateFromRecipe(pantryId: string, recipeId: string, servings?: number): Promise<ShoppingList> {
     const recipe = await this.recipeService.findById(recipeId);
     const [pantryItems, staplesConfig] = await Promise.all([
-      this.pantryService.findAll(),
-      this.staplesService.getStaples(),
+      this.pantryService.findAll(pantryId),
+      this.staplesService.getStaples(pantryId),
     ]);
 
     const stapleNames = new Set(
@@ -126,18 +126,18 @@ export class ShoppingListService {
       }
     }
 
-    return this.shoppingListRepository.create({
+    return this.shoppingListRepository.create(pantryId, {
       mealPlanId: `recipe:${recipeId}`,
       generatedDate: new Date().toISOString(),
       items: shoppingItems,
     });
   }
 
-  async findById(id: string): Promise<ShoppingList> {
+  async findById(pantryId: string, id: string): Promise<ShoppingList> {
     return this.shoppingListRepository.findById(id);
   }
 
-  async toggleItem(id: string, itemIndex: number): Promise<ShoppingList> {
+  async toggleItem(pantryId: string, id: string, itemIndex: number): Promise<ShoppingList> {
     return this.shoppingListRepository.toggleItemByIndex(id, itemIndex);
   }
 }

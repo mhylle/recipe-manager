@@ -1,4 +1,7 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Query, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../shared/auth/current-user.decorator.js';
+import { PantryAccessService } from '../pantry/pantry-access.service.js';
+import type { LocalUser } from '../shared/auth/user.service.js';
 import { BilkaToGoAuthService } from './bilkatogo-auth.service.js';
 import { BilkaToGoOrchestratorService } from './bilkatogo-orchestrator.service.js';
 import { BilkaToGoLoginDto } from './dto/bilkatogo-login.dto.js';
@@ -12,6 +15,7 @@ export class BilkaToGoController {
   constructor(
     private readonly authService: BilkaToGoAuthService,
     private readonly orchestratorService: BilkaToGoOrchestratorService,
+    private readonly access: PantryAccessService,
   ) {}
 
   @Post('login')
@@ -21,8 +25,15 @@ export class BilkaToGoController {
   }
 
   @Post('send')
-  async send(@Body() dto: SendToBilkaToGoDto): Promise<BilkaToGoSendResult> {
+  async send(
+    @CurrentUser() user: LocalUser,
+    @Body() dto: SendToBilkaToGoDto,
+    @Query('pantryId') pantryId?: string,
+  ): Promise<BilkaToGoSendResult> {
+    // The list being pushed to a real basket must belong to a kitchen this
+    // caller is actually in.
     return this.orchestratorService.sendToCart(
+      await this.access.resolve(user, pantryId),
       dto.shoppingListId,
       dto.sessionId,
     );

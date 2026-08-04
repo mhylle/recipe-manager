@@ -26,13 +26,14 @@ export class RecipeService {
   ) {}
 
   async create(
+    createdById: string,
     dto: CreateRecipeDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: RecipeTranslationInput[],
   ): Promise<Recipe> {
     // The locale the author is writing in becomes the recipe's source locale —
     // the fallback every other language resolves to.
-    const recipe = await this.recipeRepository.create(dto, { sourceLocale: locale, translations });
+    const recipe = await this.recipeRepository.create(createdById, dto, { sourceLocale: locale, translations });
     // Fire-and-forget image generation
     if (this.imageGeneration.isEnabled() && !recipe.imageUrl) {
       this.generateImagesAsync(recipe).catch((err) =>

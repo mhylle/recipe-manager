@@ -79,10 +79,26 @@ export class DashboardComponent {
 
   private readonly reload = reloadOnLocaleChange(() => this.loadMatchResults());
 
+  /**
+   * Whether the kitchen sections can be shown at all.
+   *
+   * "What can I cook" reads a specific pantry, so it needs a signed-in user with
+   * a kitchen. Rendering three empty sections to a logged-out visitor would look
+   * like an empty app rather than a locked one.
+   */
+  readonly kitchenAvailable = signal(true);
+
   /** Re-fetch from the API. Public: the locale effect and the specs both drive it. */
   loadMatchResults(): void {
-    this.dashboardService.getMatchResults().subscribe((result) => {
-      this.matchResult.set(result);
+    this.dashboardService.getMatchResults().subscribe({
+      next: (result) => {
+        this.kitchenAvailable.set(true);
+        this.matchResult.set(result);
+      },
+      error: () => {
+        this.kitchenAvailable.set(false);
+        this.matchResult.set({ canMakeNow: [], almostCanMake: [], missingMany: [] });
+      },
     });
   }
 

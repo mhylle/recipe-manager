@@ -52,9 +52,9 @@ describe('PantryService', () => {
         category: PantryCategory.BAKING,
       };
 
-      const result = await service.create(dto);
+      const result = await service.create('p-test', dto);
 
-      expect(repository.create).toHaveBeenCalledWith(dto, {
+      expect(repository.create).toHaveBeenCalledWith('p-test', dto, {
         sourceLocale: 'en',
         translations: undefined,
       });
@@ -73,7 +73,7 @@ describe('PantryService', () => {
       ];
       repository.findAll.mockResolvedValue(items);
 
-      const result = await service.findAll();
+      const result = await service.findAll('p-test');
 
       expect(repository.findAll).toHaveBeenCalled();
       expect(result).toEqual(items);
@@ -83,7 +83,7 @@ describe('PantryService', () => {
     it('should return empty array when no items exist', async () => {
       repository.findAll.mockResolvedValue([]);
 
-      const result = await service.findAll();
+      const result = await service.findAll('p-test');
 
       expect(result).toEqual([]);
     });
@@ -93,9 +93,9 @@ describe('PantryService', () => {
     it('should return item when found', async () => {
       repository.findById.mockResolvedValue(mockPantryItem);
 
-      const result = await service.findById('test-uuid-1');
+      const result = await service.findById('p-test', 'test-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('test-uuid-1', 'en');
+      expect(repository.findById).toHaveBeenCalledWith('p-test', 'test-uuid-1', 'en');
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -104,7 +104,7 @@ describe('PantryService', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(service.findById('missing-id')).rejects.toThrow(
+      await expect(service.findById('p-test', 'missing-id')).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -119,9 +119,9 @@ describe('PantryService', () => {
       };
       repository.update.mockResolvedValue(updatedItem);
 
-      const result = await service.update('test-uuid-1', { quantity: 250 });
+      const result = await service.update('p-test', 'test-uuid-1', { quantity: 250 });
 
-      expect(repository.update).toHaveBeenCalledWith('test-uuid-1', {
+      expect(repository.update).toHaveBeenCalledWith('p-test', 'test-uuid-1', {
         quantity: 250,
       }, {
         locale: 'en',
@@ -137,7 +137,7 @@ describe('PantryService', () => {
       );
 
       await expect(
-        service.update('missing-id', { quantity: 100 }),
+        service.update('p-test', 'missing-id', { quantity: 100 }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -146,9 +146,9 @@ describe('PantryService', () => {
     it('should delegate to repository', async () => {
       repository.delete.mockResolvedValue(undefined);
 
-      await service.delete('test-uuid-1');
+      await service.delete('p-test', 'test-uuid-1');
 
-      expect(repository.delete).toHaveBeenCalledWith('test-uuid-1');
+      expect(repository.delete).toHaveBeenCalledWith('p-test', 'test-uuid-1');
     });
 
     it('should throw NotFoundException when deleting non-existent item', async () => {
@@ -156,7 +156,7 @@ describe('PantryService', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(service.delete('missing-id')).rejects.toThrow(
+      await expect(service.delete('p-test', 'missing-id')).rejects.toThrow(
         NotFoundException,
       );
     });

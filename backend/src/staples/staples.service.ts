@@ -6,24 +6,26 @@ import { StaplesConfig } from '../shared/interfaces/staples-config.interface.js'
 export class StaplesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getStaples(): Promise<StaplesConfig> {
+  async getStaples(pantryId: string): Promise<StaplesConfig> {
     const result = await this.prisma.staplesConfig.findUnique({
-      where: { id: 'default' },
+      where: { pantryId },
     });
+    // A pantry created before it had a staples row, or one whose row was never
+    // written, reads as an empty list rather than an error.
     return result ? { items: result.items } : { items: [] };
   }
 
-  async updateStaples(config: StaplesConfig): Promise<StaplesConfig> {
+  async updateStaples(pantryId: string, config: StaplesConfig): Promise<StaplesConfig> {
     const result = await this.prisma.staplesConfig.upsert({
-      where: { id: 'default' },
+      where: { pantryId },
       update: { items: config.items },
-      create: { id: 'default', items: config.items },
+      create: { pantryId, items: config.items },
     });
     return { items: result.items };
   }
 
-  async isStaple(ingredientName: string): Promise<boolean> {
-    const config = await this.getStaples();
+  async isStaple(pantryId: string, ingredientName: string): Promise<boolean> {
+    const config = await this.getStaples(pantryId);
     return config.items.some(
       (item) => item.toLowerCase() === ingredientName.toLowerCase(),
     );

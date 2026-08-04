@@ -9,6 +9,11 @@ import { Difficulty } from '../shared/enums/difficulty.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
 
+/** New recipes are attributed to whoever added them. */
+const martinUser = {
+  id: 'u-martin', ssoSubject: 's-martin', email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+};
+
 describe('RecipeController', () => {
   let controller: RecipeController;
   let service: jest.Mocked<RecipeService>;
@@ -99,9 +104,9 @@ describe('RecipeController', () => {
         tags: ['breakfast', 'quick'],
       };
 
-      const result = await controller.create(dto, 'en');
+      const result = await controller.create(martinUser, dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith(dto, 'en', undefined);
+      expect(service.create).toHaveBeenCalledWith('u-martin', dto, 'en', undefined);
       expect(result).toEqual(mockRecipe);
     });
   });
