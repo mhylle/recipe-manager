@@ -116,12 +116,17 @@ jobs:
           # Machine credential for the MCP server, scoped to this app alone so a
           # compromise there cannot forge tokens for the rest of the estate.
           RECIPE_MANAGER_SERVICE_TOKEN: ${{ secrets.RECIPE_MANAGER_SERVICE_TOKEN }}
+          # The SSO subject the MCP server acts as. Not a secret — it is a user
+          # id that appears in every JWT this app verifies. It is here so machine
+          # writes are attributed to a real person; without it the service-token
+          # path is refused rather than writing rows nothing can later reach.
+          RECIPE_MANAGER_SERVICE_USER: 97f9ac37-13ef-4bef-964a-5da09d776497
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER
           script: |
             set -e
             echo "=== Deploying Recipe Manager ==="
@@ -168,6 +173,7 @@ jobs:
               -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
               -e JWT_SECRET="${JWT_SECRET}" \
               -e RECIPE_MANAGER_SERVICE_TOKEN="${RECIPE_MANAGER_SERVICE_TOKEN}" \
+              -e RECIPE_MANAGER_SERVICE_USER="${RECIPE_MANAGER_SERVICE_USER}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
               --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \
