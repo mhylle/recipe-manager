@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import { timingSafeEqual } from 'node:crypto';
 import * as jwt from 'jsonwebtoken';
-import type { AuthUser, RequestWithUser } from './request-with-user.js';
+import type { RequestWithUser } from './request-with-user.js';
+import { UserService, type SsoClaims } from './user.service.js';
 
 /** Claims minted by the central mhylle auth-service (HS256). */
 interface JwtCookiePayload {
@@ -36,12 +37,16 @@ interface JwtCookiePayload {
  */
 @Injectable()
 export class SsoAuthGuard implements CanActivate {
-  canActivate(context: ExecutionContext): boolean {
+  constructor(private readonly users: UserService) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
 
     const jwtToken = this.extractJwt(request);
     if (jwtToken) {
-      request.user = this.verifyJwt(jwtToken);
+      // Resolving to a local row is what lets everything downstream hold a
+      // foreign key to a person, and it provisions on first sight.
+      request.user = await this.users.resolveFromClaims(this.verifyJwt(jwtToken));
       return true;
     }
 
@@ -50,7 +55,10 @@ export class SsoAuthGuard implements CanActivate {
       if (!this.serviceTokenMatches(serviceToken)) {
         throw new UnauthorizedException('Invalid service token');
       }
-      request.user = { isService: true };
+      // A machine caller still acts AS somebody. Unattributed writes create
+      // rows nothing can later reach.
+      request.user = await this.users.resolveServiceUser();
+      request.isServiceCaller = true;
       return true;
     }
 
@@ -69,7 +77,7 @@ export class SsoAuthGuard implements CanActivate {
     return undefined;
   }
 
-  private verifyJwt(token: string): AuthUser {
+  private verifyJwt(token: string): SsoClaims {
     // .trim() defends against a trailing newline in JWT_SECRET — a documented
     // mhylle infra bug that silently breaks signature verification.
     const secret = process.env.JWT_SECRET?.trim();
@@ -85,12 +93,12 @@ export class SsoAuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    const composed = [payload.firstName, payload.lastName].filter(Boolean).join(' ').trim();
     return {
-      id: payload.sub,
+      sub: payload.sub,
       email: payload.email,
-      name: payload.name ?? (composed.length > 0 ? composed : payload.email),
-      apps: payload.apps,
+      name: payload.name,
+      firstName: payload.firstName,
+      lastName: payload.lastName,
     };
   }
 

@@ -6,6 +6,7 @@ import { PantryService } from './pantry.service';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
+import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
 
 describe('PantryController', () => {
   let controller: PantryController;
@@ -33,7 +34,12 @@ describe('PantryController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PantryController],
       providers: [{ provide: PantryService, useValue: mockService }],
-    }).compile();
+    })// The controller is the unit here. Whether the guard admits a caller is
+      // SsoAuthGuard's own concern and is covered in its spec; wiring the real
+      // one in would drag the user directory and Prisma into a controller test.
+      .overrideGuard(SsoAuthGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<PantryController>(PantryController);
     service = module.get(PantryService);

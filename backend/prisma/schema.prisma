@@ -55,6 +55,23 @@ enum DayOfWeek {
   sunday
 }
 
+/// A local mirror of an mhylle.com identity.
+///
+/// Keyed on the JWT `sub`, never on email: an address can change and a subject
+/// cannot, so keying on email would strand a user's pantry the day they change
+/// it. `email` and `displayName` are a display cache — the auth-service stays
+/// authoritative and refreshes them on every authenticated request.
+model User {
+  id          String   @id @default(uuid())
+  ssoSubject  String   @unique
+  email       String
+  displayName String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([email])
+}
+
 model Recipe {
   id                String             @id @default(uuid())
   servings          Int

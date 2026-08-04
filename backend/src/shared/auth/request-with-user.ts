@@ -1,16 +1,16 @@
 import type { Request } from 'express';
+import type { LocalUser } from './user.service.js';
 
-/** Who the guard decided is making the request. */
-export interface AuthUser {
-  /** `sub` from the SSO token. Absent for service callers. */
-  id?: string;
-  email?: string;
-  name?: string;
-  apps?: string[];
-  /** True when authenticated by the machine-to-machine service token. */
-  isService?: boolean;
-}
-
+/**
+ * The authenticated caller, as a LOCAL row rather than raw token claims.
+ *
+ * The guard resolves claims to a persisted user so that anything downstream can
+ * hold a foreign key to a person. A service-token caller resolves to the user
+ * named by RECIPE_MANAGER_SERVICE_USER, so machine writes are attributed to a
+ * real person rather than to nobody.
+ */
 export interface RequestWithUser extends Request {
-  user?: AuthUser;
+  user?: LocalUser;
+  /** True when authenticated by the machine-to-machine service token. */
+  isServiceCaller?: boolean;
 }
