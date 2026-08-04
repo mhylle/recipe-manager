@@ -8,8 +8,8 @@ import {
   LocaleNumberPipe,
   LocaleService,
   TranslatePipe,
-  reloadOnLocaleChange,
 } from '../../../shared/i18n';
+import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 
 @Component({
   selector: 'app-pantry-detail',
@@ -26,8 +26,8 @@ export class PantryDetailComponent {
 
   readonly item = signal<PantryItem | null>(null);
 
-  // Re-fetches on every language switch; API content is localised server-side.
-  private readonly reload = reloadOnLocaleChange(() => {
+  // Re-fetches when the language OR the signed-in kitchen changes.
+  private readonly reload = reloadOnKitchenChange(() => {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
       this.pantryService.getById(id).subscribe((item) => {

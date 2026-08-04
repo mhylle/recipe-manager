@@ -15,8 +15,8 @@ import {
   LocaleNumberPipe,
   LocaleService,
   TranslatePipe,
-  reloadOnLocaleChange,
 } from '../../../shared/i18n';
+import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 
 @Component({
   selector: 'app-shopping-list-view',
@@ -60,7 +60,7 @@ export class ShoppingListViewComponent {
   private currentMealPlanId = '';
 
   // Re-fetches on every language switch; item names are localised server-side.
-  private readonly reload = reloadOnLocaleChange(() => this.loadList());
+  private readonly reload = reloadOnKitchenChange(() => this.loadList());
 
   private loadList(): void {
     // If navigated with a list ID (e.g. from recipe detail), load it

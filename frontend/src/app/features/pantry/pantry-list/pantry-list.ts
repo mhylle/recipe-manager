@@ -15,8 +15,8 @@ import {
   LocaleNumberPipe,
   LocaleService,
   TranslatePipe,
-  reloadOnLocaleChange,
 } from '../../../shared/i18n';
+import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 
 @Component({
   selector: 'app-pantry-list',
@@ -49,8 +49,8 @@ export class PantryListComponent {
     return map;
   });
 
-  // Re-fetches on every language switch; API content is localised server-side.
-  private readonly reload = reloadOnLocaleChange(() => this.loadItems());
+  // Re-fetches when the language OR the signed-in kitchen changes.
+  private readonly reload = reloadOnKitchenChange(() => this.loadItems());
 
   constructor() {
     // Resolve the kitchen alongside its contents, so the page can explain an

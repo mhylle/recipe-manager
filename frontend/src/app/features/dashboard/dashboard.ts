@@ -1,9 +1,10 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DashboardService, MatchResult, AlmostCanMakeEntry } from './dashboard.service';
-import { TranslatePipe, reloadOnLocaleChange } from '../../shared/i18n';
+import { TranslatePipe } from '../../shared/i18n';
 import { Inspiration, dailySeed, pickInspiration } from './inspiration';
-import { LoginPromptService } from '../../shared/services/login-prompt.service';
+import { RecipeService } from '../recipe/recipe.service';
+import { reloadOnKitchenChange } from '../../shared/services/reload-on-kitchen-change';
 
 @Component({
   selector: 'app-dashboard',
@@ -14,7 +15,7 @@ import { LoginPromptService } from '../../shared/services/login-prompt.service';
 })
 export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
-  private readonly loginPrompt = inject(LoginPromptService);
+  private readonly recipeService = inject(RecipeService);
 
   readonly matchResult = signal<MatchResult>({
     canMakeNow: [],
@@ -75,26 +76,24 @@ export class DashboardComponent {
     Math.max(0, this.remainingMissing().length - this.BROWSE_LIMIT),
   );
 
-  signIn(): void {
-    this.loginPrompt.open();
-  }
-
   totalTime(recipe: { prepTime: number; cookTime: number }): number {
     return recipe.prepTime + recipe.cookTime;
   }
 
-  private readonly reload = reloadOnLocaleChange(() => this.loadMatchResults());
+  private readonly reload = reloadOnKitchenChange(() => this.loadMatchResults());
 
   /**
-   * Whether the kitchen sections can be shown at all.
+   * Whether this visitor has a kitchen to reason about.
    *
-   * "What can I cook" reads a specific pantry, so it needs a signed-in user with
-   * a kitchen. Rendering three empty sections to a logged-out visitor would look
-   * like an empty app rather than a locked one.
+   * "What can I cook" reads a specific pantry. A guest has none — so instead of
+   * a locked banner over an empty page, the dashboard becomes a way into the
+   * recipe library, which is public. No sign-in prompt: the header carries one
+   * for anyone who wants it, and nagging a browsing visitor on every page is
+   * how an app feels shut rather than open.
    */
   readonly kitchenAvailable = signal(true);
 
-  /** Re-fetch from the API. Public: the locale effect and the specs both drive it. */
+  /** Re-fetch from the API. Public: the reload effect and the specs both drive it. */
   loadMatchResults(): void {
     this.dashboardService.getMatchResults().subscribe({
       next: (result) => {
@@ -103,8 +102,24 @@ export class DashboardComponent {
       },
       error: () => {
         this.kitchenAvailable.set(false);
-        this.matchResult.set({ canMakeNow: [], almostCanMake: [], missingMany: [] });
+        this.loadGuestLibrary();
       },
+    });
+  }
+
+  /**
+   * The guest view: the public recipe library, arranged the same way.
+   *
+   * Everything lands in `missingMany` because without a pantry nothing is known
+   * to be cookable — which makes readiness render as "unknown" rather than as a
+   * misleading empty bar, and puts the whole library in the ledger.
+   */
+  private loadGuestLibrary(): void {
+    this.recipeService.getAll().subscribe({
+      next: (recipes) =>
+        this.matchResult.set({ canMakeNow: [], almostCanMake: [], missingMany: recipes }),
+      error: () =>
+        this.matchResult.set({ canMakeNow: [], almostCanMake: [], missingMany: [] }),
     });
   }
 

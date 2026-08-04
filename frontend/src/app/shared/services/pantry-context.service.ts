@@ -30,6 +30,17 @@ export class PantryContextService {
   readonly currentId = signal<string | null>(null);
   readonly state = signal<KitchenState>('loading');
 
+  /**
+   * Bumped whenever WHICH kitchen we are looking at may have changed — a
+   * sign-in, a sign-out, or picking a different one from the switcher.
+   *
+   * Kitchen-scoped pages watch this the same way they watch the language. They
+   * fetch per-user data, so a page that loaded once on construction keeps
+   * showing the previous person's kitchen — after signing in, the dashboard
+   * carried on showing the signed-out state until a manual reload.
+   */
+  readonly revision = signal(0);
+
   readonly current = computed(() => {
     const id = this.currentId();
     return this.pantries().find((p) => p.id === id) ?? this.pantries()[0] ?? null;
@@ -40,6 +51,9 @@ export class PantryContextService {
 
   load(): void {
     this.state.set('loading');
+    // Bump immediately: the identity may already have changed, and pages should
+    // re-fetch even if the request below fails.
+    this.revision.update((n) => n + 1);
     this.http.get<PantrySummary[]>(`${this.baseUrl}/mine`).subscribe({
       next: (list) => {
         this.pantries.set(list);
@@ -62,7 +76,9 @@ export class PantryContextService {
   }
 
   select(id: string): void {
+    if (id === this.currentId()) return;
     this.currentId.set(id);
     localStorage.setItem('recipe-manager.pantry', id);
+    this.revision.update((n) => n + 1);
   }
 }
