@@ -203,10 +203,27 @@
   .nav-link {
     white-space: nowrap;
   }
+
+  /* The two groups are already separated by being on different rows, so the
+     divider would sit at the start of a row with nothing before it. */
+  .header__actions::before {
+    display: none;
+  }
+
+  /* Room for a name and a control on a 390px row without pushing the settings
+     icon off the edge. */
+  .header__who {
+    max-width: 7rem;
+    font-size: 0.75rem;
+  }
+
+  .header__auth {
+    font-size: 0.75rem;
+  }
 }
 
-// Who is signed in, and the way in or out. Sits with the language switcher
-// because both are "about you", not "about the recipes".
+/* Who is signed in. Truncates rather than pushing the controls off the row —
+   display names are not length-limited anywhere upstream. */
 .header__who {
   font-size: 0.8125rem;
   color: var(--on-surface-variant);
@@ -216,9 +233,39 @@
   white-space: nowrap;
 }
 
+/* An ACTION, not a destination. It sat in .nav-link, which made it look like
+   another page you could visit. Quieter, and underlined on hover the way the
+   other in-page actions are. */
 .header__auth {
+  padding: 0.25rem 0.1rem;
   font: inherit;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
   background: none;
   border: none;
+  border-bottom: 1px solid transparent;
   cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.header__auth:hover {
+  color: var(--primary);
+  border-bottom-color: currentColor;
+}
+
+.header__auth:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Separates "about you" (sign in, language, settings) from "about the recipes"
+   (the nav). Without it the two groups read as one undifferentiated row. */
+.header__actions::before {
+  content: '';
+  align-self: center;
+  width: 1px;
+  height: 1.1rem;
+  background: var(--outline-variant);
+  margin-right: 0.25rem;
 }

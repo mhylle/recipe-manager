@@ -35,6 +35,9 @@ export class MealPlanGridComponent {
   private pickerDay: DayOfWeek | null = null;
   private pickerMeal: MealType | null = null;
 
+  /** False when there is no kitchen to plan for — signed out, or no pantry. */
+  readonly kitchenAvailable = signal(true);
+
   readonly currentWeek = computed(() => {
     const p = this.plan();
     return p ? p.weekStartDate : '';
@@ -45,8 +48,18 @@ export class MealPlanGridComponent {
 
   private loadPlan(): void {
     const weekStart = mondayOf();
-    this.mealPlanService.getByWeek(weekStart).subscribe((plan) => {
-      this.plan.set(plan);
+    this.mealPlanService.getByWeek(weekStart).subscribe({
+      next: (plan) => {
+        this.kitchenAvailable.set(true);
+        this.plan.set(plan);
+      },
+      error: () => {
+        // A plan belongs to a kitchen. Without one there is nothing to show,
+        // and seven days of "+ Breakfast" chips that all fail on tap is worse
+        // than saying so.
+        this.kitchenAvailable.set(false);
+        this.plan.set(null);
+      },
     });
     this.recipeService.getAll().subscribe((recipes) => {
       const map = new Map<string, Recipe>();
@@ -76,6 +89,24 @@ export class MealPlanGridComponent {
       day: this.locale.translate(`enum.dayOfWeek.${day}`),
       meal: this.locale.translate(`enum.mealType.${meal}`),
     });
+  }
+
+  /** Meals already planned for a day — what the phone layout leads with. */
+  plannedFor(day: DayOfWeek): { meal: MealType; entry: MealPlanEntry & { _index: number } }[] {
+    return this.meals
+      .map((meal) => ({ meal, entry: this.getEntry(day, meal) }))
+      .filter((x): x is { meal: MealType; entry: MealPlanEntry & { _index: number } } => x.entry !== null);
+  }
+
+  /**
+   * The slots still free that day.
+   *
+   * The phone layout shows these as small "+ Lunch" chips rather than four
+   * empty rows per day — twenty-eight empty cells is most of the screen saying
+   * nothing.
+   */
+  freeFor(day: DayOfWeek): MealType[] {
+    return this.meals.filter((meal) => this.getEntry(day, meal) === null);
   }
 
   openPicker(day: DayOfWeek, meal: MealType): void {

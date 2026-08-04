@@ -54,8 +54,10 @@
               <span class="recipe-row__meta">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
               <span class="recipe-row__meta">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
               <div class="recipe-row__actions">
-                <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small btn--ghost">{{ 'common.actions.edit' | t }}</a>
-                <button type="button" class="btn btn--small btn--text" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+                @if (canEdit(recipe)) {
+                  <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small btn--ghost">{{ 'common.actions.edit' | t }}</a>
+                  <button type="button" class="btn btn--small btn--text" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+                }
               </div>
             </div>
           }
@@ -109,8 +111,10 @@
                 </div>
               }
               <div class="recipe-card__actions">
-                <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small">{{ 'common.actions.edit' | t }}</a>
-                <button type="button" class="btn btn--small btn--danger" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+                @if (canEdit(recipe)) {
+                  <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small">{{ 'common.actions.edit' | t }}</a>
+                  <button type="button" class="btn btn--small btn--danger" (click)="onDelete(recipe)" [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe.name }">{{ 'common.actions.delete' | t }}</button>
+                }
               </div>
             </div>
           }

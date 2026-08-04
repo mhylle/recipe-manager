@@ -32,6 +32,19 @@ describe('LoginDialogComponent', () => {
     component.submit();
   };
 
+  /**
+   * A successful sign-in is followed by a fetch of the LOCAL user row — the
+   * client needs our own User.id to decide whether it may offer edit and
+   * delete, and the auth-service's id is a different number.
+   */
+  const flushLocalIdentity = (id = 'u-martin') =>
+    httpTesting.expectOne((r) => r.url.endsWith('/api/me')).flush({
+      id,
+      ssoSubject: 's-martin',
+      email: 'mhylle@yahoo.com',
+      displayName: 'Martin Hylleberg',
+    });
+
   it('does not call the server with an empty field', () => {
     submitWith('', '');
     expect(component.errorKey()).toBe('login.errRequired');
@@ -47,6 +60,7 @@ describe('LoginDialogComponent', () => {
     expect(req.request.body).toEqual({ email: 'mhylle@yahoo.com', password: 'secret' });
     expect(req.request.withCredentials).toBe(true);
     req.flush({ success: true, data: { email: 'mhylle@yahoo.com', firstName: 'Martin', lastName: 'Hylleberg' } });
+    flushLocalIdentity();
   });
 
   it('trims the email but never the password', () => {
@@ -56,6 +70,7 @@ describe('LoginDialogComponent', () => {
     const req = httpTesting.expectOne('/api/auth/login');
     expect(req.request.body).toEqual({ email: 'mhylle@yahoo.com', password: ' spaced ' });
     req.flush({ success: true, data: { email: 'mhylle@yahoo.com' } });
+    flushLocalIdentity();
   });
 
   it('signs the user in and reports success', () => {
@@ -66,8 +81,10 @@ describe('LoginDialogComponent', () => {
     httpTesting
       .expectOne('/api/auth/login')
       .flush({ success: true, data: { email: 'mhylle@yahoo.com', firstName: 'Martin', lastName: 'Hylleberg' } });
+    flushLocalIdentity();
 
     expect(signalled).toBe(true);
+    expect(auth.localUserId()).toBe('u-martin');
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.displayName()).toBe('Martin Hylleberg');
     expect(component.errorKey()).toBeNull();
@@ -76,6 +93,7 @@ describe('LoginDialogComponent', () => {
   it('forgets the password after a successful sign-in', () => {
     submitWith('mhylle@yahoo.com', 'right');
     httpTesting.expectOne('/api/auth/login').flush({ success: true, data: { email: 'mhylle@yahoo.com' } });
+    flushLocalIdentity();
     expect(component.password).toBe('');
   });
 
@@ -115,5 +133,17 @@ describe('LoginDialogComponent', () => {
     component.submit();
     // expectOne fails if the double-submit produced two.
     httpTesting.expectOne('/api/auth/login').flush({ success: true, data: { email: 'a@b.c' } });
+    flushLocalIdentity();
+  });
+
+  it('does not offer ownership actions if the local identity cannot be fetched', () => {
+    // Fails CLOSED: without our own User.id nothing can be shown to be yours,
+    // so edit and delete stay hidden rather than being offered and refused.
+    submitWith('mhylle@yahoo.com', 'right');
+    httpTesting.expectOne('/api/auth/login').flush({ success: true, data: { email: 'a@b.c' } });
+    httpTesting.expectOne((r) => r.url.endsWith('/api/me')).flush('', { status: 500, statusText: 'Server Error' });
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.localUserId()).toBeNull();
   });
 });

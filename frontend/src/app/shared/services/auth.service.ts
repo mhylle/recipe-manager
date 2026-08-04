@@ -1,6 +1,7 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, tap } from 'rxjs';
+import { environment } from '../../../environments/environment';
+import { Observable, catchError, map, of, switchMap, tap } from 'rxjs';
 
 interface AuthUser {
   email: string;
@@ -41,6 +42,16 @@ export class AuthService {
   /** Display name for the header, falling back to the address. */
   readonly displayName = signal<string | null>(null);
 
+  /**
+   * Our own User.id for the signed-in caller.
+   *
+   * NOT the same as the id `/api/auth/validate` returns — that one is the
+   * auth-service's. Recipes carry `createdBy.id`, which is ours, so comparing
+   * against the wrong id would silently never match and every edit button would
+   * vanish for everyone.
+   */
+  readonly localUserId = signal<string | null>(null);
+
   private checked = false;
 
   checkAuth(): void {
@@ -60,10 +71,27 @@ export class AuthService {
       .get<AuthEnvelope>('/api/auth/validate', { withCredentials: true })
       .pipe(
         tap((res) => this.adopt(res?.data ?? null)),
+        switchMap(() => this.loadLocalIdentity()),
         map(() => true),
         catchError(() => {
           this.adopt(null);
           return of(false);
+        }),
+      );
+  }
+
+  /**
+   * Fetch the LOCAL user row. Failure is not fatal: the session is still valid,
+   * we just cannot offer ownership-gated actions, which fails closed.
+   */
+  private loadLocalIdentity(): Observable<unknown> {
+    return this.http
+      .get<{ id: string }>(`${environment.apiBase}/api/me`, { withCredentials: true })
+      .pipe(
+        tap((me) => this.localUserId.set(me?.id ?? null)),
+        catchError(() => {
+          this.localUserId.set(null);
+          return of(null);
         }),
       );
   }
@@ -84,6 +112,9 @@ export class AuthService {
       )
       .pipe(
         tap((res) => this.adopt(res?.success ? res.data : null)),
+        switchMap((res) =>
+          res?.success ? this.loadLocalIdentity().pipe(map(() => res)) : of(res),
+        ),
         map((res) => !!res?.success),
       );
   }
@@ -108,6 +139,7 @@ export class AuthService {
     this.isAuthenticated.set(!!user);
     if (!user) {
       this.displayName.set(null);
+      this.localUserId.set(null);
       return;
     }
     const composed = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();

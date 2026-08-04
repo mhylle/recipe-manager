@@ -6,6 +6,7 @@ import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ImageGenerationService } from '../image-generation/image-generation.service.js';
 import { DEFAULT_LOCALE, Locale } from '../shared/i18n/locale.js';
+import { assertCanModify } from './recipe-ownership.js';
 import {
   RecipeTranslationInput,
   type RecipeSearchFilters,
@@ -45,7 +46,9 @@ export class RecipeService {
     return recipe;
   }
 
-  async regenerateImages(id: string): Promise<Recipe> {
+  async regenerateImages(id: string, callerId: string): Promise<Recipe> {
+    // Regenerating replaces someone's photographs, so it is a modification.
+    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
     const recipe = await this.recipeRepository.findById(id);
     // Fire-and-forget — returns immediately
     this.generateImagesAsync(recipe).catch((err) =>
@@ -91,15 +94,18 @@ export class RecipeService {
 
   async update(
     id: string,
+    callerId: string,
     dto: UpdateRecipeDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: RecipeTranslationInput[],
     sourceLocale?: Locale,
   ): Promise<Recipe> {
+    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
     return this.recipeRepository.update(id, dto, { locale, translations, sourceLocale });
   }
 
-  async delete(id: string): Promise<void> {
+  async delete(id: string, callerId: string): Promise<void> {
+    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
     return this.recipeRepository.delete(id);
   }
 

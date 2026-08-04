@@ -5,8 +5,58 @@
       <p class="meal-plan__subtitle">{{ 'mealPlan.subtitle' | t }}</p>
     </div>
     <div class="meal-plan__header-actions">
-      <span class="meal-plan__week-label">{{ 'mealPlan.weekOf' | t: { date: currentWeek() } }}</span>
+      @if (currentWeek()) {
+        <span class="meal-plan__week-label">{{ 'mealPlan.weekOf' | t: { date: currentWeek() } }}</span>
+      }
     </div>
+  </div>
+
+  @if (!kitchenAvailable()) {
+    <p class="meal-plan__locked" role="status">{{ 'mealPlan.signIn' | t }}</p>
+  } @else {
+
+  <!-- Phone layout: a day at a time. The 7x4 grid below is unreadable at
+       ~50px a column, so on narrow screens it is replaced rather than squeezed.
+       Both are driven by the same helpers, so they cannot disagree. -->
+  <div class="meal-days">
+    @for (day of days; track day) {
+      <section class="meal-day">
+        <h2 class="meal-day__name">{{ day | enumLabel: 'dayOfWeek' }}</h2>
+
+        @for (planned of plannedFor(day); track planned.meal) {
+          <article class="meal-day__entry">
+            <span class="meal-day__meal" [class]="'meal-day__meal--' + planned.meal">
+              {{ planned.meal | enumLabel: 'mealType' }}
+            </span>
+            <span class="meal-day__recipe">{{ getRecipeName(planned.entry.recipeId) }}</span>
+            <span class="meal-day__servings">
+              {{ 'mealPlan.servingsShort' | t: { count: planned.entry.servings } }}
+            </span>
+            <div class="meal-day__actions">
+              <button type="button" class="btn btn--small btn--ghost" (click)="confirmCooked(planned.entry)"
+                [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(planned.entry.recipeId) }">
+                {{ 'mealPlan.done' | t }}
+              </button>
+              <button type="button" class="btn btn--small btn--text" (click)="removeEntry(planned.entry)"
+                [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(planned.entry.recipeId) }">
+                {{ 'common.actions.remove' | t }}
+              </button>
+            </div>
+          </article>
+        }
+
+        @if (freeFor(day).length > 0) {
+          <div class="meal-day__add">
+            @for (meal of freeFor(day); track meal) {
+              <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
+                [attr.aria-label]="addRecipeLabel(day, meal)">
+                + {{ meal | enumLabel: 'mealType' }}
+              </button>
+            }
+          </div>
+        }
+      </section>
+    }
   </div>
 
   <div class="grid-container">
@@ -48,6 +98,8 @@
       </tbody>
     </table>
   </div>
+
+  }
 
   @if (showPicker()) {
     <app-recipe-picker-dialog

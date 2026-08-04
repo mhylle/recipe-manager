@@ -167,6 +167,7 @@ export const da: Dictionary = {
   'pantry.sharing.inviteFailed': 'Kunne ikke dele køkkenet.',
   'pantry.sharing.removeFailed': 'Kunne ikke fjerne dem.',
   'pantry.state.signIn': 'Log ind for at se dit køkken.',
+  'mealPlan.signIn': 'Log ind for at planlægge måltider til dit køkken.',
   'pantry.state.noPantry': 'Du har ikke et køkken endnu.',
   'pantry.switcher.label': 'Køkken',
   'recipe.detail.scaleLabel': 'Skalér opskrift',

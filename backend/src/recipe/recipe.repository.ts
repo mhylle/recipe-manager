@@ -218,6 +218,14 @@ export class RecipeRepository {
   }
 
   /** Every language stored for a recipe — the authoring view, not a reading view. */
+  /** Just the author, for the ownership check. Avoids hydrating the whole row. */
+  async findOwner(id: string): Promise<{ createdById: string } | null> {
+    return this.prisma.recipe.findUnique({
+      where: { id },
+      select: { createdById: true },
+    });
+  }
+
   async findAllTranslations(id: string): Promise<RecipeTranslationInput[]> {
     const result = await this.prisma.recipe.findUnique({
       where: { id },

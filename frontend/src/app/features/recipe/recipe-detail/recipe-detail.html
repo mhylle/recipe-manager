@@ -86,6 +86,8 @@
         >
           {{ (addingToList() ? 'recipe.detail.adding' : 'recipe.detail.addToShoppingList') | t }}
         </button>
+      }
+      @if (canEdit()) {
         <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
           {{ 'common.actions.edit' | t }}
         </a>
@@ -216,7 +218,7 @@
 
     <!-- Secondary Actions -->
     <nav class="recipe-view__actions" [attr.aria-label]="'recipe.detail.actionsLabel' | t">
-      @if (authService.isAuthenticated()) {
+      @if (canEdit()) {
         <button
           type="button"
           class="btn btn--text btn--small"
