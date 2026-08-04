@@ -1,0 +1,44 @@
+<dialog #dialog class="login" (close)="cancel()" [attr.aria-label]="'login.heading' | t">
+  <form class="login__form" (ngSubmit)="submit()">
+    <h2 class="login__title">{{ 'login.heading' | t }}</h2>
+    <p class="login__intro">{{ 'login.intro' | t }}</p>
+
+    <label class="login__label" for="login-email">{{ 'login.email' | t }}</label>
+    <input
+      #emailInput
+      id="login-email"
+      name="email"
+      type="email"
+      autocomplete="username"
+      class="login__input"
+      [(ngModel)]="email"
+      [disabled]="busy()"
+      required
+    />
+
+    <label class="login__label" for="login-password">{{ 'login.password' | t }}</label>
+    <input
+      id="login-password"
+      name="password"
+      type="password"
+      autocomplete="current-password"
+      class="login__input"
+      [(ngModel)]="password"
+      [disabled]="busy()"
+      required
+    />
+
+    @if (errorKey(); as key) {
+      <p class="login__error" role="alert">{{ key | t }}</p>
+    }
+
+    <div class="login__actions">
+      <button type="button" class="btn btn--ghost btn--small" (click)="cancel()" [disabled]="busy()">
+        {{ 'common.actions.cancel' | t }}
+      </button>
+      <button type="submit" class="btn btn--primary btn--small" [disabled]="busy()">
+        {{ (busy() ? 'login.signingIn' : 'login.signIn') | t }}
+      </button>
+    </div>
+  </form>
+</dialog>

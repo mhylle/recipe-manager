@@ -204,3 +204,21 @@
     white-space: nowrap;
   }
 }
+
+// Who is signed in, and the way in or out. Sits with the language switcher
+// because both are "about you", not "about the recipes".
+.header__who {
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header__auth {
+  font: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+}

@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { DashboardService, MatchResult, AlmostCanMakeEntry } from './dashboard.service';
 import { TranslatePipe, reloadOnLocaleChange } from '../../shared/i18n';
 import { Inspiration, dailySeed, pickInspiration } from './inspiration';
+import { LoginPromptService } from '../../shared/services/login-prompt.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,6 +14,7 @@ import { Inspiration, dailySeed, pickInspiration } from './inspiration';
 })
 export class DashboardComponent {
   private readonly dashboardService = inject(DashboardService);
+  private readonly loginPrompt = inject(LoginPromptService);
 
   readonly matchResult = signal<MatchResult>({
     canMakeNow: [],
@@ -72,6 +74,10 @@ export class DashboardComponent {
   readonly browseOverflow = computed(() =>
     Math.max(0, this.remainingMissing().length - this.BROWSE_LIMIT),
   );
+
+  signIn(): void {
+    this.loginPrompt.open();
+  }
 
   totalTime(recipe: { prepTime: number; cookTime: number }): number {
     return recipe.prepTime + recipe.cookTime;

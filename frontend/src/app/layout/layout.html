@@ -8,6 +8,16 @@
       <a routerLink="/meal-plan" routerLinkActive="active" class="nav-link">{{ 'layout.nav.plan' | t }}</a>
     </nav>
     <div class="header__actions">
+      @if (auth.isAuthenticated()) {
+        <span class="header__who">{{ auth.displayName() }}</span>
+        <button type="button" class="nav-link header__auth" (click)="signOut()">
+          {{ 'login.signOut' | t }}
+        </button>
+      } @else {
+        <button type="button" class="nav-link header__auth" (click)="openLogin()">
+          {{ 'login.signIn' | t }}
+        </button>
+      }
       <app-language-switcher />
       <a routerLink="/staples" routerLinkActive="active" class="nav-icon" [attr.aria-label]="'layout.nav.settings' | t">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -19,6 +29,10 @@
   </header>
 
   <main class="main"><router-outlet /></main>
+
+  @if (loginOpen()) {
+    <app-login-dialog (signedIn)="onSignedIn()" (dismissed)="onDismissed()" />
+  }
 
   <footer class="footer">
     <div class="footer__inner">
