@@ -6,9 +6,10 @@ import { ShoppingList } from '../shared/interfaces/shopping-list.interface.js';
 export class ShoppingListRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<ShoppingList, 'id'>): Promise<ShoppingList> {
+  async create(pantryId: string, data: Omit<ShoppingList, 'id'>): Promise<ShoppingList> {
     const result = await this.prisma.shoppingList.create({
       data: {
+        pantryId,
         mealPlanId: data.mealPlanId,
         generatedDate: new Date(data.generatedDate),
         items: {

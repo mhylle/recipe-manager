@@ -45,6 +45,7 @@ const RECIPE_INCLUDE = {
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   },
   translations: true,
+  createdBy: { select: { id: true, displayName: true, email: true } },
   // `satisfies` rather than `as const`: a const assertion makes the orderBy array
   // readonly, which Prisma's argument types reject, while still giving the
   // literal types RecipeGetPayload needs below.
@@ -73,6 +74,7 @@ export class RecipeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
+    createdById: string,
     data: Omit<Recipe, 'id'>,
     options: { sourceLocale?: Locale; translations?: RecipeTranslationInput[] } = {},
   ): Promise<Recipe> {
@@ -90,6 +92,7 @@ export class RecipeRepository {
         cookTime: data.cookTime,
         difficulty: data.difficulty,
         tags: canonicalTags(data.tags),
+        createdById,
         imageUrl: data.imageUrl,
         sourceLocale,
         translations: {
@@ -417,6 +420,11 @@ export class RecipeRepository {
       difficulty: result.difficulty as Recipe['difficulty'],
       tags: result.tags,
       imageUrl: result.imageUrl ?? undefined,
+      // Attribution for the byline. Only the display name travels — the address
+      // is not the reader's business.
+      createdBy: result.createdBy
+        ? { id: result.createdBy.id, displayName: result.createdBy.displayName }
+        : undefined,
       ingredients: result.ingredients.map((ing) => ({
         name: pickTranslation(ing.translations, locale, result.sourceLocale)?.name ?? '',
         quantity: ing.quantity,

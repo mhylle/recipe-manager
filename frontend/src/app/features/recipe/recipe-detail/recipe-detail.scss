@@ -400,13 +400,15 @@
   box-shadow: 0 0 0 3px rgba(62, 106, 0, 0.15);
 }
 
-// Shown in place of the write actions when nobody is signed in. The buttons are
-// hidden rather than disabled because the server would reject them anyway.
-.recipe-view__signin-hint {
+// Two quiet notes: who added the recipe, and why the write buttons are absent.
+// The buttons are hidden rather than disabled because the server rejects them
+// anyway.
+.recipe-view__signin-hint,
+.recipe-view__byline {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-style: italic;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--on-surface-variant, #5a6b66);
 }
 
 // Scale presets, step-timer buttons and timer chips are the same pill. Declared

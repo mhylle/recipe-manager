@@ -10,23 +10,24 @@ import { AddMealPlanEntryDto } from './dto/add-meal-plan-entry.dto.js';
 export class MealPlanService {
   constructor(private readonly mealPlanRepository: MealPlanRepository) {}
 
-  async getOrCreateByWeek(weekStartDate: string): Promise<MealPlan> {
-    const existing = await this.mealPlanRepository.findByWeek(weekStartDate);
+  async getOrCreateByWeek(pantryId: string, weekStartDate: string): Promise<MealPlan> {
+    const existing = await this.mealPlanRepository.findByWeek(pantryId, weekStartDate);
     if (existing) {
       return existing;
     }
-    return this.mealPlanRepository.create({ weekStartDate, entries: [] });
+    return this.mealPlanRepository.create(pantryId, { weekStartDate, entries: [] });
   }
 
-  async findById(id: string): Promise<MealPlan> {
-    return this.mealPlanRepository.findById(id);
+  async findById(pantryId: string, id: string): Promise<MealPlan> {
+    return this.mealPlanRepository.findById(pantryId, id);
   }
 
-  async findAll(): Promise<MealPlan[]> {
-    return this.mealPlanRepository.findAll();
+  async findAll(pantryId: string): Promise<MealPlan[]> {
+    return this.mealPlanRepository.findAll(pantryId);
   }
 
   async addEntry(
+    pantryId: string,
     mealPlanId: string,
     dto: AddMealPlanEntryDto,
   ): Promise<MealPlan> {
@@ -36,24 +37,25 @@ export class MealPlanService {
       recipeId: dto.recipeId,
       servings: dto.servings,
     };
-    return this.mealPlanRepository.addEntry(mealPlanId, entry);
+    return this.mealPlanRepository.addEntry(pantryId, mealPlanId, entry);
   }
 
-  async removeEntry(mealPlanId: string, entryIndex: number): Promise<MealPlan> {
-    return this.mealPlanRepository.removeEntryByIndex(mealPlanId, entryIndex);
+  async removeEntry(pantryId: string, mealPlanId: string, entryIndex: number): Promise<MealPlan> {
+    return this.mealPlanRepository.removeEntryByIndex(pantryId, mealPlanId, entryIndex);
   }
 
   async updateEntryServings(
+    pantryId: string,
     mealPlanId: string,
     entryIndex: number,
     servings: number,
   ): Promise<MealPlan> {
-    const plan = await this.mealPlanRepository.findById(mealPlanId);
+    const plan = await this.mealPlanRepository.findById(pantryId, mealPlanId);
     if (entryIndex < 0 || entryIndex >= plan.entries.length) {
       throw new NotFoundException(`Entry at index ${entryIndex} not found`);
     }
     plan.entries[entryIndex].servings = servings;
-    return this.mealPlanRepository.update(mealPlanId, {
+    return this.mealPlanRepository.update(pantryId, mealPlanId, {
       entries: plan.entries,
     });
   }

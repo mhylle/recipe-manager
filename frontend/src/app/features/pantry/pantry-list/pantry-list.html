@@ -1,3 +1,27 @@
+@switch (context.state()) {
+  @case ('anonymous') {
+    <p class="pantry-state" role="status">{{ 'pantry.state.signIn' | t }}</p>
+  }
+  @case ('no-pantry') {
+    <p class="pantry-state" role="status">{{ 'pantry.state.noPantry' | t }}</p>
+  }
+}
+
+@if (context.canSwitch()) {
+  <label class="pantry-switcher">
+    <span class="pantry-switcher__label">{{ 'pantry.switcher.label' | t }}</span>
+    <select
+      class="pantry-switcher__select"
+      [value]="context.currentId()"
+      (change)="context.select($any($event.target).value); loadItems()"
+    >
+      @for (p of context.pantries(); track p.id) {
+        <option [value]="p.id">{{ p.name }}</option>
+      }
+    </select>
+  </label>
+}
+
 <div class="pantry-list">
   <div class="pantry-list__header">
     <div>
@@ -47,3 +71,7 @@
     }
   }
 </div>
+
+@if (context.state() === 'ready') {
+  <app-pantry-sharing />
+}

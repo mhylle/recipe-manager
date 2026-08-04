@@ -101,11 +101,43 @@ describe('guard coverage across the whole API surface', () => {
     expect(bilka.every((r) => r.guarded)).toBe(true);
   });
 
-  it('leaves read routes public, so the app still works logged out', () => {
-    const guardedReads = routes
-      .filter((r) => r.method === RequestMethod.GET && r.guarded)
+  /**
+   * The read policy changed when pantries arrived, and this test is where it is
+   * stated. Recipes are one shared library, so their reads stay public. Kitchen
+   * state belongs to a pantry, and there is no pantry without a user — so those
+   * reads are guarded, and the app is read-only-ish rather than fully usable
+   * when logged out.
+   */
+  it('keeps RECIPE reads public — the library is shared', () => {
+    const publicReadControllers = ['RecipeController', 'AppController'];
+    const wronglyGuarded = routes
+      .filter(
+        (r) =>
+          r.method === RequestMethod.GET &&
+          r.guarded &&
+          publicReadControllers.includes(r.controller),
+      )
       .map((r) => `${r.controller}.${r.handler}`);
-    expect(guardedReads).toEqual([]);
+    expect(wronglyGuarded).toEqual([]);
+  });
+
+  it('guards KITCHEN reads — pantry state cannot be resolved without a user', () => {
+    const kitchenControllers = [
+      'PantryController',
+      'StaplesController',
+      'MealPlanController',
+      'ShoppingListController',
+      'MatchingController',
+    ];
+    const unguardedKitchenReads = routes
+      .filter(
+        (r) =>
+          r.method === RequestMethod.GET &&
+          !r.guarded &&
+          kitchenControllers.includes(r.controller),
+      )
+      .map((r) => `${r.controller}.${r.handler}`);
+    expect(unguardedKitchenReads).toEqual([]);
   });
 
   it('keeps /health reachable without credentials', () => {

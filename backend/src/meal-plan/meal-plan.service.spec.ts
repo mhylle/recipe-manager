@@ -56,7 +56,7 @@ describe('MealPlanService', () => {
   describe('getOrCreateByWeek', () => {
     it('should return existing plan if found', async () => {
       repository.findByWeek.mockResolvedValue(mockPlan);
-      const result = await service.getOrCreateByWeek('2026-03-16');
+      const result = await service.getOrCreateByWeek('p-test', '2026-03-16');
       expect(result).toEqual(mockPlan);
       expect(repository.create).not.toHaveBeenCalled();
     });
@@ -64,8 +64,8 @@ describe('MealPlanService', () => {
     it('should create new plan if not found', async () => {
       repository.findByWeek.mockResolvedValue(null);
       repository.create.mockResolvedValue({ ...mockPlan, entries: [] });
-      const result = await service.getOrCreateByWeek('2026-03-16');
-      expect(repository.create).toHaveBeenCalledWith({
+      const result = await service.getOrCreateByWeek('p-test', '2026-03-16');
+      expect(repository.create).toHaveBeenCalledWith('p-test', {
         weekStartDate: '2026-03-16',
         entries: [],
       });
@@ -88,14 +88,14 @@ describe('MealPlanService', () => {
       };
       repository.addEntry.mockResolvedValue(updated);
 
-      const result = await service.addEntry('plan-1', {
+      const result = await service.addEntry('p-test', 'plan-1', {
         day: DayOfWeek.TUESDAY,
         meal: MealType.LUNCH,
         recipeId: 'r2',
         servings: 2,
       });
 
-      expect(repository.addEntry).toHaveBeenCalledWith('plan-1', {
+      expect(repository.addEntry).toHaveBeenCalledWith('p-test', 'plan-1', {
         day: DayOfWeek.TUESDAY,
         meal: MealType.LUNCH,
         recipeId: 'r2',
@@ -109,9 +109,9 @@ describe('MealPlanService', () => {
     it('should remove entry at index', async () => {
       repository.removeEntryByIndex.mockResolvedValue({ ...mockPlan, entries: [] });
 
-      const result = await service.removeEntry('plan-1', 0);
+      const result = await service.removeEntry('p-test', 'plan-1', 0);
 
-      expect(repository.removeEntryByIndex).toHaveBeenCalledWith('plan-1', 0);
+      expect(repository.removeEntryByIndex).toHaveBeenCalledWith('p-test', 'plan-1', 0);
       expect(result.entries).toHaveLength(0);
     });
 
@@ -120,7 +120,7 @@ describe('MealPlanService', () => {
       repository.removeEntryByIndex.mockRejectedValue(
         new NotFoundException('Entry at index 5 not found'),
       );
-      await expect(service.removeEntry('plan-1', 5)).rejects.toThrow(
+      await expect(service.removeEntry('p-test', 'plan-1', 5)).rejects.toThrow(
         NotFoundException,
       );
     });
@@ -137,7 +137,7 @@ describe('MealPlanService', () => {
         entries: [{ ...mockPlan.entries[0], servings: 8 }],
       });
 
-      await service.updateEntryServings('plan-1', 0, 8);
+      await service.updateEntryServings('p-test', 'plan-1', 0, 8);
       expect(repository.update).toHaveBeenCalled();
     });
   });

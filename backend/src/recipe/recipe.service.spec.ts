@@ -118,9 +118,9 @@ describe('RecipeService', () => {
         tags: ['breakfast', 'quick'],
       };
 
-      const result = await service.create(dto);
+      const result = await service.create('u-martin', dto);
 
-      expect(repository.create).toHaveBeenCalledWith(dto, {
+      expect(repository.create).toHaveBeenCalledWith('u-martin', dto, {
         sourceLocale: 'en',
         translations: undefined,
       });

@@ -6,9 +6,10 @@ import { MealPlan, MealPlanEntry } from '../shared/interfaces/meal-plan.interfac
 export class MealPlanRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(data: Omit<MealPlan, 'id'>): Promise<MealPlan> {
+  async create(pantryId: string, data: Omit<MealPlan, 'id'>): Promise<MealPlan> {
     const result = await this.prisma.mealPlan.create({
       data: {
+        pantryId,
         weekStartDate: data.weekStartDate,
         entries: {
           create: data.entries.map((entry) => ({
@@ -24,16 +25,18 @@ export class MealPlanRepository {
     return this.toInterface(result);
   }
 
-  async findAll(): Promise<MealPlan[]> {
+  async findAll(pantryId: string): Promise<MealPlan[]> {
     const results = await this.prisma.mealPlan.findMany({
+      where: { pantryId },
       include: { entries: { orderBy: { createdAt: 'asc' } } },
     });
     return results.map((r) => this.toInterface(r));
   }
 
-  async findById(id: string): Promise<MealPlan> {
-    const result = await this.prisma.mealPlan.findUnique({
-      where: { id },
+  async findById(pantryId: string, id: string): Promise<MealPlan> {
+    // Scoped: a plan id from another household is a miss, not a read.
+    const result = await this.prisma.mealPlan.findFirst({
+      where: { id, pantryId },
       include: { entries: { orderBy: { createdAt: 'asc' } } },
     });
     if (!result) {
@@ -42,15 +45,19 @@ export class MealPlanRepository {
     return this.toInterface(result);
   }
 
-  async findByWeek(weekStartDate: string): Promise<MealPlan | null> {
+  async findByWeek(pantryId: string, weekStartDate: string): Promise<MealPlan | null> {
+    // The week is unique PER PANTRY now, so the lookup needs both.
     const result = await this.prisma.mealPlan.findUnique({
-      where: { weekStartDate },
+      where: { pantryId_weekStartDate: { pantryId, weekStartDate } },
       include: { entries: { orderBy: { createdAt: 'asc' } } },
     });
     return result ? this.toInterface(result) : null;
   }
 
-  async addEntry(mealPlanId: string, entry: MealPlanEntry): Promise<MealPlan> {
+  async addEntry(pantryId: string, mealPlanId: string, entry: MealPlanEntry): Promise<MealPlan> {
+    // Resolve the plan inside the pantry FIRST. Without this, a plan id from
+    // another household would happily accept entries.
+    await this.findById(pantryId, mealPlanId);
     await this.prisma.mealPlanEntry.create({
       data: {
         day: entry.day,
@@ -60,10 +67,11 @@ export class MealPlanRepository {
         mealPlanId,
       },
     });
-    return this.findById(mealPlanId);
+    return this.findById(pantryId, mealPlanId);
   }
 
-  async removeEntryByIndex(mealPlanId: string, index: number): Promise<MealPlan> {
+  async removeEntryByIndex(pantryId: string, mealPlanId: string, index: number): Promise<MealPlan> {
+    await this.findById(pantryId, mealPlanId);
     const entries = await this.prisma.mealPlanEntry.findMany({
       where: { mealPlanId },
       orderBy: { createdAt: 'asc' },
@@ -74,10 +82,11 @@ export class MealPlanRepository {
     await this.prisma.mealPlanEntry.delete({
       where: { id: entries[index].id },
     });
-    return this.findById(mealPlanId);
+    return this.findById(pantryId, mealPlanId);
   }
 
-  async getEntryByIndex(mealPlanId: string, index: number) {
+  async getEntryByIndex(pantryId: string, mealPlanId: string, index: number) {
+    await this.findById(pantryId, mealPlanId);
     const entries = await this.prisma.mealPlanEntry.findMany({
       where: { mealPlanId },
       orderBy: { createdAt: 'asc' },
@@ -88,19 +97,19 @@ export class MealPlanRepository {
     return entries[index];
   }
 
-  async update(id: string, data: Partial<MealPlan>): Promise<MealPlan> {
-    await this.findById(id);
+  async update(pantryId: string, id: string, data: Partial<MealPlan>): Promise<MealPlan> {
+    await this.findById(pantryId, id);
     if (data.weekStartDate !== undefined) {
       await this.prisma.mealPlan.update({
         where: { id },
         data: { weekStartDate: data.weekStartDate },
       });
     }
-    return this.findById(id);
+    return this.findById(pantryId, id);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.findById(id);
+  async delete(pantryId: string, id: string): Promise<void> {
+    await this.findById(pantryId, id);
     await this.prisma.mealPlan.delete({ where: { id } });
   }
 

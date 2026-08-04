@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PantryModule } from '../pantry/pantry.module.js';
 import { HttpModule } from '@nestjs/axios';
 import { ShoppingListModule } from '../shopping-list/shopping-list.module.js';
 import { BilkaToGoAuthService } from './bilkatogo-auth.service.js';
@@ -8,7 +9,7 @@ import { BilkaToGoOrchestratorService } from './bilkatogo-orchestrator.service.j
 import { BilkaToGoController } from './bilkatogo.controller.js';
 
 @Module({
-  imports: [HttpModule, ShoppingListModule],
+  imports: [HttpModule, ShoppingListModule, PantryModule],
   controllers: [BilkaToGoController],
   providers: [
     BilkaToGoAuthService,

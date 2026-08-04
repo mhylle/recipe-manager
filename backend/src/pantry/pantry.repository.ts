@@ -20,6 +20,7 @@ export class PantryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(
+    pantryId: string,
     data: Omit<PantryItem, 'id' | 'addedDate' | 'lastUpdated'>,
     options: { sourceLocale?: Locale; translations?: PantryTranslationInput[] } = {},
   ): Promise<PantryItem> {
@@ -31,6 +32,7 @@ export class PantryRepository {
 
     const result = await this.prisma.pantryItem.create({
       data: {
+        pantryId,
         quantity: data.quantity,
         unit: data.unit,
         category: data.category,
@@ -46,14 +48,19 @@ export class PantryRepository {
     return this.toInterface(result, sourceLocale);
   }
 
-  async findAll(locale: Locale = DEFAULT_LOCALE): Promise<PantryItem[]> {
-    const results = await this.prisma.pantryItem.findMany({ include: PANTRY_INCLUDE });
+  async findAll(pantryId: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem[]> {
+    const results = await this.prisma.pantryItem.findMany({
+      where: { pantryId },
+      include: PANTRY_INCLUDE,
+    });
     return results.map((r) => this.toInterface(r, locale));
   }
 
-  async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
-    const result = await this.prisma.pantryItem.findUnique({
-      where: { id },
+  async findById(pantryId: string, id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
+    // findFirst with the pantry in the WHERE, not findUnique on the id alone:
+    // an item id from another household must be a miss, not a read.
+    const result = await this.prisma.pantryItem.findFirst({
+      where: { id, pantryId },
       include: PANTRY_INCLUDE,
     });
     if (!result) {
@@ -63,9 +70,9 @@ export class PantryRepository {
   }
 
   /** Every language stored for an item — the authoring view. */
-  async findAllTranslations(id: string): Promise<PantryTranslationInput[]> {
-    const result = await this.prisma.pantryItem.findUnique({
-      where: { id },
+  async findAllTranslations(pantryId: string, id: string): Promise<PantryTranslationInput[]> {
+    const result = await this.prisma.pantryItem.findFirst({
+      where: { id, pantryId },
       include: PANTRY_INCLUDE,
     });
     if (!result) {
@@ -75,12 +82,13 @@ export class PantryRepository {
   }
 
   async update(
+    pantryId: string,
     id: string,
     data: Partial<PantryItem>,
     options: { locale?: Locale; translations?: PantryTranslationInput[] } = {},
   ): Promise<PantryItem> {
-    const existing = await this.prisma.pantryItem.findUnique({
-      where: { id },
+    const existing = await this.prisma.pantryItem.findFirst({
+      where: { id, pantryId },
       include: PANTRY_INCLUDE,
     });
     if (!existing) {
@@ -123,8 +131,10 @@ export class PantryRepository {
     return this.findById(id, editLocale);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.findById(id);
+  async delete(pantryId: string, id: string): Promise<void> {
+    // Resolve within the pantry first, so deleting by an id belonging to
+    // another household is a 404 rather than a successful destruction.
+    await this.findById(pantryId, id);
     await this.prisma.pantryItem.delete({ where: { id } });
   }
 

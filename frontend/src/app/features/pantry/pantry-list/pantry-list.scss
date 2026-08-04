@@ -134,3 +134,30 @@
     justify-content: flex-start;
   }
 }
+
+// Explains an empty pantry: not signed in, or no kitchen yet.
+.pantry-state {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-md);
+  color: var(--on-surface-variant);
+}
+
+// Only rendered when there is more than one kitchen to choose between.
+.pantry-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+}
+
+.pantry-switcher__select {
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  font-size: 0.8125rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+}

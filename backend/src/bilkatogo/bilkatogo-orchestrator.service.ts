@@ -239,6 +239,7 @@ export class BilkaToGoOrchestratorService {
   ) {}
 
   async sendToCart(
+    pantryId: string,
     shoppingListId: string,
     sessionId: string,
   ): Promise<BilkaToGoSendResult> {
@@ -248,7 +249,7 @@ export class BilkaToGoOrchestratorService {
     }
 
     const shoppingList =
-      await this.shoppingListService.findById(shoppingListId);
+      await this.shoppingListService.findById(pantryId, shoppingListId);
 
     const matched: BilkaToGoMatchedItem[] = [];
     const unmatched: BilkaToGoUnmatchedItem[] = [];

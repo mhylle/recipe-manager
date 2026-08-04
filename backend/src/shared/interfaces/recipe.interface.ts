@@ -22,4 +22,6 @@ export interface Recipe {
   difficulty: Difficulty;
   tags: string[];
   imageUrl?: string;
+  /** Who added this recipe. Attribution only — every user sees every recipe. */
+  createdBy?: { id: string; displayName: string };
 }
