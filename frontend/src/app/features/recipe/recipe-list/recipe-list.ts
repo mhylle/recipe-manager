@@ -4,6 +4,7 @@ import { RecipeService } from '../recipe.service';
 import { Recipe } from '../../../shared/models/recipe.model';
 import { RecipeFiltersComponent, RecipeFilters } from '../recipe-filters/recipe-filters';
 import { EnumLabelPipe, LocaleService, TranslatePipe, reloadOnLocaleChange } from '../../../shared/i18n';
+import { AuthService } from '../../../shared/services/auth.service';
 import {
   DEFAULT_RECIPE_SORT,
   RECIPE_SORT_OPTIONS,
@@ -27,6 +28,20 @@ import {
   styleUrl: './recipe-list.scss',
 })
 export class RecipeListComponent {
+  private readonly auth = inject(AuthService);
+
+  /**
+   * Only the person who added a recipe may change it. The server enforces this;
+   * hiding the buttons keeps the UI honest about what will actually work.
+   *
+   * Compares against our LOCAL user id, which is what `createdBy.id` holds —
+   * the auth-service's id is a different number entirely.
+   */
+  canEdit(recipe: Recipe): boolean {
+    const me = this.auth.localUserId();
+    return !!me && recipe.createdBy?.id === me;
+  }
+
   private readonly recipeService = inject(RecipeService);
   private readonly locale = inject(LocaleService);
 

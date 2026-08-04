@@ -64,6 +64,15 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   readonly isScaled = computed(() => this.factor() !== 1);
 
+  /**
+   * Only the person who added this recipe may change it. Enforced server-side;
+   * this keeps the UI from offering an action that would be refused.
+   */
+  readonly canEdit = computed(() => {
+    const me = this.authService.localUserId();
+    return !!me && this.recipe()?.createdBy?.id === me;
+  });
+
   /** Servings after scaling — what the ingredient list below now makes. */
   readonly scaledServings = computed(() => {
     const r = this.recipe();

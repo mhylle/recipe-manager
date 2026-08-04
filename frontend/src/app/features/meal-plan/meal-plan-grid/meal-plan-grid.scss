@@ -170,3 +170,120 @@
     flex-direction: column;
   }
 }
+
+/* ============================================================
+   Phone layout — a day at a time.
+
+   The 7x4 grid gives about fifty pixels a column on a phone,
+   which is not a table so much as a rumour of one. Below the
+   breakpoint it is replaced by a list; above it, nothing here
+   applies and the grid is untouched.
+   ============================================================ */
+
+.meal-days {
+  display: none;
+}
+
+.meal-day {
+  padding: 0.9rem 0;
+  border-bottom: 1px solid var(--outline-variant);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.meal-day__name {
+  margin: 0 0 0.6rem;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 400;
+}
+
+.meal-day__entry {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.15rem 0.6rem;
+  align-items: baseline;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.5rem;
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+}
+
+.meal-day__meal {
+  grid-row: 1;
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.meal-day__recipe {
+  grid-row: 2;
+  grid-column: 1 / -1;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+
+.meal-day__servings {
+  grid-row: 1;
+  grid-column: 2;
+  justify-self: end;
+  font-size: 0.6875rem;
+  color: var(--on-surface-variant);
+  font-variant-numeric: tabular-nums;
+}
+
+.meal-day__actions {
+  grid-row: 3;
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
+}
+
+.meal-day__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.meal-day__add-chip {
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  background: transparent;
+  border: 1px dashed var(--outline-variant);
+  border-radius: 999px;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--primary);
+    border-color: var(--primary);
+  }
+}
+
+@media (max-width: 768px) {
+  /* Swap the grid for the day list. Both render from the same helpers, so
+     there is no second source of truth to drift. */
+  .grid-container {
+    display: none;
+  }
+
+  .meal-days {
+    display: block;
+  }
+}
+
+/* Shown instead of seven days of add-buttons that would all be refused. */
+.meal-plan__locked {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-low);
+  border-radius: var(--radius-md);
+}

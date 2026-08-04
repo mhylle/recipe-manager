@@ -160,15 +160,14 @@ describe('RecipeController', () => {
       const updatedRecipe = { ...mockRecipe, name: 'Blueberry Pancakes' };
       service.update.mockResolvedValue(updatedRecipe);
 
-      const result = await controller.update('recipe-uuid-1', {
+      const result = await controller.update(martinUser, 'recipe-uuid-1', {
         name: 'Blueberry Pancakes',
       }, 'en');
 
       expect(service.update).toHaveBeenCalledWith(
         'recipe-uuid-1',
-        {
-        name: 'Blueberry Pancakes',
-      },
+        'u-martin', // the caller — ownership is checked against this
+        { name: 'Blueberry Pancakes' },
         'en',
         undefined, // translations
         undefined, // sourceLocale
@@ -181,9 +180,9 @@ describe('RecipeController', () => {
     it('should delete the recipe', async () => {
       service.delete.mockResolvedValue(undefined);
 
-      await controller.delete('recipe-uuid-1');
+      await controller.delete(martinUser, 'recipe-uuid-1');
 
-      expect(service.delete).toHaveBeenCalledWith('recipe-uuid-1');
+      expect(service.delete).toHaveBeenCalledWith('recipe-uuid-1', 'u-martin');
     });
 
     it('should throw NotFoundException for missing recipe', async () => {
@@ -191,7 +190,7 @@ describe('RecipeController', () => {
         new NotFoundException('recipes with id missing-id not found'),
       );
 
-      await expect(controller.delete('missing-id')).rejects.toThrow(
+      await expect(controller.delete(martinUser, 'missing-id')).rejects.toThrow(
         NotFoundException,
       );
     });

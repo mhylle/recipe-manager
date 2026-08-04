@@ -70,26 +70,28 @@ export class RecipeController {
   @UseGuards(SsoAuthGuard)
   @Patch(':id')
   async update(
+    @CurrentUser() user: LocalUser,
     @Param('id') id: string,
     @Body() dto: UpdateRecipeRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
-    return this.recipeService.update(id, dto, locale, dto.translations, dto.sourceLocale);
+    return this.recipeService.update(id, user.id, dto, locale, dto.translations, dto.sourceLocale);
   }
 
   @UseGuards(SsoAuthGuard)
   @Delete(':id')
   @HttpCode(204)
-  async delete(@Param('id') id: string): Promise<void> {
-    return this.recipeService.delete(id);
+  async delete(@CurrentUser() user: LocalUser, @Param('id') id: string): Promise<void> {
+    return this.recipeService.delete(id, user.id);
   }
 
   @UseGuards(SsoAuthGuard)
   @Post(':id/regenerate-images')
   async regenerateImages(
+    @CurrentUser() user: LocalUser,
     @Param('id') id: string,
   ): Promise<{ message: string }> {
-    const recipe = await this.recipeService.regenerateImages(id);
+    const recipe = await this.recipeService.regenerateImages(id, user.id);
     return { message: `Image generation started for ${recipe.name}` };
   }
 }

@@ -194,6 +194,7 @@ export const en = {
   'pantry.sharing.inviteFailed': 'Could not share the kitchen.',
   'pantry.sharing.removeFailed': 'Could not remove them.',
   'pantry.state.signIn': 'Sign in to see your kitchen.',
+  'mealPlan.signIn': 'Sign in to plan meals for your kitchen.',
   'pantry.state.noPantry': 'You do not have a kitchen yet.',
   'pantry.switcher.label': 'Kitchen',
   'recipe.detail.scaleLabel': 'Scale recipe',

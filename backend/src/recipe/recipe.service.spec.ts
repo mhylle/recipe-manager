@@ -54,6 +54,9 @@ describe('RecipeService', () => {
       create: jest.fn(),
       findAll: jest.fn(),
       findById: jest.fn(),
+      // Ownership is checked before every write; the caller in these
+      // tests is the recipe's author.
+      findOwner: jest.fn().mockResolvedValue({ createdById: 'u-martin' }),
       update: jest.fn(),
       delete: jest.fn(),
     };
@@ -194,7 +197,7 @@ describe('RecipeService', () => {
       };
       repository.update.mockResolvedValue(updatedRecipe);
 
-      const result = await service.update('recipe-uuid-1', {
+      const result = await service.update('recipe-uuid-1', 'u-martin', {
         name: 'Blueberry Pancakes',
         ingredients: updatedRecipe.ingredients,
       });
@@ -217,7 +220,7 @@ describe('RecipeService', () => {
       };
       repository.update.mockResolvedValue(updatedRecipe);
 
-      const result = await service.update('recipe-uuid-1', {
+      const result = await service.update('recipe-uuid-1', 'u-martin', {
         ingredients: [mockRecipe.ingredients[0]],
       });
 
@@ -230,7 +233,7 @@ describe('RecipeService', () => {
       );
 
       await expect(
-        service.update('missing-id', { name: 'New Name' }),
+        service.update('missing-id', 'u-martin', { name: 'New Name' }),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -239,7 +242,7 @@ describe('RecipeService', () => {
     it('should delegate to repository', async () => {
       repository.delete.mockResolvedValue(undefined);
 
-      await service.delete('recipe-uuid-1');
+      await service.delete('recipe-uuid-1', 'u-martin');
 
       expect(repository.delete).toHaveBeenCalledWith('recipe-uuid-1');
     });
@@ -249,7 +252,7 @@ describe('RecipeService', () => {
         new NotFoundException('recipes with id missing-id not found'),
       );
 
-      await expect(service.delete('missing-id')).rejects.toThrow(
+      await expect(service.delete('missing-id', 'u-martin')).rejects.toThrow(
         NotFoundException,
       );
     });
