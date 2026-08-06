@@ -29,4 +29,6 @@ export class CreateRecipeRequestDto extends CreateRecipeDto {
   sourceLocale?: Locale;
 }
 
-export class UpdateRecipeRequestDto extends PartialType(CreateRecipeRequestDto) {}
+export class UpdateRecipeRequestDto extends PartialType(
+  CreateRecipeRequestDto,
+) {}

@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { RecipeService } from './recipe.service';
 import { RecipeRepository } from './recipe.repository';
 import { ImageGenerationService } from '../image-generation/image-generation.service';
+import { RecipeImageService } from './recipe-image.service';
 import { Recipe } from '../shared/interfaces/recipe.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
@@ -12,6 +13,11 @@ import { PantryCategory } from '../shared/enums/pantry-category.enum';
 describe('RecipeService', () => {
   let service: RecipeService;
   let repository: jest.Mocked<RecipeRepository>;
+  let imageGeneration: {
+    generateHeroImage: jest.Mock;
+    generateStepImages: jest.Mock;
+  };
+  let recipeImages: { store: jest.Mock };
 
   const mockRecipe: Recipe = {
     id: 'recipe-uuid-1',
@@ -61,20 +67,31 @@ describe('RecipeService', () => {
       delete: jest.fn(),
     };
 
+    recipeImages = {
+      store: jest
+        .fn()
+        .mockReturnValue('/api/recipe-manager/images/recipes/x_upload1.png'),
+    };
+
+    imageGeneration = {
+      generateHeroImage: jest.fn().mockResolvedValue(null),
+      generateStepImages: jest.fn().mockResolvedValue([]),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         RecipeService,
         { provide: RecipeRepository, useValue: mockRepository },
-        // RecipeService gained this dependency; disabled here so tests exercise
-        // persistence only and never reach out to an image backend.
+        // Stubbed so tests exercise persistence only and never reach a real
+        // image backend. There is no isEnabled() any more: generation is not a
+        // server capability that can be switched on, it is something a caller
+        // pays for with their own key.
         {
           provide: ImageGenerationService,
-          useValue: {
-            isEnabled: jest.fn().mockReturnValue(false),
-            generateHeroImage: jest.fn(),
-            generateStepImages: jest.fn().mockResolvedValue([]),
-          },
+          useValue: imageGeneration,
         },
+        // Upload writes to disk, which these tests have no business doing.
+        { provide: RecipeImageService, useValue: recipeImages },
       ],
     }).compile();
 
@@ -131,6 +148,26 @@ describe('RecipeService', () => {
       expect(result.id).toBeDefined();
       expect(result.ingredients).toHaveLength(3);
     });
+    it('never spends anyone\u2019s Gemini quota on create', async () => {
+      // There is no shared key, so there is no credential at create time and
+      // nothing to charge. Generation is an explicit, key-bearing action.
+      repository.create.mockResolvedValue(mockRecipe);
+
+      await service.create('user-1', {
+        name: 'Pancakes',
+        description: 'Fluffy breakfast pancakes',
+        servings: 4,
+        instructions: ['Mix', 'Cook'],
+        ingredients: [],
+        prepTime: 5,
+        cookTime: 10,
+        difficulty: Difficulty.EASY,
+        tags: [],
+      });
+
+      expect(imageGeneration.generateHeroImage).not.toHaveBeenCalled();
+      expect(imageGeneration.generateStepImages).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {
@@ -139,7 +176,12 @@ describe('RecipeService', () => {
         mockRecipe,
         { ...mockRecipe, id: 'recipe-uuid-2', name: 'Omelette' },
       ];
-      repository.findAll.mockResolvedValue({ data: recipes, total: 2, limit: 100, offset: 0 });
+      repository.findAll.mockResolvedValue({
+        data: recipes,
+        total: 2,
+        limit: 100,
+        offset: 0,
+      });
 
       const result = await service.findAll();
 
@@ -150,7 +192,12 @@ describe('RecipeService', () => {
     });
 
     it('should return empty array when no recipes exist', async () => {
-      repository.findAll.mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 });
+      repository.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        limit: 100,
+        offset: 0,
+      });
 
       const result = await service.findAll();
 
@@ -202,13 +249,17 @@ describe('RecipeService', () => {
         ingredients: updatedRecipe.ingredients,
       });
 
-      expect(repository.update).toHaveBeenCalledWith('recipe-uuid-1', {
-        name: 'Blueberry Pancakes',
-        ingredients: updatedRecipe.ingredients,
-      }, {
-        locale: 'en',
-        translations: undefined,
-      });
+      expect(repository.update).toHaveBeenCalledWith(
+        'recipe-uuid-1',
+        {
+          name: 'Blueberry Pancakes',
+          ingredients: updatedRecipe.ingredients,
+        },
+        {
+          locale: 'en',
+          translations: undefined,
+        },
+      );
       expect(result.name).toBe('Blueberry Pancakes');
       expect(result.ingredients).toHaveLength(4);
     });
@@ -254,6 +305,29 @@ describe('RecipeService', () => {
 
       await expect(service.delete('missing-id', 'u-martin')).rejects.toThrow(
         NotFoundException,
+      );
+    });
+  });
+  describe('regenerateImages', () => {
+    it('forwards the CALLER\u2019s key, so one user cannot spend another\u2019s quota', async () => {
+      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findById.mockResolvedValue(mockRecipe);
+
+      await service.regenerateImages(
+        'recipe-1',
+        'user-1',
+        'caller-supplied-key',
+      );
+      // Generation is fire-and-forget; let the detached promise run.
+      await new Promise((r) => setImmediate(r));
+
+      expect(imageGeneration.generateHeroImage).toHaveBeenCalledWith(
+        expect.anything(),
+        'caller-supplied-key',
+      );
+      expect(imageGeneration.generateStepImages).toHaveBeenCalledWith(
+        expect.anything(),
+        'caller-supplied-key',
       );
     });
   });

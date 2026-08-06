@@ -18,6 +18,11 @@ import {
   formatRemaining,
 } from '../../../shared/services/cooking-timer.service';
 import { TimerPushService } from '../../../shared/services/timer-push.service';
+import { GeminiKeyDialogComponent } from '../../../shared/components/gemini-key-dialog/gemini-key-dialog';
+
+/** Kept in step with RecipeImageService on the backend. */
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
 import { SCALE_PRESETS, scaleFactor, scaleIngredients, type ScaleSelection } from '../recipe-scale';
 import { parseStepDurations, type StepDuration } from '../step-duration';
 import {
@@ -31,7 +36,13 @@ import {
 @Component({
   selector: 'app-recipe-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, EnumLabelPipe, LocaleNumberPipe],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    EnumLabelPipe,
+    LocaleNumberPipe,
+    GeminiKeyDialogComponent,
+  ],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
 })
@@ -52,6 +63,11 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
   readonly enablingPhoneAlarms = signal(false);
+  /** Open while asking for the Gemini key that a generation run needs. */
+  readonly keyDialogOpen = signal(false);
+  readonly uploading = signal(false);
+  /** Set when a chosen file is refused before it is ever sent. */
+  readonly uploadErrorKey = signal<'recipe.detail.uploadTooLarge' | 'recipe.detail.uploadWrongType' | 'recipe.detail.uploadFailed' | null>(null);
 
   readonly scalePresets = SCALE_PRESETS;
   readonly scale = signal<ScaleSelection>({ mode: 'multiplier', multiplier: 1 });
@@ -232,12 +248,69 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Upload a hero image the cook took themselves.
+   *
+   * Checked here before the request as well as on the server: rejecting an 11 MB
+   * photo without spending a minute uploading it first is the whole point of a
+   * client-side check, and the server still has the final say.
+   */
+  onImageSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+    const currentRecipe = this.recipe();
+    if (!currentRecipe) return;
+
+    this.uploadErrorKey.set(null);
+
+    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+      this.uploadErrorKey.set('recipe.detail.uploadWrongType');
+      input.value = '';
+      return;
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      this.uploadErrorKey.set('recipe.detail.uploadTooLarge');
+      input.value = '';
+      return;
+    }
+
+    this.uploading.set(true);
+    this.recipeService.uploadImage(currentRecipe.id, file).subscribe({
+      next: (recipe) => {
+        this.recipe.set(recipe);
+        this.uploading.set(false);
+        // Cleared so choosing the same file again re-fires the change event.
+        input.value = '';
+      },
+      error: () => {
+        this.uploading.set(false);
+        this.uploadErrorKey.set('recipe.detail.uploadFailed');
+        input.value = '';
+      },
+    });
+  }
+
+  /**
+   * Ask for a key first. There is no shared one to fall back on, by design.
+   */
   regenerateImages(): void {
+    if (!this.recipe() || this.regenerating()) return;
+    this.keyDialogOpen.set(true);
+  }
+
+  onKeyDialogDismissed(): void {
+    this.keyDialogOpen.set(false);
+  }
+
+  /** Handed the plaintext key by the dialog; used for this run and not kept. */
+  onKeyUnlocked(apiKey: string): void {
+    this.keyDialogOpen.set(false);
     const currentRecipe = this.recipe();
     if (!currentRecipe) return;
 
     this.regenerating.set(true);
-    this.recipeService.regenerateImages(currentRecipe.id).subscribe({
+    this.recipeService.regenerateImages(currentRecipe.id, apiKey).subscribe({
       next: () => {
         setTimeout(() => {
           this.recipeService.getById(currentRecipe.id).subscribe((recipe) => {

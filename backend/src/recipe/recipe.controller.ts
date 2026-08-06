@@ -9,7 +9,11 @@ import {
   Query,
   HttpCode,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { RecipeService, RecipeSearchFilters } from './recipe.service.js';
 import {
   CreateRecipeRequestDto,
@@ -25,6 +29,8 @@ import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { ContributorGuard } from '../shared/auth/contributor.guard.js';
+import { GenerateImagesDto } from './dto/generate-images.dto.js';
+import { MAX_IMAGE_BYTES } from './recipe-image.service.js';
 
 @Controller('recipes')
 export class RecipeController {
@@ -109,13 +115,47 @@ export class RecipeController {
     return this.recipeService.delete(id, user.id);
   }
 
+  /**
+   * Upload a hero image.
+   *
+   * Contribution-gated like every other mutation of the shared library, and
+   * author-scoped inside the service. multer keeps the file in memory rather than
+   * writing it to a temp path first: the service sniffs its magic bytes before
+   * anything is written, so a rejected file never touches disk at all.
+   */
+  @UseGuards(SsoAuthGuard, ContributorGuard)
+  @Post(':id/image')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      limits: { fileSize: MAX_IMAGE_BYTES, files: 1 },
+    }),
+  )
+  async uploadImage(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @UploadedFile() file?: Express.Multer.File,
+  ): Promise<Recipe> {
+    if (!file) {
+      throw new BadRequestException('No image was uploaded.');
+    }
+    return this.recipeService.uploadImage(id, user.id, {
+      buffer: file.buffer,
+      size: file.size,
+    });
+  }
+
   @UseGuards(SsoAuthGuard, ContributorGuard)
   @Post(':id/regenerate-images')
   async regenerateImages(
     @CurrentUser() user: LocalUser,
     @Param('id') id: string,
+    @Body() dto: GenerateImagesDto,
   ): Promise<{ message: string }> {
-    const recipe = await this.recipeService.regenerateImages(id, user.id);
+    const recipe = await this.recipeService.regenerateImages(
+      id,
+      user.id,
+      dto.apiKey,
+    );
     return { message: `Image generation started for ${recipe.name}` };
   }
 }

@@ -9,6 +9,8 @@
  * service token when one is configured — see requestHeaders() below.
  */
 
+import { callerKey } from './caller-context.js';
+
 const DEFAULT_API_BASE = 'https://mhylle.com/api/recipe-manager/api';
 
 /** Locales the backend stores content in. Keep in sync with backend/src/shared/i18n. */
@@ -54,6 +56,17 @@ function requestHeaders(locale) {
     'Content-Type': 'application/json',
     'Accept-Language': acceptLanguage(locale),
   };
+
+  // A personal key wins. It identifies a person, so their writes are attributed
+  // to them and the contribution gate applies to them — whereas the service
+  // token makes every write look like the owner's, which is what personal keys
+  // were introduced to stop.
+  const personal = callerKey();
+  if (personal) {
+    headers['X-MCP-Key'] = personal;
+    return headers;
+  }
+
   const serviceToken = process.env.RECIPE_MANAGER_SERVICE_TOKEN;
   if (serviceToken) {
     headers['X-Service-Token'] = serviceToken;

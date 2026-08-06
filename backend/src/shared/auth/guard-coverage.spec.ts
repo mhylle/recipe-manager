@@ -19,6 +19,7 @@ import { StaplesController } from '../../staples/staples.controller.js';
 import { MeController } from './me.controller.js';
 import { PushController } from '../../push/push.controller.js';
 import { TimerController } from '../../push/timer.controller.js';
+import { ProfileController } from '../../profile/profile.controller.js';
 
 const CONTROLLERS = [
   AppController,
@@ -32,6 +33,7 @@ const CONTROLLERS = [
   MeController,
   PushController,
   TimerController,
+  ProfileController,
 ];
 
 const WRITE_METHODS = new Set([
@@ -193,6 +195,18 @@ describe('guard coverage across the whole API surface', () => {
    * cookbook, or every family member losing it — so both halves are asserted.
    */
   describe('shared-library contribution gate', () => {
+    it('gates the image UPLOAD too, not just generation', () => {
+      // Uploading replaces a picture in the shared library, so it is the same
+      // class of write as creating or regenerating.
+      const upload = routes.find(
+        (r) =>
+          r.controller === 'RecipeController' && r.handler === 'uploadImage',
+      );
+      expect(upload).toBeDefined();
+      expect(upload!.guarded).toBe(true);
+      expect(upload!.contributorGated).toBe(true);
+    });
+
     it('gates EVERY recipe mutation on the app grant', () => {
       const ungated = routes
         .filter(
@@ -228,6 +242,18 @@ describe('guard coverage across the whole API surface', () => {
         )
         .map((r) => r.handler);
       expect(gatedReads).toEqual([]);
+    });
+
+    it('lets a signed-in cook manage their own API key without a grant', () => {
+      // Storing your own Gemini key is not writing to the shared library, and
+      // someone who cannot yet contribute may well want it ready for when
+      // they can.
+      const profile = routes.filter(
+        (r) => r.controller === 'ProfileController',
+      );
+      expect(profile.length).toBeGreaterThanOrEqual(3);
+      expect(profile.every((r) => r.guarded)).toBe(true);
+      expect(profile.some((r) => r.contributorGated)).toBe(false);
     });
 
     it('lets a signed-in cook set their own timers without a grant', () => {

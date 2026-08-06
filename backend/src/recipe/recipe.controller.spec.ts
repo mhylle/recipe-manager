@@ -11,7 +11,10 @@ import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
 
 /** New recipes are attributed to whoever added them. */
 const martinUser = {
-  id: 'u-martin', ssoSubject: 's-martin', email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+  id: 'u-martin',
+  ssoSubject: 's-martin',
+  email: 'mhylle@yahoo.com',
+  displayName: 'Martin Hylleberg',
 };
 
 describe('RecipeController', () => {
@@ -60,7 +63,7 @@ describe('RecipeController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [RecipeController],
       providers: [{ provide: RecipeService, useValue: mockService }],
-    })// The controller is the unit here. Whether the guard admits a caller is
+    }) // The controller is the unit here. Whether the guard admits a caller is
       // SsoAuthGuard's own concern and is covered in its spec; wiring the real
       // one in would drag the user directory and Prisma into a controller test.
       .overrideGuard(SsoAuthGuard)
@@ -106,7 +109,12 @@ describe('RecipeController', () => {
 
       const result = await controller.create(martinUser, dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith('u-martin', dto, 'en', undefined);
+      expect(service.create).toHaveBeenCalledWith(
+        'u-martin',
+        dto,
+        'en',
+        undefined,
+      );
       expect(result).toEqual(mockRecipe);
     });
   });
@@ -114,17 +122,32 @@ describe('RecipeController', () => {
   describe('GET /api/recipes', () => {
     it('should return an array of recipes', async () => {
       const recipes = [mockRecipe];
-      service.findAll.mockResolvedValue({ data: recipes, total: 1, limit: 100, offset: 0 });
+      service.findAll.mockResolvedValue({
+        data: recipes,
+        total: 1,
+        limit: 100,
+        offset: 0,
+      });
 
       const result = await controller.findAll();
 
       expect(service.findAll).toHaveBeenCalled();
       expect(result.data).toEqual(recipes);
-      expect(result.meta).toEqual({ total: 1, limit: 100, offset: 0, hasMore: false });
+      expect(result.meta).toEqual({
+        total: 1,
+        limit: 100,
+        offset: 0,
+        hasMore: false,
+      });
     });
 
     it('should return empty array when no recipes exist', async () => {
-      service.findAll.mockResolvedValue({ data: [], total: 0, limit: 100, offset: 0 });
+      service.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        limit: 100,
+        offset: 0,
+      });
 
       const result = await controller.findAll();
 
@@ -160,9 +183,14 @@ describe('RecipeController', () => {
       const updatedRecipe = { ...mockRecipe, name: 'Blueberry Pancakes' };
       service.update.mockResolvedValue(updatedRecipe);
 
-      const result = await controller.update(martinUser, 'recipe-uuid-1', {
-        name: 'Blueberry Pancakes',
-      }, 'en');
+      const result = await controller.update(
+        martinUser,
+        'recipe-uuid-1',
+        {
+          name: 'Blueberry Pancakes',
+        },
+        'en',
+      );
 
       expect(service.update).toHaveBeenCalledWith(
         'recipe-uuid-1',

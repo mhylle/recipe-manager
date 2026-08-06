@@ -4,7 +4,10 @@ import type { PrismaService } from '../../prisma/prisma.service.js';
 
 /** Minimal in-memory stand-in for the `user` delegate, with a real unique index. */
 function fakePrisma() {
-  const rows = new Map<string, { id: string; ssoSubject: string; email: string; displayName: string }>();
+  const rows = new Map<
+    string,
+    { id: string; ssoSubject: string; email: string; displayName: string }
+  >();
   let seq = 0;
 
   const api = {
@@ -33,7 +36,9 @@ function fakePrisma() {
             api.failNextUpsertWithP2002 = false;
             // What Prisma throws when two concurrent upserts both miss the read
             // and both try to insert.
-            return Promise.reject(Object.assign(new Error('Unique constraint'), { code: 'P2002' }));
+            return Promise.reject(
+              Object.assign(new Error('Unique constraint'), { code: 'P2002' }),
+            );
           }
           const existing = rows.get(where.ssoSubject);
           if (existing) {
@@ -63,7 +68,8 @@ describe('UserService', () => {
   });
 
   afterAll(() => {
-    if (savedServiceUser === undefined) delete process.env.RECIPE_MANAGER_SERVICE_USER;
+    if (savedServiceUser === undefined)
+      delete process.env.RECIPE_MANAGER_SERVICE_USER;
     else process.env.RECIPE_MANAGER_SERVICE_USER = savedServiceUser;
   });
 
@@ -82,7 +88,12 @@ describe('UserService', () => {
     });
 
     it('does not create a second row on the next request', async () => {
-      const claims = { sub: SUBJECT, email: 'mhylle@yahoo.com', firstName: 'Martin', lastName: 'Hylleberg' };
+      const claims = {
+        sub: SUBJECT,
+        email: 'mhylle@yahoo.com',
+        firstName: 'Martin',
+        lastName: 'Hylleberg',
+      };
       const first = await service.resolveFromClaims(claims);
       const second = await service.resolveFromClaims(claims);
 
@@ -94,10 +105,16 @@ describe('UserService', () => {
       // The whole reason the join key is `sub` and not `email`. Keying on email
       // would strand this user's pantry behind their old address.
       const first = await service.resolveFromClaims({
-        sub: SUBJECT, email: 'old@example.com', firstName: 'Martin', lastName: 'Hylleberg',
+        sub: SUBJECT,
+        email: 'old@example.com',
+        firstName: 'Martin',
+        lastName: 'Hylleberg',
       });
       const second = await service.resolveFromClaims({
-        sub: SUBJECT, email: 'new@example.com', firstName: 'Martin', lastName: 'Hylleberg',
+        sub: SUBJECT,
+        email: 'new@example.com',
+        firstName: 'Martin',
+        lastName: 'Hylleberg',
       });
 
       expect(second.id).toBe(first.id);
@@ -108,8 +125,14 @@ describe('UserService', () => {
     it('keeps two subjects separate even if they share an email', async () => {
       // auth_db has a unique index on email, but nothing here should depend on
       // that: two subjects are two people, whatever address they present.
-      await service.resolveFromClaims({ sub: 'subject-a', email: 'shared@example.com' });
-      await service.resolveFromClaims({ sub: 'subject-b', email: 'shared@example.com' });
+      await service.resolveFromClaims({
+        sub: 'subject-a',
+        email: 'shared@example.com',
+      });
+      await service.resolveFromClaims({
+        sub: 'subject-b',
+        email: 'shared@example.com',
+      });
 
       expect(prisma.rows.size).toBe(2);
     });
@@ -118,40 +141,66 @@ describe('UserService', () => {
       // Two tabs, one cold start: both miss the read and both insert. One wins.
       // The loser must return the winner's row, not a unique-violation error.
       prisma.rows.set(SUBJECT, {
-        id: 'winner', ssoSubject: SUBJECT, email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+        id: 'winner',
+        ssoSubject: SUBJECT,
+        email: 'mhylle@yahoo.com',
+        displayName: 'Martin Hylleberg',
       });
       prisma.failNextUpsertWithP2002 = true;
 
-      const user = await service.resolveFromClaims({ sub: SUBJECT, email: 'mhylle@yahoo.com' });
+      const user = await service.resolveFromClaims({
+        sub: SUBJECT,
+        email: 'mhylle@yahoo.com',
+      });
       expect(user.id).toBe('winner');
     });
 
     it('rethrows a non-P2002 database failure instead of swallowing it', async () => {
-      prisma.user.upsert.mockRejectedValueOnce(Object.assign(new Error('boom'), { code: 'P1001' }));
-      await expect(service.resolveFromClaims({ sub: SUBJECT, email: 'x@y.z' })).rejects.toThrow('boom');
+      prisma.user.upsert.mockRejectedValueOnce(
+        Object.assign(new Error('boom'), { code: 'P1001' }),
+      );
+      await expect(
+        service.resolveFromClaims({ sub: SUBJECT, email: 'x@y.z' }),
+      ).rejects.toThrow('boom');
     });
   });
 
   describe('display name', () => {
     it('prefers an explicit name claim', async () => {
       const u = await service.resolveFromClaims({
-        sub: 's1', email: 'a@b.c', name: 'Preferred Name', firstName: 'Ignored', lastName: 'Ignored',
+        sub: 's1',
+        email: 'a@b.c',
+        name: 'Preferred Name',
+        firstName: 'Ignored',
+        lastName: 'Ignored',
       });
       expect(u.displayName).toBe('Preferred Name');
     });
 
     it('composes first and last when there is no name claim', async () => {
-      const u = await service.resolveFromClaims({ sub: 's2', email: 'a@b.c', firstName: 'Heidi', lastName: 'Klitgaard' });
+      const u = await service.resolveFromClaims({
+        sub: 's2',
+        email: 'a@b.c',
+        firstName: 'Heidi',
+        lastName: 'Klitgaard',
+      });
       expect(u.displayName).toBe('Heidi Klitgaard');
     });
 
     it('falls back to the email rather than showing a blank byline', async () => {
-      const u = await service.resolveFromClaims({ sub: 's3', email: 'nameless@example.com' });
+      const u = await service.resolveFromClaims({
+        sub: 's3',
+        email: 'nameless@example.com',
+      });
       expect(u.displayName).toBe('nameless@example.com');
     });
 
     it('does not leave a stray space when only one part is present', async () => {
-      const u = await service.resolveFromClaims({ sub: 's4', email: 'a@b.c', firstName: 'Cassandra' });
+      const u = await service.resolveFromClaims({
+        sub: 's4',
+        email: 'a@b.c',
+        firstName: 'Cassandra',
+      });
       expect(u.displayName).toBe('Cassandra');
     });
   });
@@ -159,7 +208,10 @@ describe('UserService', () => {
   describe('the machine caller', () => {
     it('resolves the configured service user', async () => {
       prisma.rows.set(SUBJECT, {
-        id: 'martin', ssoSubject: SUBJECT, email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+        id: 'martin',
+        ssoSubject: SUBJECT,
+        email: 'mhylle@yahoo.com',
+        displayName: 'Martin Hylleberg',
       });
       process.env.RECIPE_MANAGER_SERVICE_USER = SUBJECT;
 
@@ -171,14 +223,18 @@ describe('UserService', () => {
     it('refuses when no service user is configured — never writes unattributed', async () => {
       // A row with no owner is a row nothing can later reach.
       delete process.env.RECIPE_MANAGER_SERVICE_USER;
-      await expect(service.resolveServiceUser()).rejects.toThrow(UnauthorizedException);
+      await expect(service.resolveServiceUser()).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it('refuses when the configured subject has no local row, rather than inventing one', async () => {
       // Catches a typo'd subject at the first request instead of silently
       // creating a ghost user that owns production writes.
       process.env.RECIPE_MANAGER_SERVICE_USER = 'not-a-real-subject';
-      await expect(service.resolveServiceUser()).rejects.toThrow(UnauthorizedException);
+      await expect(service.resolveServiceUser()).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 });

@@ -1,0 +1,170 @@
+<section class="profile">
+  <h1 class="profile__title">{{ 'profile.title' | t }}</h1>
+
+  @if (!auth.isAuthenticated()) {
+    <p class="profile__signed-out" role="status">{{ 'profile.signedOut' | t }}</p>
+  } @else {
+    <p class="profile__identity">{{ auth.displayName() }}</p>
+
+    <article class="profile__card">
+      <h2 class="profile__card-title">{{ 'profile.gemini.heading' | t }}</h2>
+      <p class="profile__intro">{{ 'profile.gemini.intro' | t }}</p>
+
+      @if (state()?.configured) {
+        <p class="profile__status profile__status--set" role="status">
+          {{ 'profile.gemini.stored' | t }}
+          @if (state()?.updatedAt) {
+            <span class="profile__stamp">{{ state()!.updatedAt }}</span>
+          }
+        </p>
+      } @else {
+        <p class="profile__status" role="status">{{ 'profile.gemini.notStored' | t }}</p>
+      }
+
+      @if (!supported) {
+        <p class="profile__error" role="alert">{{ 'profile.gemini.errUnsupported' | t }}</p>
+      } @else {
+        <!-- The plain key lives only in this field and is cleared as soon as it
+             has been sealed. Nothing here ever renders a stored key back. -->
+        <label class="profile__label" for="gemini-key">{{ 'profile.gemini.keyLabel' | t }}</label>
+        <input
+          id="gemini-key"
+          name="geminiKey"
+          type="password"
+          autocomplete="off"
+          class="profile__input"
+          [(ngModel)]="apiKey"
+          [disabled]="busy()"
+        />
+
+        <label class="profile__label" for="gemini-pass">{{ 'profile.gemini.passLabel' | t }}</label>
+        <input
+          id="gemini-pass"
+          name="passphrase"
+          type="password"
+          autocomplete="new-password"
+          class="profile__input"
+          [(ngModel)]="passphrase"
+          [disabled]="busy()"
+        />
+        <p class="profile__hint">{{ 'profile.gemini.passHint' | t }}</p>
+
+        <label class="profile__label" for="gemini-pass2">{{ 'profile.gemini.confirmLabel' | t }}</label>
+        <input
+          id="gemini-pass2"
+          name="confirmPassphrase"
+          type="password"
+          autocomplete="new-password"
+          class="profile__input"
+          [(ngModel)]="confirmPassphrase"
+          [disabled]="busy()"
+        />
+
+        <p class="profile__warning">{{ 'profile.gemini.noRecovery' | t }}</p>
+
+        @if (message(); as key) {
+          <p
+            class="profile__message"
+            [class.profile__message--error]="messageIsError()"
+            [attr.role]="messageIsError() ? 'alert' : 'status'"
+          >
+            {{ key | t }}
+          </p>
+        }
+
+        <div class="profile__actions">
+          @if (state()?.configured) {
+            <button
+              type="button"
+              class="btn btn--danger btn--small"
+              (click)="remove()"
+              [disabled]="busy()"
+            >
+              {{ 'profile.gemini.remove' | t }}
+            </button>
+          }
+          <span class="profile__spacer"></span>
+          <button
+            type="button"
+            class="btn btn--primary btn--small"
+            (click)="save()"
+            [disabled]="busy()"
+          >
+            {{ (busy() ? 'profile.gemini.saving' : (state()?.configured ? 'profile.gemini.replace' : 'profile.gemini.save')) | t }}
+          </button>
+        </div>
+      }
+    </article>
+
+    <article class="profile__card">
+      <h2 class="profile__card-title">{{ 'profile.mcp.heading' | t }}</h2>
+      <p class="profile__intro">{{ 'profile.mcp.intro' | t }}</p>
+      <p class="profile__intro">
+        <a routerLink="/mcp-guide" class="profile__guide-link">{{ 'profile.mcp.guideLink' | t }}</a>
+      </p>
+
+      @if (freshToken(); as token) {
+        <!-- The only moment this exists outside the user's clipboard: the backend
+             stores a hash and no route returns it again. -->
+        <div class="profile__token" role="status">
+          <p class="profile__token-warn">{{ 'profile.mcp.copyNow' | t }}</p>
+          <code class="profile__token-value">{{ token }}</code>
+          <button type="button" class="btn btn--ghost btn--small" (click)="dismissToken()">
+            {{ 'profile.mcp.dismissToken' | t }}
+          </button>
+        </div>
+      }
+
+      <label class="profile__label" for="mcp-label">{{ 'profile.mcp.labelLabel' | t }}</label>
+      <input
+        id="mcp-label"
+        name="mcpLabel"
+        type="text"
+        class="profile__input"
+        [(ngModel)]="mcpLabel"
+        [disabled]="mcpBusy()"
+      />
+
+      @if (mcpErrorKey(); as key) {
+        <p class="profile__error" role="alert">{{ key | t }}</p>
+      }
+
+      <div class="profile__actions">
+        <span class="profile__spacer"></span>
+        <button
+          type="button"
+          class="btn btn--primary btn--small"
+          (click)="createMcpKey()"
+          [disabled]="mcpBusy()"
+        >
+          {{ (mcpBusy() ? 'profile.mcp.creating' : 'profile.mcp.create') | t }}
+        </button>
+      </div>
+
+      @if (mcpKeys().length > 0) {
+        <ul class="profile__keys">
+          @for (key of mcpKeys(); track key.id) {
+            <li class="profile__key" [class.profile__key--revoked]="!isActive(key)">
+              <span class="profile__key-label">{{ key.label }}</span>
+              <code class="profile__key-prefix">{{ key.prefix }}…</code>
+              @if (isActive(key)) {
+                <button
+                  type="button"
+                  class="btn btn--text btn--small"
+                  (click)="revokeMcpKey(key.id)"
+                  [disabled]="mcpBusy()"
+                >
+                  {{ 'profile.mcp.revoke' | t }}
+                </button>
+              } @else {
+                <span class="profile__key-state">{{ 'profile.mcp.revoked' | t }}</span>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="profile__status">{{ 'profile.mcp.none' | t }}</p>
+      }
+    </article>
+  }
+</section>

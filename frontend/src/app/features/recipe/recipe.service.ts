@@ -98,8 +98,31 @@ export class RecipeService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  regenerateImages(id: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/regenerate-images`, {});
+  /**
+   * Replace a recipe's hero image with an uploaded file.
+   *
+   * The path that needs no API key from anyone — which is what keeps the library
+   * usable for a cook with no Gemini account now that there is no shared key.
+   * Deliberately sends FormData and sets no Content-Type: the browser has to add
+   * the multipart boundary, and setting the header by hand strips it.
+   */
+  uploadImage(id: string, file: File): Observable<Recipe> {
+    const form = new FormData();
+    form.append('image', file);
+    return this.http.post<Recipe>(`${this.baseUrl}/${id}/image`, form);
+  }
+
+  /**
+   * Generate images using the CALLER'S Gemini key.
+   *
+   * The key is a request parameter, not something the server looks up: the stored
+   * copy is encrypted with a passphrase only the user knows, and a user may
+   * choose to supply a key without storing it at all.
+   */
+  regenerateImages(id: string, apiKey: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/regenerate-images`, {
+      apiKey,
+    });
   }
 }
 

@@ -3,6 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { SsoAuthGuard } from './sso-auth.guard.js';
 import type { RequestWithUser } from './request-with-user.js';
 import type { UserService, SsoClaims } from './user.service.js';
+import type { McpKeyService } from '../../profile/mcp-key.service.js';
 
 /**
  * Stands in for the directory. The guard's job is deciding WHETHER a caller is
@@ -17,6 +18,15 @@ function fakeUsers() {
         ssoSubject: claims.sub,
         email: claims.email,
         displayName: claims.name ?? claims.email,
+      }),
+    ),
+    // The MCP-key path resolves the local row directly, having no claims.
+    findById: jest.fn((id: string) =>
+      Promise.resolve({
+        id,
+        ssoSubject: `subject-for-${id}`,
+        email: 'cook@example.com',
+        displayName: 'A Cook',
       }),
     ),
     resolveServiceUser: jest.fn(() =>
@@ -55,9 +65,28 @@ function sign(
   );
 }
 
+/**
+ * Personal MCP keys the guard can resolve. `rmk_granted` belongs to someone with
+ * the contribution grant, `rmk_plain` to someone without it.
+ */
+function fakeMcpKeys() {
+  return {
+    resolve: jest.fn((token: string) => {
+      if (token === 'rmk_granted') {
+        return Promise.resolve({ userId: 'local-mcp', canContribute: true });
+      }
+      if (token === 'rmk_plain') {
+        return Promise.resolve({ userId: 'local-mcp', canContribute: false });
+      }
+      return Promise.resolve(null);
+    }),
+  };
+}
+
 describe('SsoAuthGuard', () => {
   let guard: SsoAuthGuard;
   let users: ReturnType<typeof fakeUsers>;
+  let mcpKeys: ReturnType<typeof fakeMcpKeys>;
   const savedSecret = process.env.JWT_SECRET;
   const savedService = process.env.RECIPE_MANAGER_SERVICE_TOKEN;
 
@@ -65,7 +94,11 @@ describe('SsoAuthGuard', () => {
     process.env.JWT_SECRET = SECRET;
     process.env.RECIPE_MANAGER_SERVICE_TOKEN = SERVICE_TOKEN;
     users = fakeUsers();
-    guard = new SsoAuthGuard(users as unknown as UserService);
+    mcpKeys = fakeMcpKeys();
+    guard = new SsoAuthGuard(
+      users as unknown as UserService,
+      mcpKeys as unknown as McpKeyService,
+    );
   });
 
   afterAll(() => {
@@ -289,5 +322,69 @@ describe('SsoAuthGuard', () => {
       await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
       expect(request.canContribute).toBe(false);
     });
+  });
+});
+
+/**
+ * Personal MCP keys.
+ *
+ * The point of them: an assistant's writes are attributed to the person whose key
+ * it is, and the contribution gate applies to that person — rather than every MCP
+ * write looking like the owner's, which is what the shared token did.
+ */
+describe('SsoAuthGuard — personal MCP keys', () => {
+  let guard: SsoAuthGuard;
+  let users: ReturnType<typeof fakeUsers>;
+  let mcpKeys: ReturnType<typeof fakeMcpKeys>;
+
+  beforeEach(() => {
+    users = fakeUsers();
+    mcpKeys = fakeMcpKeys();
+    guard = new SsoAuthGuard(
+      users as unknown as UserService,
+      mcpKeys as unknown as McpKeyService,
+    );
+  });
+
+  it('resolves a valid key to its owner', async () => {
+    const request: Partial<RequestWithUser> = {
+      headers: { 'x-mcp-key': 'rmk_granted' },
+    };
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+
+    expect(request.user?.id).toBe('local-mcp');
+    expect(request.canContribute).toBe(true);
+  });
+
+  it('carries the owner\u2019s grant, not a blanket one', async () => {
+    const request: Partial<RequestWithUser> = {
+      headers: { 'x-mcp-key': 'rmk_plain' },
+    };
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+
+    // Authenticated, but cannot write to the shared library.
+    expect(request.user?.id).toBe('local-mcp');
+    expect(request.canContribute).toBe(false);
+  });
+
+  it('rejects an unknown or revoked key', async () => {
+    await expect(
+      guard.canActivate(
+        contextFor({ headers: { 'x-mcp-key': 'rmk_revoked' } }),
+      ),
+    ).rejects.toThrow(UnauthorizedException);
+  });
+
+  it('is preferred over the shared service token', async () => {
+    // A caller presenting both should be judged on their own credential, so the
+    // write is attributed to them rather than to the service user.
+    process.env.RECIPE_MANAGER_SERVICE_TOKEN = SERVICE_TOKEN;
+    const request: Partial<RequestWithUser> = {
+      headers: { 'x-mcp-key': 'rmk_granted', 'x-service-token': SERVICE_TOKEN },
+    };
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+
+    expect(request.user?.id).toBe('local-mcp');
+    expect(users.resolveServiceUser).not.toHaveBeenCalled();
   });
 });

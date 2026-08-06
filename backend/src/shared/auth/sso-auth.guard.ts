@@ -9,6 +9,7 @@ import * as jwt from 'jsonwebtoken';
 import type { RequestWithUser } from './request-with-user.js';
 import { UserService, type SsoClaims } from './user.service.js';
 import { grantsAppAccess } from './app-access.js';
+import { McpKeyService } from '../../profile/mcp-key.service.js';
 
 /** Claims minted by the central mhylle auth-service (HS256). */
 interface JwtCookiePayload {
@@ -55,7 +56,10 @@ function claimsOf(payload: JwtCookiePayload): SsoClaims {
  */
 @Injectable()
 export class SsoAuthGuard implements CanActivate {
-  constructor(private readonly users: UserService) {}
+  constructor(
+    private readonly users: UserService,
+    private readonly mcpKeys: McpKeyService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<RequestWithUser>();
@@ -65,11 +69,32 @@ export class SsoAuthGuard implements CanActivate {
       const payload = this.verifyJwt(jwtToken);
       // Resolving to a local row is what lets everything downstream hold a
       // foreign key to a person, and it provisions on first sight.
-      request.user = await this.users.resolveFromClaims(claimsOf(payload));
-      // Read from the token on every request rather than cached on the user
-      // row: the grant lives in the auth-service, and a stored copy would keep
-      // letting someone write after their access was revoked.
-      request.canContribute = grantsAppAccess(payload.apps);
+      // Read from the token on every request. The copy written to the user row
+      // is only for credentials that carry no token at all.
+      const canContribute = grantsAppAccess(payload.apps);
+      request.user = await this.users.resolveFromClaims(
+        claimsOf(payload),
+        canContribute,
+      );
+      request.canContribute = canContribute;
+      return true;
+    }
+
+    // A personal MCP credential. Checked before the shared service token so a
+    // user's own key wins, and so writes are attributed to them rather than to
+    // whoever RECIPE_MANAGER_SERVICE_USER happens to be.
+    const mcpKey = request.headers['x-mcp-key'];
+    if (typeof mcpKey === 'string' && mcpKey.length > 0) {
+      const resolved = await this.mcpKeys.resolve(mcpKey);
+      if (!resolved) {
+        throw new UnauthorizedException('Invalid or revoked MCP key');
+      }
+      const user = await this.users.findById(resolved.userId);
+      if (!user) {
+        throw new UnauthorizedException('MCP key belongs to no known user');
+      }
+      request.user = user;
+      request.canContribute = resolved.canContribute;
       return true;
     }
 

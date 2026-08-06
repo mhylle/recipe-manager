@@ -66,6 +66,34 @@ export function presentedToken(headers) {
   return typeof direct === 'string' && direct.trim().length > 0 ? direct.trim() : null;
 }
 
+/**
+ * The prefix every personal key carries. Kept in step with McpKeyService on the
+ * backend, which mints them.
+ */
+const PERSONAL_KEY_PREFIX = 'rmk_';
+
+/** Whether a presented credential looks like somebody's own key. */
+export function isPersonalKey(value) {
+  return typeof value === 'string' && value.startsWith(PERSONAL_KEY_PREFIX);
+}
+
+/**
+ * Whether this request may proceed.
+ *
+ * Two accepted credentials, and they are different things:
+ *
+ * 1. **A personal key** (`rmk_…`) — forwarded to the backend, which is the only
+ *    thing that can say whether it is real, whose it is, and whether it has been
+ *    revoked. Accepting it here on shape alone is deliberate: this process holds
+ *    no key material, and a write with a bogus key gets a 401 from the API. Reads
+ *    are public anyway, so nothing is exposed by being permissive at this hop.
+ * 2. **The shared service token** — the pre-existing path, still accepted so a
+ *    Desktop config that predates personal keys keeps working.
+ */
 export function isAuthorised(headers, expected) {
-  return tokenMatches(presentedToken(headers), expected);
+  const presented = presentedToken(headers);
+  if (isPersonalKey(presented)) {
+    return true;
+  }
+  return tokenMatches(presented, expected);
 }

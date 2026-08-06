@@ -1,6 +1,12 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { extractBearer, tokenMatches, requireToken, isAuthorised } from '../lib/auth.js';
+import {
+  extractBearer,
+  tokenMatches,
+  requireToken,
+  isAuthorised,
+  isPersonalKey,
+} from '../lib/auth.js';
 
 const SECRET = 'a'.repeat(64);
 
@@ -108,5 +114,33 @@ describe('requireToken', () => {
     process.env.RECIPE_MANAGER_MCP_TOKEN = SECRET;
     assert.equal(requireToken(), SECRET);
     restore();
+  });
+});
+
+
+describe('personal MCP keys', () => {
+  it('recognises a key by its prefix', () => {
+    assert.equal(isPersonalKey('rmk_abcdef'), true);
+    assert.equal(isPersonalKey('not-a-key'), false);
+    assert.equal(isPersonalKey(undefined), false);
+    assert.equal(isPersonalKey(null), false);
+  });
+
+  it('lets a personal key through without matching the shared token', () => {
+    // This process holds no key material. Only the backend can say whether a
+    // personal key is real, whose it is, or whether it was revoked — so a write
+    // with a bogus key gets a 401 from the API, and reads are public anyway.
+    assert.equal(isAuthorised({ 'x-mcp-token': 'rmk_whatever' }, SECRET), true);
+    assert.equal(isAuthorised({ authorization: 'Bearer rmk_whatever' }, SECRET), true);
+  });
+
+  it('still accepts the shared service token', () => {
+    // A Desktop config that predates personal keys must keep working.
+    assert.equal(isAuthorised({ authorization: `Bearer ${SECRET}` }, SECRET), true);
+  });
+
+  it('still rejects a wrong non-personal token', () => {
+    assert.equal(isAuthorised({ authorization: 'Bearer wrong-token-entirely' }, SECRET), false);
+    assert.equal(isAuthorised({}, SECRET), false);
   });
 });

@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
@@ -66,7 +70,11 @@ type RecipeRow = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
  * is exactly the drift the normalisation migration had to clean up.
  */
 function canonicalTags(tags: string[]): string[] {
-  return [...new Set(tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0))].sort();
+  return [
+    ...new Set(
+      tags.map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0),
+    ),
+  ].sort();
 }
 
 @Injectable()
@@ -76,13 +84,20 @@ export class RecipeRepository {
   async create(
     createdById: string,
     data: Omit<Recipe, 'id'>,
-    options: { sourceLocale?: Locale; translations?: RecipeTranslationInput[] } = {},
+    options: {
+      sourceLocale?: Locale;
+      translations?: RecipeTranslationInput[];
+    } = {},
   ): Promise<Recipe> {
     const sourceLocale = options.sourceLocale ?? DEFAULT_LOCALE;
     // The flat payload IS the source-locale text; extra languages arrive in
     // `translations`. Both go into the translation tables — the base row holds no
     // prose, so there is no second copy to drift out of sync.
-    const byLocale = this.mergeTranslations(data, sourceLocale, options.translations);
+    const byLocale = this.mergeTranslations(
+      data,
+      sourceLocale,
+      options.translations,
+    );
 
     const result = await this.prisma.recipe.create({
       data: {
@@ -152,7 +167,12 @@ export class RecipeRepository {
       this.prisma.recipe.count({ where }),
     ]);
 
-    return { data: rows.map((r) => this.toInterface(r, locale)), total, limit, offset };
+    return {
+      data: rows.map((r) => this.toInterface(r, locale)),
+      total,
+      limit,
+      offset,
+    };
   }
 
   /**
@@ -166,7 +186,10 @@ export class RecipeRepository {
    * locale, and some translation matches" — which, with two supported locales,
    * can only be the source translation.
    */
-  private buildWhere(filters: RecipeSearchFilters, locale: Locale): Prisma.RecipeWhereInput {
+  private buildWhere(
+    filters: RecipeSearchFilters,
+    locale: Locale,
+  ): Prisma.RecipeWhereInput {
     const where: Prisma.RecipeWhereInput = {};
 
     if (filters.difficulty) {
@@ -181,7 +204,9 @@ export class RecipeRepository {
     if (filters.tags && filters.tags.length > 0) {
       // Tags are stored canonically lowercase (see the normalisation migration),
       // so an exact array match is now the case-insensitive match it used to be.
-      where.tags = { hasEvery: filters.tags.map((t) => t.trim().toLowerCase()) };
+      where.tags = {
+        hasEvery: filters.tags.map((t) => t.trim().toLowerCase()),
+      };
     }
 
     if (filters.query) {
@@ -240,7 +265,8 @@ export class RecipeRepository {
       description: t.description,
       instructions: t.instructions,
       ingredientNames: result.ingredients.map(
-        (ing) => ing.translations.find((it) => it.locale === t.locale)?.name ?? '',
+        (ing) =>
+          ing.translations.find((it) => it.locale === t.locale)?.name ?? '',
       ),
     }));
   }
@@ -271,11 +297,13 @@ export class RecipeRepository {
     // Text in the payload edits the locale the caller is VIEWING in, not the
     // source locale — otherwise a Danish reader's edit would silently overwrite
     // the English text.
-    const editLocale: Locale = options.locale ?? (existing.sourceLocale as Locale);
+    const editLocale: Locale =
+      options.locale ?? (existing.sourceLocale as Locale);
 
     const updateData: Record<string, unknown> = {};
     if (data.servings !== undefined) updateData.servings = data.servings;
-    if (data.instructionImages !== undefined) updateData.instructionImages = data.instructionImages;
+    if (data.instructionImages !== undefined)
+      updateData.instructionImages = data.instructionImages;
     if (data.prepTime !== undefined) updateData.prepTime = data.prepTime;
     if (data.cookTime !== undefined) updateData.cookTime = data.cookTime;
     if (data.difficulty !== undefined) updateData.difficulty = data.difficulty;
@@ -316,7 +344,9 @@ export class RecipeRepository {
         for (const [index, ing] of data.ingredients.entries()) {
           const names = [...namesByLocale.entries()]
             .map(([locale, list]) => ({ locale, name: list[index] }))
-            .filter((n): n is { locale: string; name: string } => Boolean(n.name));
+            .filter((n): n is { locale: string; name: string } =>
+              Boolean(n.name),
+            );
           await tx.recipeIngredient.create({
             data: {
               recipeId: id,
@@ -330,13 +360,17 @@ export class RecipeRepository {
         }
       }
 
-      const textEdits: RecipeTranslationInput[] = [...(options.translations ?? [])];
+      const textEdits: RecipeTranslationInput[] = [
+        ...(options.translations ?? []),
+      ];
       const hasInlineText =
         data.name !== undefined ||
         data.description !== undefined ||
         data.instructions !== undefined;
       if (hasInlineText && !textEdits.some((t) => t.locale === editLocale)) {
-        const current = existing.translations.find((t) => t.locale === editLocale);
+        const current = existing.translations.find(
+          (t) => t.locale === editLocale,
+        );
         textEdits.push({
           locale: editLocale,
           name: data.name ?? current?.name ?? '',
@@ -358,7 +392,10 @@ export class RecipeRepository {
             }
             await tx.recipeIngredientTranslation.upsert({
               where: {
-                ingredientId_locale: { ingredientId: ingredient.id, locale: t.locale },
+                ingredientId_locale: {
+                  ingredientId: ingredient.id,
+                  locale: t.locale,
+                },
               },
               create: { ingredientId: ingredient.id, locale: t.locale, name },
               update: { name },
@@ -377,7 +414,11 @@ export class RecipeRepository {
             description: t.description,
             instructions: t.instructions,
           },
-          update: { name: t.name, description: t.description, instructions: t.instructions },
+          update: {
+            name: t.name,
+            description: t.description,
+            instructions: t.instructions,
+          },
         });
       }
     });
@@ -434,10 +475,13 @@ export class RecipeRepository {
         ? { id: result.createdBy.id, displayName: result.createdBy.displayName }
         : undefined,
       ingredients: result.ingredients.map((ing) => ({
-        name: pickTranslation(ing.translations, locale, result.sourceLocale)?.name ?? '',
+        name:
+          pickTranslation(ing.translations, locale, result.sourceLocale)
+            ?.name ?? '',
         quantity: ing.quantity,
         unit: ing.unit as Recipe['ingredients'][0]['unit'],
-        pantryCategory: ing.pantryCategory as Recipe['ingredients'][0]['pantryCategory'],
+        pantryCategory:
+          ing.pantryCategory as Recipe['ingredients'][0]['pantryCategory'],
       })),
     };
   }

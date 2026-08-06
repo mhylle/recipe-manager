@@ -148,4 +148,14 @@
       </p>
     </section>
   }
+
+  <!-- Discoverable rather than tucked away: the whole point of personal MCP keys
+       is that a cook can set this up without anyone doing it for them. -->
+  <section class="mcp-pitch">
+    <h2 class="mcp-pitch__title">{{ 'dashboard.mcp.title' | t }}</h2>
+    <p class="mcp-pitch__body">{{ 'dashboard.mcp.body' | t }}</p>
+    <a routerLink="/mcp-guide" class="btn btn--ghost btn--small">{{
+      'dashboard.mcp.action' | t
+    }}</a>
+  </section>
 </div>

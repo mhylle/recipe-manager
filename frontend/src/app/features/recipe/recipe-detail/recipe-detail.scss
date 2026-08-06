@@ -569,3 +569,25 @@
 @media (prefers-reduced-motion: reduce) {
   .timer-chip--done { animation: none; }
 }
+
+// A file input styled as a button: the native control cannot be made to match
+// the others, so it is hidden behind its own label.
+.recipe-view__upload {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.recipe-view__upload-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.recipe-view__upload-error {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--error, #ba1a1a);
+}

@@ -265,9 +265,33 @@
         >
           {{ (regenerating() ? 'recipe.detail.generating' : 'recipe.detail.regenerate') | t }}
         </button>
+
+        <!-- The no-API-key path. A hidden input behind a label, because a bare
+             file input cannot be styled to match the other buttons. -->
+        <label class="btn btn--text btn--small recipe-view__upload">
+          {{ (uploading() ? 'recipe.detail.uploading' : 'recipe.detail.uploadImage') | t }}
+          <input
+            type="file"
+            class="recipe-view__upload-input"
+            accept="image/png,image/jpeg,image/webp"
+            [disabled]="uploading()"
+            (change)="onImageSelected($event)"
+          />
+        </label>
       }
     </nav>
+
+    @if (uploadErrorKey(); as key) {
+      <p class="recipe-view__upload-error" role="alert">{{ key | t }}</p>
+    }
   </article>
+
+  @if (keyDialogOpen()) {
+    <app-gemini-key-dialog
+      (unlocked)="onKeyUnlocked($event)"
+      (dismissed)="onKeyDialogDismissed()"
+    />
+  }
 } @else {
   <div class="recipe-view__loading" role="status">
     <div class="loading-spinner" aria-hidden="true"></div>
