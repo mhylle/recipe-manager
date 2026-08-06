@@ -71,12 +71,16 @@ export class SsoAuthGuard implements CanActivate {
       // foreign key to a person, and it provisions on first sight.
       // Read from the token on every request. The copy written to the user row
       // is only for credentials that carry no token at all.
-      const canContribute = grantsAppAccess(payload.apps);
-      request.user = await this.users.resolveFromClaims(
+      const appGrant = grantsAppAccess(payload.apps);
+      const user = await this.users.resolveFromClaims(
         claimsOf(payload),
-        canContribute,
+        appGrant,
       );
-      request.canContribute = canContribute;
+      request.user = user;
+      // Either source is enough. The local grant is what the owner sets on the
+      // admin page, and it takes effect on the very next request rather than
+      // waiting for the auth-service grant to reach a new token.
+      request.canContribute = appGrant || user.localContributor === true;
       return true;
     }
 
@@ -94,7 +98,10 @@ export class SsoAuthGuard implements CanActivate {
         throw new UnauthorizedException('MCP key belongs to no known user');
       }
       request.user = user;
-      request.canContribute = resolved.canContribute;
+      // Same OR as the browser path. Without it an owner's approval would not
+      // reach someone's MCP key until they next signed in through a browser.
+      request.canContribute =
+        resolved.canContribute || user.localContributor === true;
       return true;
     }
 

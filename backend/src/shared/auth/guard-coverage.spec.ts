@@ -20,6 +20,7 @@ import { MeController } from './me.controller.js';
 import { PushController } from '../../push/push.controller.js';
 import { TimerController } from '../../push/timer.controller.js';
 import { ProfileController } from '../../profile/profile.controller.js';
+import { AdminController } from '../../admin/admin.controller.js';
 
 const CONTROLLERS = [
   AppController,
@@ -34,6 +35,7 @@ const CONTROLLERS = [
   PushController,
   TimerController,
   ProfileController,
+  AdminController,
 ];
 
 const WRITE_METHODS = new Set([
@@ -217,6 +219,15 @@ describe('guard coverage across the whole API surface', () => {
         )
         .map((r) => `${r.handler} (${RequestMethod[r.method]} ${r.path})`);
       expect(ungated).toEqual([]);
+    });
+
+    it('leaves the admin routes to OwnerGuard, not the contribution gate', () => {
+      // Administering access is not contributing to the library; it is a
+      // different question with a different guard.
+      const admin = routes.filter((r) => r.controller === 'AdminController');
+      expect(admin.length).toBeGreaterThanOrEqual(2);
+      expect(admin.every((r) => r.guarded)).toBe(true);
+      expect(admin.some((r) => r.contributorGated)).toBe(false);
     });
 
     it('gates nothing else — a self-registered cook keeps their own kitchen', () => {

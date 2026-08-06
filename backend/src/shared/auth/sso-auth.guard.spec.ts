@@ -11,13 +11,22 @@ import type { McpKeyService } from './mcp-key.service.js';
  * UserService's job and is tested in its own spec.
  */
 function fakeUsers() {
+  /** Set by a test to model an owner-granted local contributor. */
+  const state = { localContributor: false };
   return {
+    get localContributor() {
+      return state.localContributor;
+    },
+    set localContributor(value: boolean) {
+      state.localContributor = value;
+    },
     resolveFromClaims: jest.fn((claims: SsoClaims) =>
       Promise.resolve({
         id: `local-${claims.sub}`,
         ssoSubject: claims.sub,
         email: claims.email,
         displayName: claims.name ?? claims.email,
+        localContributor: state.localContributor,
       }),
     ),
     // The MCP-key path resolves the local row directly, having no claims.
@@ -27,6 +36,7 @@ function fakeUsers() {
         ssoSubject: `subject-for-${id}`,
         email: 'cook@example.com',
         displayName: 'A Cook',
+        localContributor: state.localContributor,
       }),
     ),
     resolveServiceUser: jest.fn(() =>
@@ -194,6 +204,8 @@ describe('SsoAuthGuard', () => {
         ssoSubject: 'user-42',
         email: 'martin@example.com',
         displayName: 'martin@example.com',
+        // Carried on the row so the guard can OR it with the token's grant.
+        localContributor: false,
       });
       expect(request.user!.id).not.toBe(request.user!.ssoSubject);
     });
@@ -386,5 +398,75 @@ describe('SsoAuthGuard — personal MCP keys', () => {
 
     expect(request.user?.id).toBe('local-mcp');
     expect(users.resolveServiceUser).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * A grant made on this app's admin page.
+ *
+ * It exists because granting through the auth-service reaches a person only when
+ * they next sign in — and their MCP key later still. Both credential paths must
+ * therefore honour it immediately, or an owner clicking "allow" appears to have
+ * done nothing.
+ */
+describe('SsoAuthGuard — locally granted contribution', () => {
+  let guard: SsoAuthGuard;
+  let users: ReturnType<typeof fakeUsers>;
+  let mcpKeys: ReturnType<typeof fakeMcpKeys>;
+
+  beforeEach(() => {
+    process.env.JWT_SECRET = SECRET;
+    process.env.RECIPE_MANAGER_SERVICE_TOKEN = SERVICE_TOKEN;
+    users = fakeUsers();
+    mcpKeys = fakeMcpKeys();
+    guard = new SsoAuthGuard(
+      users as unknown as UserService,
+      mcpKeys as unknown as McpKeyService,
+    );
+  });
+
+  it('grants contribution over a token that carries no app grant', async () => {
+    users.localContributor = true;
+    const request: Partial<RequestWithUser> = {
+      cookies: { auth_token: sign({ apps: ['games'] }) },
+      headers: {},
+    };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.canContribute).toBe(true);
+  });
+
+  it('grants contribution over an MCP key whose cached grant is false', async () => {
+    // Otherwise the owner's approval would not reach the person's assistant
+    // until they had signed in through a browser.
+    users.localContributor = true;
+    const request: Partial<RequestWithUser> = {
+      headers: { 'x-mcp-key': 'rmk_plain' },
+    };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.canContribute).toBe(true);
+  });
+
+  it('withholds contribution when neither source grants it', async () => {
+    users.localContributor = false;
+    const request: Partial<RequestWithUser> = {
+      cookies: { auth_token: sign({ apps: ['games'] }) },
+      headers: {},
+    };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.canContribute).toBe(false);
+  });
+
+  it('leaves the app grant working on its own', async () => {
+    users.localContributor = false;
+    const request: Partial<RequestWithUser> = {
+      cookies: { auth_token: sign({ apps: ['recipe-manager'] }) },
+      headers: {},
+    };
+
+    await expect(guard.canActivate(contextFor(request))).resolves.toBe(true);
+    expect(request.canContribute).toBe(true);
   });
 });

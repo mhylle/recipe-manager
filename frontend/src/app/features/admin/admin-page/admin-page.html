@@ -1,0 +1,55 @@
+<section class="admin">
+  <h1 class="admin__title">{{ 'admin.title' | t }}</h1>
+  <p class="admin__lede">{{ 'admin.lede' | t }}</p>
+
+  @if (loading()) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  } @else if (forbidden()) {
+    <p class="admin__error" role="alert">{{ 'admin.forbidden' | t }}</p>
+  } @else {
+    @if (failed()) {
+      <p class="admin__error" role="alert">{{ 'admin.errFailed' | t }}</p>
+    }
+
+    @if (users().length === 0) {
+      <p role="status">{{ 'admin.empty' | t }}</p>
+    } @else {
+      <ul class="admin__list">
+        @for (user of users(); track user.id) {
+          <li class="admin__row">
+            <div class="admin__who">
+              <span class="admin__name">{{ user.displayName }}</span>
+              <span class="admin__email">{{ user.email }}</span>
+              <span class="admin__meta">{{
+                'admin.recipeCount' | t: { count: user.recipeCount }
+              }}</span>
+            </div>
+
+            <div class="admin__state">
+              @if (user.canContribute) {
+                <span class="admin__badge admin__badge--on">{{ 'admin.canAdd' | t }}</span>
+              } @else {
+                <span class="admin__badge">{{ 'admin.cannotAdd' | t }}</span>
+              }
+              <!-- Says plainly when this switch is not the thing deciding. -->
+              @if (keepsAccessAnyway(user)) {
+                <span class="admin__note">{{ 'admin.viaAuthService' | t }}</span>
+              }
+            </div>
+
+            <button
+              type="button"
+              class="btn btn--small"
+              [class.btn--danger]="user.localContributor"
+              [class.btn--primary]="!user.localContributor"
+              [disabled]="saving() !== null"
+              (click)="toggle(user)"
+            >
+              {{ (user.localContributor ? 'admin.withdraw' : 'admin.allow') | t }}
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  }
+</section>

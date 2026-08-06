@@ -1,0 +1,12 @@
+-- Contribution granted from this app's own admin page.
+--
+-- Until now the only way to let someone add recipes was to grant them the
+-- `recipe-manager` app in the auth-service. That works, but it takes effect only
+-- when they next sign in — and later still for an MCP key, which reads a cache
+-- refreshed on browser sign-in. An owner clicking "allow" and seeing nothing
+-- change for a day is worse than a second source of truth, so this column exists.
+--
+-- Deliberately NOT reusing "canContribute": that one is overwritten from the JWT
+-- on every authenticated request, so a local grant stored there would be wiped by
+-- the user's next sign-in. The two are OR-ed — a grant from either source counts.
+ALTER TABLE "User" ADD COLUMN "localContributor" BOOLEAN NOT NULL DEFAULT false;

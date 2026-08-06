@@ -14,6 +14,14 @@ export type MeResponse = LocalUser & {
    * looks read-only and one that looks broken.
    */
   canContribute: boolean;
+  /**
+   * Whether this caller administers the app.
+   *
+   * The client needs it to decide whether to show the admin link; the routes
+   * themselves are guarded independently by OwnerGuard, so this is presentation
+   * only and cannot grant anything.
+   */
+  isOwner: boolean;
 };
 
 /**
@@ -32,6 +40,12 @@ export class MeController {
     @CurrentUser() user: LocalUser,
     @Req() request: RequestWithUser,
   ): MeResponse {
-    return { ...user, canContribute: request.canContribute === true };
+    const owner = process.env.RECIPE_MANAGER_SERVICE_USER?.trim();
+    return {
+      ...user,
+      canContribute: request.canContribute === true,
+      isOwner:
+        owner !== undefined && owner.length > 0 && user.ssoSubject === owner,
+    };
   }
 }
