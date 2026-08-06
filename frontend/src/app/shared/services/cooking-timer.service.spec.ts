@@ -1,4 +1,6 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CookingTimerService, formatRemaining } from './cooking-timer.service';
 
@@ -10,7 +12,13 @@ describe('CookingTimerService', () => {
     vi.useFakeTimers();
     clock = 1_000_000;
     TestBed.resetTestingModule();
-    TestBed.configureTestingModule({});
+    // The service now reaches TimerPushService, which needs HttpClient. No
+    // SwPush is provided, which is exactly the local-only path these cases
+    // exercise: `supported()` is false, so nothing is booked server-side and no
+    // request is ever made.
+    TestBed.configureTestingModule({
+      providers: [provideHttpClient(), provideHttpClientTesting()],
+    });
     service = TestBed.inject(CookingTimerService);
     service.now = () => clock;
   });

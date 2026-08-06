@@ -1,4 +1,15 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
 import { RecipeService, RecipeSearchFilters } from './recipe.service.js';
 import {
   CreateRecipeRequestDto,
@@ -13,12 +24,13 @@ import type { LocalUser } from '../shared/auth/user.service.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
+import { ContributorGuard } from '../shared/auth/contributor.guard.js';
 
 @Controller('recipes')
 export class RecipeController {
   constructor(private readonly recipeService: RecipeService) {}
 
-  @UseGuards(SsoAuthGuard)
+  @UseGuards(SsoAuthGuard, ContributorGuard)
   @Post()
   async create(
     @CurrentUser() user: LocalUser,
@@ -63,11 +75,13 @@ export class RecipeController {
 
   /** Every stored language for a recipe — powers the per-language editing UI. */
   @Get(':id/translations')
-  async findTranslations(@Param('id') id: string): Promise<RecipeTranslationInput[]> {
+  async findTranslations(
+    @Param('id') id: string,
+  ): Promise<RecipeTranslationInput[]> {
     return this.recipeService.findAllTranslations(id);
   }
 
-  @UseGuards(SsoAuthGuard)
+  @UseGuards(SsoAuthGuard, ContributorGuard)
   @Patch(':id')
   async update(
     @CurrentUser() user: LocalUser,
@@ -75,17 +89,27 @@ export class RecipeController {
     @Body() dto: UpdateRecipeRequestDto,
     @ReqLocale() locale: Locale,
   ): Promise<Recipe> {
-    return this.recipeService.update(id, user.id, dto, locale, dto.translations, dto.sourceLocale);
+    return this.recipeService.update(
+      id,
+      user.id,
+      dto,
+      locale,
+      dto.translations,
+      dto.sourceLocale,
+    );
   }
 
-  @UseGuards(SsoAuthGuard)
+  @UseGuards(SsoAuthGuard, ContributorGuard)
   @Delete(':id')
   @HttpCode(204)
-  async delete(@CurrentUser() user: LocalUser, @Param('id') id: string): Promise<void> {
+  async delete(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+  ): Promise<void> {
     return this.recipeService.delete(id, user.id);
   }
 
-  @UseGuards(SsoAuthGuard)
+  @UseGuards(SsoAuthGuard, ContributorGuard)
   @Post(':id/regenerate-images')
   async regenerateImages(
     @CurrentUser() user: LocalUser,

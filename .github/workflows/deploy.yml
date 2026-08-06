@@ -121,12 +121,21 @@ jobs:
           # writes are attributed to a real person; without it the service-token
           # path is refused rather than writing rows nothing can later reach.
           RECIPE_MANAGER_SERVICE_USER: 97f9ac37-13ef-4bef-964a-5da09d776497
+          # Web Push signing pair for cooking timers that ring with the app
+          # closed. Deliberately NOT in the required-secrets check below: the
+          # backend treats absent keys as "this feature is off" and still serves
+          # everything else, so a missing key must not block a deploy.
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          # Not a secret — the contact address a push service uses to reach the
+          # sender's operator about a misbehaving application server.
+          VAPID_SUBJECT: mailto:mhylle@yahoo.com
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY,VAPID_SUBJECT
           script: |
             set -e
             echo "=== Deploying Recipe Manager ==="
@@ -145,6 +154,16 @@ jobs:
                 exit 1
               fi
             done
+
+            # Not fatal, unlike the loop above. Absent VAPID keys degrade to
+            # timers that ring only while the app is open, which is worth a loud
+            # line in the log but not worth refusing to ship the rest of the app.
+            if [ -z "$VAPID_PUBLIC_KEY" ] || [ -z "$VAPID_PRIVATE_KEY" ]; then
+              echo "WARNING: VAPID keys are not set — cooking timers will not ring on phones."
+              echo "  Generate with: npx web-push generate-vapid-keys"
+              echo "  Then: gh secret set VAPID_PUBLIC_KEY --repo mhylle/recipe-manager"
+              echo "        gh secret set VAPID_PRIVATE_KEY --repo mhylle/recipe-manager"
+            fi
 
             # Login to GHCR
             echo "$GH_TOKEN" | docker login ghcr.io -u "$GH_ACTOR" --password-stdin
@@ -174,6 +193,9 @@ jobs:
               -e JWT_SECRET="${JWT_SECRET}" \
               -e RECIPE_MANAGER_SERVICE_TOKEN="${RECIPE_MANAGER_SERVICE_TOKEN}" \
               -e RECIPE_MANAGER_SERVICE_USER="${RECIPE_MANAGER_SERVICE_USER}" \
+              -e VAPID_PUBLIC_KEY="${VAPID_PUBLIC_KEY}" \
+              -e VAPID_PRIVATE_KEY="${VAPID_PRIVATE_KEY}" \
+              -e VAPID_SUBJECT="${VAPID_SUBJECT}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
               --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \

@@ -19,6 +19,16 @@
   color: var(--on-surface-variant);
 }
 
+// Sits where the "add recipe" button would be, so the row keeps its shape for a
+// cook who cannot contribute yet.
+.recipe-list__pending {
+  margin: 0;
+  max-width: 22rem;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--on-surface-variant);
+}
+
 .recipe-list__grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));

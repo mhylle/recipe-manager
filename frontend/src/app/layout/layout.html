@@ -31,7 +31,19 @@
   <main class="main"><router-outlet /></main>
 
   @if (loginOpen()) {
-    <app-login-dialog (signedIn)="onSignedIn()" (dismissed)="onDismissed()" />
+    <app-login-dialog
+      (signedIn)="onSignedIn()"
+      (dismissed)="onDismissed()"
+      (wantsRegister)="openRegister()"
+    />
+  }
+
+  @if (registerOpen()) {
+    <app-register-dialog
+      (registered)="onRegistered()"
+      (dismissed)="onRegisterDismissed()"
+      (wantsSignIn)="backToSignIn()"
+    />
   }
 
   <footer class="footer">

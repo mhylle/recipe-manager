@@ -33,6 +33,15 @@
     }
 
     <div class="login__actions">
+      <button
+        type="button"
+        class="btn btn--text btn--small login__register"
+        (click)="registerInstead()"
+        [disabled]="busy()"
+      >
+        {{ 'login.noAccount' | t }}
+      </button>
+      <span class="login__spacer"></span>
       <button type="button" class="btn btn--ghost btn--small" (click)="cancel()" [disabled]="busy()">
         {{ 'common.actions.cancel' | t }}
       </button>

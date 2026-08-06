@@ -44,6 +44,8 @@ export class LoginDialogComponent {
 
   readonly signedIn = output<void>();
   readonly dismissed = output<void>();
+  /** Asks the host to swap this dialog for the sign-up one. */
+  readonly wantsRegister = output<void>();
 
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialog');
   private readonly emailRef = viewChild<ElementRef<HTMLInputElement>>('emailInput');
@@ -106,6 +108,11 @@ export class LoginDialogComponent {
         );
       },
     });
+  }
+
+  registerInstead(): void {
+    this.close();
+    this.wantsRegister.emit();
   }
 
   cancel(): void {

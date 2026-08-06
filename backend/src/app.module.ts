@@ -11,6 +11,7 @@ import { MealPlanModule } from './meal-plan/meal-plan.module.js';
 import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
 import { ImageGenerationModule } from './image-generation/image-generation.module.js';
 import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
+import { PushModule } from './push/push.module.js';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
     MealPlanModule,
     ShoppingListModule,
     BilkaToGoModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [AppService],

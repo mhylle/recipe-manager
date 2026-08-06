@@ -511,6 +511,16 @@
   border-bottom: 1px solid var(--color-border, #e5e3dd);
 }
 
+// Takes the full row rather than sitting inline with the chips: the Danish
+// string is a good deal longer than the English one, and beside a chip it would
+// wrap into an unreadable column on a phone.
+.timer-bar__hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #6b6b6b);
+}
+
 .timer-chip {
   @extend %pill;
   display: flex;
