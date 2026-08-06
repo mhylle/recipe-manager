@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 
 /** How a key appears in a list — never the token itself. */
 export interface McpKeyView {
@@ -32,6 +32,11 @@ const PREFIX_SHOWN = 8;
  * Replaces a single shared bearer token, which had two problems: every write
  * through an assistant was attributed to the owner, and revoking access for one
  * person meant rotating the token for everybody.
+ *
+ * Lives in AuthModule rather than beside the profile endpoints, because
+ * SsoAuthGuard depends on it: the guard is provided by AuthModule, and a guard
+ * reaching into a feature module for a dependency is what took production down
+ * on 2026-08-06 — Nest cannot resolve it, and the app refuses to boot.
  *
  * Tokens are stored only as SHA-256. That is sufficient here — unlike a password,
  * this is 32 bytes of CSPRNG output, so there is no dictionary to attack and a

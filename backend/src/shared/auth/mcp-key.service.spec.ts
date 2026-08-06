@@ -1,7 +1,7 @@
 import { NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
 import { McpKeyService } from './mcp-key.service';
-import { PrismaService } from '../prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 interface Row {
   id: string;

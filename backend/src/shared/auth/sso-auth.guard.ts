@@ -9,7 +9,7 @@ import * as jwt from 'jsonwebtoken';
 import type { RequestWithUser } from './request-with-user.js';
 import { UserService, type SsoClaims } from './user.service.js';
 import { grantsAppAccess } from './app-access.js';
-import { McpKeyService } from '../../profile/mcp-key.service.js';
+import { McpKeyService } from './mcp-key.service.js';
 
 /** Claims minted by the central mhylle auth-service (HS256). */
 interface JwtCookiePayload {

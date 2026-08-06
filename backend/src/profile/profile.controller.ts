@@ -14,7 +14,7 @@ import {
   McpKeyService,
   type McpKeyView,
   type McpKeyCreated,
-} from './mcp-key.service.js';
+} from '../shared/auth/mcp-key.service.js';
 import { CreateMcpKeyDto } from './dto/mcp-key.dto.js';
 import { SaveGeminiKeyDto } from './dto/gemini-key.dto.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';

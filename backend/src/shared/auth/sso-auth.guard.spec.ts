@@ -3,7 +3,7 @@ import * as jwt from 'jsonwebtoken';
 import { SsoAuthGuard } from './sso-auth.guard.js';
 import type { RequestWithUser } from './request-with-user.js';
 import type { UserService, SsoClaims } from './user.service.js';
-import type { McpKeyService } from '../../profile/mcp-key.service.js';
+import type { McpKeyService } from './mcp-key.service.js';
 
 /**
  * Stands in for the directory. The guard's job is deciding WHETHER a caller is
