@@ -65,6 +65,15 @@ export class AuthService {
    */
   readonly canContribute = signal(false);
 
+  /**
+   * Whether this account administers the app.
+   *
+   * Presentation only — it decides whether the admin link is offered. The routes
+   * behind it are guarded server-side by OwnerGuard, so a client that flipped
+   * this would gain a link and nothing else.
+   */
+  readonly isOwner = signal(false);
+
   private checked = false;
 
   checkAuth(): void {
@@ -99,17 +108,19 @@ export class AuthService {
    */
   private loadLocalIdentity(): Observable<unknown> {
     return this.http
-      .get<{ id: string; canContribute?: boolean }>(`${environment.apiBase}/api/me`, {
+      .get<{ id: string; canContribute?: boolean; isOwner?: boolean }>(`${environment.apiBase}/api/me`, {
         withCredentials: true,
       })
       .pipe(
         tap((me) => {
           this.localUserId.set(me?.id ?? null);
           this.canContribute.set(me?.canContribute === true);
+          this.isOwner.set(me?.isOwner === true);
         }),
         catchError(() => {
           this.localUserId.set(null);
           this.canContribute.set(false);
+          this.isOwner.set(false);
           return of(null);
         }),
       );
@@ -203,6 +214,7 @@ export class AuthService {
       // Signing out must revoke the offer too. Leaving it true would show an
       // "add recipe" button to a guest, who would then hit a 401.
       this.canContribute.set(false);
+      this.isOwner.set(false);
       return;
     }
     const composed = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();

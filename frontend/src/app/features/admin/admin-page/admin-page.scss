@@ -1,0 +1,89 @@
+.admin {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--spacing-card, 1.25rem);
+}
+
+.admin__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.admin__lede {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.admin__error {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--error, #ba1a1a);
+  background: var(--error-container, #ffdad6);
+  border-radius: var(--radius-sm);
+}
+
+.admin__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.admin__row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--outline-variant);
+
+  // Danish labels run long; on a phone the row stacks rather than squeezing.
+  @media (max-width: 34rem) {
+    flex-wrap: wrap;
+  }
+}
+
+.admin__who {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.admin__name {
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.admin__email,
+.admin__meta {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.admin__state {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 0 1 auto;
+}
+
+.admin__badge {
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+}
+
+.admin__badge--on {
+  color: var(--primary);
+}
+
+.admin__note {
+  font-size: 0.6875rem;
+  color: var(--on-surface-variant);
+}

@@ -81,6 +81,18 @@ model User {
   /// a household cookbook; it would not be for anything larger.
   canContribute      Boolean  @default(false)
 
+  /// Contribution granted HERE, by the app owner, from the admin page.
+  ///
+  /// Separate from `canContribute` because that one is overwritten from the token
+  /// on every sign-in — a local grant stored there would be wiped by the user's
+  /// next login. The two are OR-ed: a grant from either source is enough.
+  ///
+  /// Exists because granting through the auth-service takes effect only when the
+  /// person next signs in, and later still for their MCP key. An owner clicking
+  /// "allow" and seeing nothing change for a day is a worse answer than a second
+  /// source of truth.
+  localContributor   Boolean  @default(false)
+
   /// The user's Gemini API key, encrypted IN THE BROWSER.
   ///
   /// An opaque envelope — JSON holding a version, a PBKDF2 salt, an AES-GCM

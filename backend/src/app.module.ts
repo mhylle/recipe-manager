@@ -13,6 +13,7 @@ import { ImageGenerationModule } from './image-generation/image-generation.modul
 import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
 import { PushModule } from './push/push.module.js';
 import { ProfileModule } from './profile/profile.module.js';
+import { AdminModule } from './admin/admin.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { ProfileModule } from './profile/profile.module.js';
     BilkaToGoModule,
     PushModule,
     ProfileModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

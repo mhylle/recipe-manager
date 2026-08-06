@@ -15,6 +15,7 @@ export const routes: Routes = [
       { path: 'shopping-list', loadChildren: () => import('./features/shopping-list/shopping-list.routes').then((m) => m.SHOPPING_LIST_ROUTES) },
       { path: 'profile', loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES) },
       { path: 'mcp-guide', loadChildren: () => import('./features/mcp-guide/mcp-guide.routes').then((m) => m.MCP_GUIDE_ROUTES) },
+      { path: 'admin', loadChildren: () => import('./features/admin/admin.routes').then((m) => m.ADMIN_ROUTES) },
     ],
   },
 ];

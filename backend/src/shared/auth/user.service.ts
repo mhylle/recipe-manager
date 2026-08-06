@@ -15,6 +15,8 @@ export interface LocalUser {
   ssoSubject: string;
   email: string;
   displayName: string;
+  /** Granted on this app's admin page. OR-ed with the token's `apps` grant. */
+  localContributor?: boolean;
 }
 
 /**

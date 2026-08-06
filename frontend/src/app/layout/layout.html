@@ -14,6 +14,11 @@
         <a routerLink="/profile" routerLinkActive="active" class="nav-link header__who">{{
           auth.displayName()
         }}</a>
+        @if (auth.isOwner()) {
+          <a routerLink="/admin" routerLinkActive="active" class="nav-link">{{
+            'admin.link' | t
+          }}</a>
+        }
         <button type="button" class="nav-link header__auth" (click)="signOut()">
           {{ 'login.signOut' | t }}
         </button>

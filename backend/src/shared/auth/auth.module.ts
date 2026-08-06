@@ -3,6 +3,7 @@ import { UserService } from './user.service.js';
 import { SsoAuthGuard } from './sso-auth.guard.js';
 import { ContributorGuard } from './contributor.guard.js';
 import { McpKeyService } from './mcp-key.service.js';
+import { OwnerGuard } from './owner.guard.js';
 import { MeController } from './me.controller.js';
 
 /**
@@ -13,7 +14,19 @@ import { MeController } from './me.controller.js';
 @Global()
 @Module({
   controllers: [MeController],
-  providers: [UserService, SsoAuthGuard, ContributorGuard, McpKeyService],
-  exports: [UserService, SsoAuthGuard, ContributorGuard, McpKeyService],
+  providers: [
+    UserService,
+    SsoAuthGuard,
+    ContributorGuard,
+    McpKeyService,
+    OwnerGuard,
+  ],
+  exports: [
+    UserService,
+    SsoAuthGuard,
+    ContributorGuard,
+    McpKeyService,
+    OwnerGuard,
+  ],
 })
 export class AuthModule {}
