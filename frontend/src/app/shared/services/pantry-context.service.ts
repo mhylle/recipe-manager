@@ -1,5 +1,6 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface PantrySummary {
@@ -25,6 +26,11 @@ export type KitchenState = 'loading' | 'anonymous' | 'no-pantry' | 'ready';
 export class PantryContextService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiBase}/api/pantry`;
+  /**
+   * Creating and sharing live under the PLURAL path, on a different controller
+   * from the item CRUD. Not a typo.
+   */
+  private readonly pantriesUrl = `${environment.apiBase}/api/pantries`;
 
   readonly pantries = signal<PantrySummary[]>([]);
   readonly currentId = signal<string | null>(null);
@@ -73,6 +79,25 @@ export class PantryContextService {
         this.pantries.set([]);
       },
     });
+  }
+
+  /**
+   * Make a kitchen for someone who has none.
+   *
+   * Every account except the one seeded by the pantry-membership migration
+   * arrives with no kitchen, and until this existed there was no way to get one:
+   * the backend route was there from the start, but nothing called it, so a new
+   * cook reached a dead end that read "You do not have a kitchen yet." and
+   * offered nothing.
+   *
+   * Reloads on success rather than pushing the new pantry into the list by hand,
+   * so the selection, role and member count all come from the server that just
+   * created it.
+   */
+  create(name: string): Observable<{ id: string }> {
+    return this.http
+      .post<{ id: string }>(this.pantriesUrl, { name }, { withCredentials: true })
+      .pipe(tap(() => this.load()));
   }
 
   select(id: string): void {

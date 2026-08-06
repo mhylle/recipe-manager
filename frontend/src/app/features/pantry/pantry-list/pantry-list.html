@@ -8,7 +8,35 @@
     </p>
   }
   @case ('no-pantry') {
-    <p class="pantry-state" role="status">{{ 'pantry.state.noPantry' | t }}</p>
+    <!-- Was a dead end: a sentence and nothing to do about it. Every account
+         except the seeded one starts here, so this is the only way in. -->
+    <div class="pantry-state pantry-create">
+      <p class="pantry-create__lede" role="status">{{ 'pantry.state.noPantry' | t }}</p>
+      <label class="pantry-create__label" for="new-pantry-name">{{
+        'pantry.create.nameLabel' | t
+      }}</label>
+      <div class="pantry-create__row">
+        <input
+          id="new-pantry-name"
+          name="newPantryName"
+          type="text"
+          class="pantry-create__input"
+          [(ngModel)]="newPantryName"
+          [disabled]="creating()"
+        />
+        <button
+          type="button"
+          class="btn btn--primary btn--small"
+          [disabled]="creating()"
+          (click)="createPantry()"
+        >
+          {{ (creating() ? 'pantry.create.creating' : 'pantry.create.action') | t }}
+        </button>
+      </div>
+      @if (createFailed()) {
+        <p class="pantry-create__error" role="alert">{{ 'pantry.create.errFailed' | t }}</p>
+      }
+    </div>
   }
 }
 

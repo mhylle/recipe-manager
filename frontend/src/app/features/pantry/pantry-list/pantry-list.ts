@@ -1,6 +1,7 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { KeyValuePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { PantryService } from '../pantry.service';
 import { PantryItem } from '../../../shared/models/pantry-item.model';
 import { ExpiryStatusPipe } from '../../../shared/pipes/expiry-status.pipe';
@@ -21,7 +22,7 @@ import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitche
 @Component({
   selector: 'app-pantry-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, ExpiryStatusPipe, PantryFiltersComponent, PantrySharingComponent, KeyValuePipe, TranslatePipe, EnumLabelPipe, LocaleDatePipe, LocaleNumberPipe],
+  imports: [FormsModule, RouterLink, ExpiryStatusPipe, PantryFiltersComponent, PantrySharingComponent, KeyValuePipe, TranslatePipe, EnumLabelPipe, LocaleDatePipe, LocaleNumberPipe],
   templateUrl: './pantry-list.html',
   styleUrl: './pantry-list.scss',
 })
@@ -60,6 +61,38 @@ export class PantryListComponent {
 
   signIn(): void {
     this.loginPrompt.open();
+  }
+
+  // --- Creating a kitchen ---------------------------------------------------
+
+  /**
+   * Prefilled so the common case is one click.
+   *
+   * Translated rather than built by concatenation, because "X's kitchen" does not
+   * assemble the same way in Danish.
+   */
+  newPantryName = this.locale.translate('pantry.create.defaultName');
+  readonly creating = signal(false);
+  readonly createFailed = signal(false);
+
+  createPantry(): void {
+    const name = this.newPantryName.trim();
+    if (this.creating() || !name) return;
+
+    this.creating.set(true);
+    this.createFailed.set(false);
+    this.context.create(name).subscribe({
+      next: () => {
+        this.creating.set(false);
+        // context.create() reloads, which flips the state to 'ready'; the items
+        // for the brand-new kitchen still have to be fetched.
+        this.loadItems();
+      },
+      error: () => {
+        this.creating.set(false);
+        this.createFailed.set(true);
+      },
+    });
   }
 
   hasActiveFilters(): boolean {
