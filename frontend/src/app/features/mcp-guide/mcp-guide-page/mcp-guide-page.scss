@@ -1,0 +1,69 @@
+.guide {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: var(--spacing-card, 1.25rem);
+}
+
+.guide__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.guide__lede {
+  margin: 0 0 1.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}
+
+.guide__steps {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.guide__step {
+  margin-bottom: 1.75rem;
+  line-height: 1.55;
+}
+
+.guide__step-title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.guide__section {
+  margin: 2rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+// Wide, and must scroll rather than push the page sideways on a phone.
+.guide__code {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  background: var(--surface-container, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm);
+}
+
+.guide__endpoint {
+  padding: 0.2rem 0.4rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
+  background: var(--surface-container, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-sm);
+}
+
+.guide__note {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+}

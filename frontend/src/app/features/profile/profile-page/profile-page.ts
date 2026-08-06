@@ -1,8 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ProfileService, type GeminiKeyState } from '../profile.service';
+import {
+  ProfileService,
+  type GeminiKeyState,
+  type McpKeyView,
+} from '../profile.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { envelopeSupported, sealKey } from '../../../shared/services/key-envelope';
+import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../shared/i18n';
 
 type ProfileMessage =
@@ -27,7 +32,7 @@ type ProfileMessage =
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, TranslatePipe],
+  imports: [FormsModule, RouterLink, TranslatePipe],
   templateUrl: './profile-page.html',
   styleUrl: './profile-page.scss',
 })
@@ -50,9 +55,81 @@ export class ProfilePageComponent {
   passphrase = '';
   confirmPassphrase = '';
 
+  // --- MCP keys ------------------------------------------------------------
+
+  readonly mcpKeys = signal<McpKeyView[]>([]);
+  readonly mcpBusy = signal(false);
+  /**
+   * The token from the most recent creation, held only in memory.
+   *
+   * Shown once and never fetched again — the backend stores a hash, so this is
+   * genuinely the only moment it exists outside the user's clipboard.
+   */
+  readonly freshToken = signal<string | null>(null);
+  readonly mcpErrorKey = signal<'profile.mcp.errFailed' | 'profile.mcp.errLabel' | null>(null);
+
+  mcpLabel = '';
+
   constructor() {
     this.auth.checkAuth();
     this.reload();
+  }
+
+  /** Whether a key is still usable, for the revoke affordance. */
+  isActive(key: McpKeyView): boolean {
+    return key.revokedAt === null;
+  }
+
+  createMcpKey(): void {
+    if (this.mcpBusy()) return;
+    if (!this.mcpLabel.trim()) {
+      this.mcpErrorKey.set('profile.mcp.errLabel');
+      return;
+    }
+    this.mcpBusy.set(true);
+    this.mcpErrorKey.set(null);
+    this.freshToken.set(null);
+
+    this.profile.createMcpKey(this.mcpLabel.trim()).subscribe({
+      next: (created) => {
+        this.mcpLabel = '';
+        this.freshToken.set(created.token);
+        this.mcpKeys.update((keys) => [created, ...keys]);
+        this.mcpBusy.set(false);
+      },
+      error: () => {
+        this.mcpBusy.set(false);
+        this.mcpErrorKey.set('profile.mcp.errFailed');
+      },
+    });
+  }
+
+  revokeMcpKey(id: string): void {
+    if (this.mcpBusy()) return;
+    this.mcpBusy.set(true);
+    this.mcpErrorKey.set(null);
+
+    this.profile.revokeMcpKey(id).subscribe({
+      next: () => {
+        // Marked rather than removed, mirroring the backend: a key that vanishes
+        // looks like one that never existed.
+        this.mcpKeys.update((keys) =>
+          keys.map((key) =>
+            key.id === id ? { ...key, revokedAt: new Date().toISOString() } : key,
+          ),
+        );
+        this.mcpBusy.set(false);
+      },
+      error: () => {
+        this.mcpBusy.set(false);
+        this.mcpErrorKey.set('profile.mcp.errFailed');
+      },
+    });
+  }
+
+  /** Dismiss the shown-once token, so it does not linger on screen. */
+  dismissToken(): void {
+    this.freshToken.set(null);
   }
 
   private reload(): void {
@@ -61,6 +138,10 @@ export class ProfilePageComponent {
       // A guest, or an unreachable API. Either way there is nothing to show, and
       // the template falls back to the signed-out state.
       error: () => this.state.set(null),
+    });
+    this.profile.listMcpKeys().subscribe({
+      next: (keys) => this.mcpKeys.set(keys),
+      error: () => this.mcpKeys.set([]),
     });
   }
 

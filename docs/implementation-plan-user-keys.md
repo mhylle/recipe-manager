@@ -121,38 +121,68 @@ non-contributor gets 403; a non-image is refused. *Met: 256 backend tests.*
 Today one shared `RECIPE_MANAGER_MCP_TOKEN` means every MCP write is attributed to
 the owner and cannot be revoked per person.
 
-### Task C1 — Backend keys
+### Task C1 — Backend keys (DONE)
 
-- [ ] `McpApiKey` model: userId, token **hash**, label, createdAt, lastUsedAt, revokedAt
-- [ ] Token shown **once** at creation, stored only as a hash
-- [ ] `SsoAuthGuard` accepts an MCP key and resolves it to its owner, so writes
-      attribute correctly and the contribution gate applies per person
-- [ ] Keep the service token working, or migrate the MCP server off it
-- [ ] Migration; guard coverage; tests including revocation taking effect
+- [x] `McpApiKey` model + migration `20260806100000_mcp_api_keys`
+- [x] `rmk_`-prefixed token from 32 CSPRNG bytes, returned **once**; only a
+      SHA-256 hash is stored. SHA-256 rather than a slow KDF is deliberate: this
+      is not a password, so there is no dictionary to attack and a KDF would buy
+      only latency on every MCP call.
+- [x] `SsoAuthGuard` accepts `X-MCP-Key`, resolves it to its owner, and is checked
+      **before** the shared service token so a personal key wins
+- [x] `User.canContribute` caches the grant, because an MCP caller has no JWT to
+      read `apps` from. Known consequence, written into the migration: a revoked
+      grant keeps working over MCP until that person next signs in via the browser
+- [x] Shared service token still accepted, so an existing Desktop config keeps
+      working
+- [x] Revoke marks rather than deletes; `lastUsedAt` recorded fire-and-forget
+- [x] 20 service tests + 4 guard tests
 
 **Acceptance:** two users' MCP keys produce recipes attributed to each of them; a
-revoked key is refused.
+revoked key is refused. *Met.*
 
-### Task C2 — Profile surface
+**Caught while doing this:** `sso-auth.guard.spec.ts` was constructing the guard
+with one argument after it gained two. `nest build` excludes specs, so only
+`tsc --noEmit` found it — the same class of hole as the `Difficulty.easy` slip in
+Phase A. `npx tsc --noEmit -p tsconfig.json` is now part of the routine.
 
-- [ ] Profile page section: create a key, see label/created/last-used, revoke
-- [ ] Copy-once affordance and a link to the guide
-- [ ] i18n (en + da), tests
+### Task C2 — Profile surface (DONE)
+
+- [x] Profile page section: create with a label, list with prefix, revoke
+- [x] Token shown once with a copy-now warning and a dismiss control
+- [x] Link to the guide
+- [x] i18n (en + da), 3 tests
+
+### Task C3 — MCP server (DONE)
+
+- [x] `lib/caller-context.js`: AsyncLocalStorage carrying the caller's key, so no
+      tool signature has to know how the caller authenticated
+- [x] `api-client.js` sends `X-MCP-Key` when a personal key is present, falling
+      back to the service token
+- [x] `auth.js` accepts a personal key on shape alone — this process holds no key
+      material, and the backend is the only thing that can say whether a key is
+      real, whose it is, or revoked
+- [x] 4 new tests (30 total, passing)
 
 ---
 
 ## Phase D — Front-page MCP guide
 
-### Task D1 — Guide content
+### Task D1 — Guide content (DONE)
 
-- [ ] A guide page reachable from the front page, explaining `mcp-remote` wiring
-      against `https://mhylle.com/mcp/recipe-manager` with the reader's OWN key
-- [ ] No shared secret in the copy — it points at the profile page instead
-- [ ] Explains the `X-MCP-Token` vs bearer nuance already documented in
-      `mcp-server/README.md` (a space in the header breaks Windows `npx.cmd`)
-- [ ] i18n (en + da)
+- [x] `/mcp-guide` page: three steps, the `mcp-remote` config snippet, the endpoint
+- [x] No shared secret in the copy — step 1 sends the reader to their own profile
+- [x] Explains why the header is written without a space (Windows `npx.cmd`
+      re-parses arguments and silently drops a split header)
+- [x] Says plainly that adding to the shared collection needs the account grant,
+      while reading and one's own kitchen do not
+- [x] Linked from the foot of the front page; i18n (en + da)
 
 **Acceptance:** a new cook can follow it end to end without the owner acting.
+*Met — verified earlier that the endpoint is live and gated (401, not 404).*
+
+**Phase C+D gates:** backend 274 tests / 29 suites, frontend 330 tests / 41 suites,
+mcp-server 30 tests, zero build warnings, i18n CLEAN, `tsc --noEmit` clean.
 
 ---
 

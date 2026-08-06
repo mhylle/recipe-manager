@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideRouter } from '@angular/router';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ProfilePageComponent } from './profile-page';
 import { openKey } from '../../../shared/services/key-envelope';
@@ -17,7 +18,7 @@ describe('ProfilePageComponent', () => {
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({
       imports: [ProfilePageComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     });
     fixture = TestBed.createComponent(ProfilePageComponent);
     component = fixture.componentInstance;
@@ -36,11 +37,18 @@ describe('ProfilePageComponent', () => {
 
   afterEach(() => httpTesting.verify());
 
-  /** Answer the initial GET of the key state. */
-  const flushState = (configured = false) =>
+  /**
+   * Answer the two GETs the constructor fires: the Gemini key state and the MCP
+   * key list. Both must be satisfied or httpTesting.verify() fails the case.
+   */
+  const flushState = (configured = false) => {
     httpTesting
       .expectOne((r) => r.url.endsWith('/api/profile/gemini-key') && r.method === 'GET')
       .flush({ configured, envelope: null, updatedAt: null });
+    httpTesting
+      .expectOne((r) => r.url.endsWith('/api/profile/mcp-keys') && r.method === 'GET')
+      .flush([]);
+  };
 
   const fillValid = () => {
     component.apiKey = KEY;
@@ -162,7 +170,68 @@ describe('ProfilePageComponent', () => {
     httpTesting
       .expectOne((r) => r.url.endsWith('/api/profile/gemini-key'))
       .flush({ message: 'no' }, { status: 401, statusText: 'Unauthorized' });
+    httpTesting
+      .expectOne((r) => r.url.endsWith('/api/profile/mcp-keys'))
+      .flush({ message: 'no' }, { status: 401, statusText: 'Unauthorized' });
 
     expect(component.state()).toBeNull();
+    expect(component.mcpKeys()).toEqual([]);
+  });
+
+  describe('MCP keys', () => {
+    it('shows a freshly created token exactly once', () => {
+      flushState();
+      component.mcpLabel = 'work laptop';
+      component.createMcpKey();
+
+      httpTesting
+        .expectOne((r) => r.url.endsWith('/api/profile/mcp-keys') && r.method === 'POST')
+        .flush({
+          id: 'k-1',
+          label: 'work laptop',
+          prefix: 'rmk_abcd1234',
+          createdAt: '2026-08-06T00:00:00.000Z',
+          lastUsedAt: null,
+          revokedAt: null,
+          token: 'rmk_the-actual-secret-token',
+        });
+
+      expect(component.freshToken()).toBe('rmk_the-actual-secret-token');
+      expect(component.mcpKeys()).toHaveLength(1);
+      // Dismissing takes it off the screen; nothing can fetch it back.
+      component.dismissToken();
+      expect(component.freshToken()).toBeNull();
+    });
+
+    it('requires a label, so a key can be recognised later', () => {
+      flushState();
+      component.createMcpKey();
+
+      expect(component.mcpErrorKey()).toBe('profile.mcp.errLabel');
+      httpTesting.expectNone((r) => r.method === 'POST');
+    });
+
+    it('marks a revoked key rather than dropping it from the list', () => {
+      flushState();
+      component.mcpKeys.set([
+        {
+          id: 'k-1',
+          label: 'old laptop',
+          prefix: 'rmk_abcd1234',
+          createdAt: '2026-08-01T00:00:00.000Z',
+          lastUsedAt: null,
+          revokedAt: null,
+        },
+      ]);
+
+      component.revokeMcpKey('k-1');
+      httpTesting
+        .expectOne((r) => r.url.endsWith('/api/profile/mcp-keys/k-1') && r.method === 'DELETE')
+        .flush(null, { status: 204, statusText: 'No Content' });
+
+      // Still listed, so revoking does not look like it never existed.
+      expect(component.mcpKeys()).toHaveLength(1);
+      expect(component.isActive(component.mcpKeys()[0])).toBe(false);
+    });
   });
 });

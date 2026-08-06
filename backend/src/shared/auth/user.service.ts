@@ -46,8 +46,19 @@ function displayNameFrom(claims: SsoClaims): string {
 export class UserService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async resolveFromClaims(claims: SsoClaims): Promise<LocalUser> {
-    const data = { email: claims.email, displayName: displayNameFrom(claims) };
+  /**
+   * @param canContribute the grant read from THIS token, cached on the row so
+   *   credentials that carry no token (an MCP key) have something to consult.
+   */
+  async resolveFromClaims(
+    claims: SsoClaims,
+    canContribute = false,
+  ): Promise<LocalUser> {
+    const data = {
+      email: claims.email,
+      displayName: displayNameFrom(claims),
+      canContribute,
+    };
 
     try {
       return await this.prisma.user.upsert({
@@ -72,6 +83,11 @@ export class UserService {
     }
   }
 
+  /** Look up a local row directly, for credentials that carry no claims. */
+  async findById(id: string): Promise<LocalUser | null> {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
+
   /**
    * The identity the MCP server acts as.
    *
@@ -89,7 +105,9 @@ export class UserService {
       );
     }
 
-    const user = await this.prisma.user.findUnique({ where: { ssoSubject: subject } });
+    const user = await this.prisma.user.findUnique({
+      where: { ssoSubject: subject },
+    });
     if (!user) {
       throw new UnauthorizedException(
         'RECIPE_MANAGER_SERVICE_USER does not match any known user.',

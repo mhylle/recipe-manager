@@ -573,3 +573,26 @@
     transition: none;
   }
 }
+
+// Sits at the foot of the front page: useful to find, not the main event.
+.mcp-pitch {
+  margin-top: 2rem;
+  padding: var(--spacing-card, 1.25rem);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+}
+
+.mcp-pitch__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 400;
+}
+
+.mcp-pitch__body {
+  margin: 0 0 0.9rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}

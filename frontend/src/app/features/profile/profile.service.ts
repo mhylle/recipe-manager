@@ -11,6 +11,21 @@ export interface GeminiKeyState {
   updatedAt: string | null;
 }
 
+/** An MCP credential as listed — never the token itself. */
+export interface McpKeyView {
+  id: string;
+  label: string;
+  prefix: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+/** The one response that carries the token. */
+export interface McpKeyCreated extends McpKeyView {
+  token: string;
+}
+
 /**
  * A user's own settings.
  *
@@ -39,6 +54,30 @@ export class ProfileService {
 
   deleteGeminiKey(): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/gemini-key`, {
+      withCredentials: true,
+    });
+  }
+
+  listMcpKeys(): Observable<McpKeyView[]> {
+    return this.http.get<McpKeyView[]>(`${this.baseUrl}/mcp-keys`, {
+      withCredentials: true,
+    });
+  }
+
+  /**
+   * Mint a key. The token comes back exactly once — show it immediately, because
+   * nothing can retrieve it again.
+   */
+  createMcpKey(label: string): Observable<McpKeyCreated> {
+    return this.http.post<McpKeyCreated>(
+      `${this.baseUrl}/mcp-keys`,
+      { label },
+      { withCredentials: true },
+    );
+  }
+
+  revokeMcpKey(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/mcp-keys/${id}`, {
       withCredentials: true,
     });
   }

@@ -69,6 +69,18 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// Last known answer to "may this person write to the shared library?".
+  ///
+  /// A CACHE of the auth-service's `apps` grant, refreshed on every authenticated
+  /// JWT request. The token stays authoritative for anything carrying one — this
+  /// column exists for callers that have no token at all, namely an MCP API key,
+  /// which cannot consult the auth-service.
+  ///
+  /// Consequence worth knowing: a grant revoked in the auth-service keeps working
+  /// over MCP until that person next signs in through the browser. Acceptable for
+  /// a household cookbook; it would not be for anything larger.
+  canContribute      Boolean  @default(false)
+
   /// The user's Gemini API key, encrypted IN THE BROWSER.
   ///
   /// An opaque envelope — JSON holding a version, a PBKDF2 salt, an AES-GCM
@@ -90,8 +102,39 @@ model User {
   createdRecipes    Recipe[]
   pushSubscriptions PushSubscription[]
   scheduledTimers   ScheduledTimer[]
+  mcpApiKeys        McpApiKey[]
 
   @@index([email])
+}
+
+/// A personal credential for the MCP server.
+///
+/// Replaces one shared bearer token that made every MCP write look like the
+/// owner's and could not be revoked for one person without breaking everybody.
+/// The same key both authenticates to the MCP endpoint and says who is calling,
+/// so recipes added through an assistant are attributed correctly and the
+/// contribution gate applies per person.
+///
+/// Only a HASH is stored. The token is shown once, at creation; there is no route
+/// that returns it again, because a database that can hand back live credentials
+/// is a database whose backup is a set of live credentials.
+model McpApiKey {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 of the token. Unique so a presented key is one indexed lookup.
+  tokenHash String    @unique
+  /// The leading characters, for telling two keys apart in a list. Not a secret.
+  prefix    String
+  /// Whose laptop this is, in the user's own words.
+  label     String
+  createdAt DateTime  @default(now())
+  /// Helps someone recognise a key they have forgotten about.
+  lastUsedAt DateTime?
+  /// Set rather than deleted, so a revoked key stays visible as revoked.
+  revokedAt DateTime?
+
+  @@index([userId])
 }
 
 /// One push endpoint — one browser on one device.

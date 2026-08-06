@@ -1,4 +1,8 @@
-import { createParamDecorator, ExecutionContext, InternalServerErrorException } from '@nestjs/common';
+import {
+  createParamDecorator,
+  ExecutionContext,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import type { RequestWithUser } from './request-with-user.js';
 import type { LocalUser } from './user.service.js';
 

@@ -95,5 +95,76 @@
         </div>
       }
     </article>
+
+    <article class="profile__card">
+      <h2 class="profile__card-title">{{ 'profile.mcp.heading' | t }}</h2>
+      <p class="profile__intro">{{ 'profile.mcp.intro' | t }}</p>
+      <p class="profile__intro">
+        <a routerLink="/mcp-guide" class="profile__guide-link">{{ 'profile.mcp.guideLink' | t }}</a>
+      </p>
+
+      @if (freshToken(); as token) {
+        <!-- The only moment this exists outside the user's clipboard: the backend
+             stores a hash and no route returns it again. -->
+        <div class="profile__token" role="status">
+          <p class="profile__token-warn">{{ 'profile.mcp.copyNow' | t }}</p>
+          <code class="profile__token-value">{{ token }}</code>
+          <button type="button" class="btn btn--ghost btn--small" (click)="dismissToken()">
+            {{ 'profile.mcp.dismissToken' | t }}
+          </button>
+        </div>
+      }
+
+      <label class="profile__label" for="mcp-label">{{ 'profile.mcp.labelLabel' | t }}</label>
+      <input
+        id="mcp-label"
+        name="mcpLabel"
+        type="text"
+        class="profile__input"
+        [(ngModel)]="mcpLabel"
+        [disabled]="mcpBusy()"
+      />
+
+      @if (mcpErrorKey(); as key) {
+        <p class="profile__error" role="alert">{{ key | t }}</p>
+      }
+
+      <div class="profile__actions">
+        <span class="profile__spacer"></span>
+        <button
+          type="button"
+          class="btn btn--primary btn--small"
+          (click)="createMcpKey()"
+          [disabled]="mcpBusy()"
+        >
+          {{ (mcpBusy() ? 'profile.mcp.creating' : 'profile.mcp.create') | t }}
+        </button>
+      </div>
+
+      @if (mcpKeys().length > 0) {
+        <ul class="profile__keys">
+          @for (key of mcpKeys(); track key.id) {
+            <li class="profile__key" [class.profile__key--revoked]="!isActive(key)">
+              <span class="profile__key-label">{{ key.label }}</span>
+              <code class="profile__key-prefix">{{ key.prefix }}…</code>
+              @if (isActive(key)) {
+                <button
+                  type="button"
+                  class="btn btn--text btn--small"
+                  (click)="revokeMcpKey(key.id)"
+                  [disabled]="mcpBusy()"
+                >
+                  {{ 'profile.mcp.revoke' | t }}
+                </button>
+              } @else {
+                <span class="profile__key-state">{{ 'profile.mcp.revoked' | t }}</span>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="profile__status">{{ 'profile.mcp.none' | t }}</p>
+      }
+    </article>
   }
 </section>

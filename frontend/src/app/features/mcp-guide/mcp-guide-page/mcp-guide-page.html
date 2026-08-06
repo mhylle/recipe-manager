@@ -1,0 +1,35 @@
+<section class="guide">
+  <h1 class="guide__title">{{ 'mcpGuide.title' | t }}</h1>
+  <p class="guide__lede">{{ 'mcpGuide.lede' | t }}</p>
+
+  <ol class="guide__steps">
+    <li class="guide__step">
+      <h2 class="guide__step-title">{{ 'mcpGuide.step1Title' | t }}</h2>
+      <p>{{ 'mcpGuide.step1Body' | t }}</p>
+      @if (auth.isAuthenticated()) {
+        <a routerLink="/profile" class="btn btn--primary btn--small">{{
+          'mcpGuide.step1Action' | t
+        }}</a>
+      } @else {
+        <p class="guide__note">{{ 'mcpGuide.step1SignIn' | t }}</p>
+      }
+    </li>
+
+    <li class="guide__step">
+      <h2 class="guide__step-title">{{ 'mcpGuide.step2Title' | t }}</h2>
+      <p>{{ 'mcpGuide.step2Body' | t }}</p>
+      <pre class="guide__code"><code>{{ configSnippet }}</code></pre>
+      <p class="guide__note">{{ 'mcpGuide.step2Windows' | t }}</p>
+    </li>
+
+    <li class="guide__step">
+      <h2 class="guide__step-title">{{ 'mcpGuide.step3Title' | t }}</h2>
+      <p>{{ 'mcpGuide.step3Body' | t }}</p>
+      <p class="guide__note">{{ 'mcpGuide.step3Attribution' | t }}</p>
+    </li>
+  </ol>
+
+  <h2 class="guide__section">{{ 'mcpGuide.endpointTitle' | t }}</h2>
+  <p><code class="guide__endpoint">{{ endpoint }}</code></p>
+  <p class="guide__note">{{ 'mcpGuide.endpointNote' | t }}</p>
+</section>
