@@ -13,6 +13,7 @@ export const routes: Routes = [
       { path: 'staples', loadChildren: () => import('./features/staples/staples.routes').then((m) => m.STAPLES_ROUTES) },
       { path: 'meal-plan', loadChildren: () => import('./features/meal-plan/meal-plan.routes').then((m) => m.MEAL_PLAN_ROUTES) },
       { path: 'shopping-list', loadChildren: () => import('./features/shopping-list/shopping-list.routes').then((m) => m.SHOPPING_LIST_ROUTES) },
+      { path: 'profile', loadChildren: () => import('./features/profile/profile.routes').then((m) => m.PROFILE_ROUTES) },
     ],
   },
 ];

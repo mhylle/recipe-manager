@@ -12,6 +12,7 @@ import { ShoppingListModule } from './shopping-list/shopping-list.module.js';
 import { ImageGenerationModule } from './image-generation/image-generation.module.js';
 import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
 import { PushModule } from './push/push.module.js';
+import { ProfileModule } from './profile/profile.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { PushModule } from './push/push.module.js';
     ShoppingListModule,
     BilkaToGoModule,
     PushModule,
+    ProfileModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -9,7 +9,11 @@
     </nav>
     <div class="header__actions">
       @if (auth.isAuthenticated()) {
-        <span class="header__who">{{ auth.displayName() }}</span>
+        <!-- The name doubles as the way in to settings, which is where a cook
+             finds their own API keys. -->
+        <a routerLink="/profile" routerLinkActive="active" class="nav-link header__who">{{
+          auth.displayName()
+        }}</a>
         <button type="button" class="nav-link header__auth" (click)="signOut()">
           {{ 'login.signOut' | t }}
         </button>

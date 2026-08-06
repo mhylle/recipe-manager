@@ -18,6 +18,7 @@ import {
   formatRemaining,
 } from '../../../shared/services/cooking-timer.service';
 import { TimerPushService } from '../../../shared/services/timer-push.service';
+import { GeminiKeyDialogComponent } from '../../../shared/components/gemini-key-dialog/gemini-key-dialog';
 import { SCALE_PRESETS, scaleFactor, scaleIngredients, type ScaleSelection } from '../recipe-scale';
 import { parseStepDurations, type StepDuration } from '../step-duration';
 import {
@@ -31,7 +32,13 @@ import {
 @Component({
   selector: 'app-recipe-detail',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, TranslatePipe, EnumLabelPipe, LocaleNumberPipe],
+  imports: [
+    RouterLink,
+    TranslatePipe,
+    EnumLabelPipe,
+    LocaleNumberPipe,
+    GeminiKeyDialogComponent,
+  ],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
 })
@@ -52,6 +59,8 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
   readonly enablingPhoneAlarms = signal(false);
+  /** Open while asking for the Gemini key that a generation run needs. */
+  readonly keyDialogOpen = signal(false);
 
   readonly scalePresets = SCALE_PRESETS;
   readonly scale = signal<ScaleSelection>({ mode: 'multiplier', multiplier: 1 });
@@ -232,12 +241,26 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
       });
   }
 
+  /**
+   * Ask for a key first. There is no shared one to fall back on, by design.
+   */
   regenerateImages(): void {
+    if (!this.recipe() || this.regenerating()) return;
+    this.keyDialogOpen.set(true);
+  }
+
+  onKeyDialogDismissed(): void {
+    this.keyDialogOpen.set(false);
+  }
+
+  /** Handed the plaintext key by the dialog; used for this run and not kept. */
+  onKeyUnlocked(apiKey: string): void {
+    this.keyDialogOpen.set(false);
     const currentRecipe = this.recipe();
     if (!currentRecipe) return;
 
     this.regenerating.set(true);
-    this.recipeService.regenerateImages(currentRecipe.id).subscribe({
+    this.recipeService.regenerateImages(currentRecipe.id, apiKey).subscribe({
       next: () => {
         setTimeout(() => {
           this.recipeService.getById(currentRecipe.id).subscribe((recipe) => {

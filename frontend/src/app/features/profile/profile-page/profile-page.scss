@@ -1,0 +1,133 @@
+.profile {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: var(--spacing-card, 1.25rem);
+}
+
+.profile__title {
+  margin: 0 0 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 400;
+}
+
+.profile__identity {
+  margin: 0 0 1.5rem;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+}
+
+.profile__signed-out {
+  padding: 2rem 0;
+  color: var(--on-surface-variant);
+}
+
+.profile__card {
+  padding: var(--spacing-card, 1.25rem);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+}
+
+.profile__card-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 400;
+}
+
+.profile__intro {
+  margin: 0.35rem 0 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--on-surface-variant);
+}
+
+.profile__status {
+  margin: 0 0 1rem;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+}
+
+.profile__status--set {
+  color: var(--primary);
+}
+
+// The timestamp is secondary to "a key is stored", so it steps back.
+.profile__stamp {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.profile__label {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  margin-bottom: 0.3rem;
+}
+
+.profile__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.9rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+}
+
+.profile__hint {
+  margin: -0.55rem 0 0.9rem;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+// Deliberately prominent: nobody can recover this for them.
+.profile__warning {
+  margin: 0 0 1rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  color: var(--on-surface);
+  background: var(--surface-container, rgba(0, 0, 0, 0.05));
+}
+
+.profile__message {
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+  color: var(--primary);
+  background: var(--surface-container, rgba(0, 0, 0, 0.05));
+}
+
+.profile__message--error,
+.profile__error {
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  border-radius: var(--radius-sm);
+  color: var(--error, #ba1a1a);
+  background: var(--error-container, #ffdad6);
+}
+
+.profile__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile__spacer {
+  flex: 1 1 auto;
+}

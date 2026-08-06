@@ -69,6 +69,22 @@ model User {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// The user's Gemini API key, encrypted IN THE BROWSER.
+  ///
+  /// An opaque envelope — JSON holding a version, a PBKDF2 salt, an AES-GCM
+  /// nonce and the ciphertext — produced and consumed only by the client, using
+  /// a passphrase the server never sees. Stored and returned verbatim; the
+  /// backend cannot decrypt it and must never try.
+  ///
+  /// One TEXT column rather than a column per crypto parameter, so changing the
+  /// KDF or cipher is a version bump inside the envelope instead of a migration.
+  ///
+  /// Nullable because most people will not set one. There is no shared fallback
+  /// key by design, so a null here means "this cook uploads their own photos".
+  geminiKeyEnvelope  String?
+  /// Shown on the profile page so a stale key is recognisable as stale.
+  geminiKeyUpdatedAt DateTime?
+
   ownedPantries     Pantry[]       @relation("PantryOwner")
   pantryMemberships PantryMember[]
   createdRecipes    Recipe[]

@@ -98,8 +98,17 @@ export class RecipeService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  regenerateImages(id: string): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/regenerate-images`, {});
+  /**
+   * Generate images using the CALLER'S Gemini key.
+   *
+   * The key is a request parameter, not something the server looks up: the stored
+   * copy is encrypted with a passphrase only the user knows, and a user may
+   * choose to supply a key without storing it at all.
+   */
+  regenerateImages(id: string, apiKey: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/${id}/regenerate-images`, {
+      apiKey,
+    });
   }
 }
 

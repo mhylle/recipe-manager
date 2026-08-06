@@ -1,0 +1,69 @@
+<dialog #dialog class="keydlg" (close)="cancel()" [attr.aria-label]="'geminiKey.heading' | t">
+  <form class="keydlg__form" (ngSubmit)="submit()">
+    <h2 class="keydlg__title">{{ 'geminiKey.heading' | t }}</h2>
+
+    @if (hasStoredKey() === null) {
+      <p class="keydlg__intro" role="status">{{ 'common.loading' | t }}</p>
+    } @else if (pasting()) {
+      <p class="keydlg__intro">{{ 'geminiKey.pasteIntro' | t }}</p>
+
+      <label class="keydlg__label" for="keydlg-key">{{ 'geminiKey.keyLabel' | t }}</label>
+      <input
+        id="keydlg-key"
+        name="apiKey"
+        type="password"
+        autocomplete="off"
+        class="keydlg__input"
+        [(ngModel)]="apiKey"
+        [disabled]="busy()"
+      />
+      <p class="keydlg__hint">{{ 'geminiKey.notSavedHint' | t }}</p>
+
+      @if (hasStoredKey()) {
+        <button
+          type="button"
+          class="btn btn--text btn--small"
+          (click)="useStoredInstead()"
+          [disabled]="busy()"
+        >
+          {{ 'geminiKey.useStored' | t }}
+        </button>
+      }
+    } @else {
+      <p class="keydlg__intro">{{ 'geminiKey.unlockIntro' | t }}</p>
+
+      <label class="keydlg__label" for="keydlg-pass">{{ 'geminiKey.passLabel' | t }}</label>
+      <input
+        id="keydlg-pass"
+        name="passphrase"
+        type="password"
+        autocomplete="current-password"
+        class="keydlg__input"
+        [(ngModel)]="passphrase"
+        [disabled]="busy()"
+      />
+
+      <button
+        type="button"
+        class="btn btn--text btn--small"
+        (click)="usePasteInstead()"
+        [disabled]="busy()"
+      >
+        {{ 'geminiKey.usePaste' | t }}
+      </button>
+    }
+
+    @if (errorKey(); as key) {
+      <p class="keydlg__error" role="alert">{{ key | t }}</p>
+    }
+
+    <div class="keydlg__actions">
+      <button type="button" class="btn btn--ghost btn--small" (click)="cancel()" [disabled]="busy()">
+        {{ 'common.actions.cancel' | t }}
+      </button>
+      <button type="submit" class="btn btn--primary btn--small" [disabled]="busy()">
+        {{ (busy() ? 'geminiKey.unlocking' : 'geminiKey.generate') | t }}
+      </button>
+    </div>
+  </form>
+</dialog>

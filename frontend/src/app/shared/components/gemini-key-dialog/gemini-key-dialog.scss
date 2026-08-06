@@ -1,0 +1,82 @@
+// Matches login-dialog.scss so every modal in the app reads as one family.
+.keydlg {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  max-width: min(28rem, calc(100vw - 2rem));
+  box-shadow: 0 18px 48px rgba(45, 52, 51, 0.22);
+
+  &::backdrop {
+    background: rgba(45, 52, 51, 0.45);
+  }
+}
+
+.keydlg__form {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-card, 1.25rem);
+}
+
+.keydlg__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+.keydlg__intro {
+  margin: 0.35rem 0 1.1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--on-surface-variant);
+}
+
+.keydlg__label {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--on-surface-variant);
+  margin-bottom: 0.3rem;
+}
+
+.keydlg__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.9rem;
+  font: inherit;
+  font-size: 0.9375rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+
+  &:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+}
+
+.keydlg__hint {
+  margin: -0.55rem 0 0.9rem;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.keydlg__error {
+  margin: 0.5rem 0 0.9rem;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8125rem;
+  color: var(--error, #ba1a1a);
+  background: var(--error-container, #ffdad6);
+  border-radius: var(--radius-sm);
+}
+
+.keydlg__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}

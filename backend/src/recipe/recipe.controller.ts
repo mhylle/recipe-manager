@@ -25,6 +25,7 @@ import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { ContributorGuard } from '../shared/auth/contributor.guard.js';
+import { GenerateImagesDto } from './dto/generate-images.dto.js';
 
 @Controller('recipes')
 export class RecipeController {
@@ -114,8 +115,13 @@ export class RecipeController {
   async regenerateImages(
     @CurrentUser() user: LocalUser,
     @Param('id') id: string,
+    @Body() dto: GenerateImagesDto,
   ): Promise<{ message: string }> {
-    const recipe = await this.recipeService.regenerateImages(id, user.id);
+    const recipe = await this.recipeService.regenerateImages(
+      id,
+      user.id,
+      dto.apiKey,
+    );
     return { message: `Image generation started for ${recipe.name}` };
   }
 }

@@ -105,7 +105,6 @@ jobs:
           # secrets + URL-safe password closes that. Phase 1 alignment too —
           # see SECURITY-HARDENING-PLAN.md.
           RECIPE_MANAGER_DB_PASSWORD: ${{ secrets.RECIPE_MANAGER_DB_PASSWORD }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Bearer token for the public MCP endpoint. Same rule as every other
           # secret here: GitHub Secrets only, never the server's .env.
           RECIPE_MANAGER_MCP_TOKEN: ${{ secrets.RECIPE_MANAGER_MCP_TOKEN }}
@@ -135,7 +134,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,GEMINI_API_KEY,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY,VAPID_SUBJECT
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY,VAPID_SUBJECT
           script: |
             set -e
             echo "=== Deploying Recipe Manager ==="
@@ -189,7 +188,6 @@ jobs:
               -e DATABASE_URL="postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db" \
               -e CORS_ORIGIN="https://mhylle.com" \
               -e PORT=3000 \
-              -e GEMINI_API_KEY="${GEMINI_API_KEY}" \
               -e JWT_SECRET="${JWT_SECRET}" \
               -e RECIPE_MANAGER_SERVICE_TOKEN="${RECIPE_MANAGER_SERVICE_TOKEN}" \
               -e RECIPE_MANAGER_SERVICE_USER="${RECIPE_MANAGER_SERVICE_USER}" \
