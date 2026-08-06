@@ -4,6 +4,7 @@ import { CreateRecipeDto } from './dto/create-recipe.dto.js';
 import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { ImageGenerationService } from '../image-generation/image-generation.service.js';
+import { RecipeImageService } from './recipe-image.service.js';
 import { DEFAULT_LOCALE, Locale } from '../shared/i18n/locale.js';
 import { assertCanModify } from './recipe-ownership.js';
 import {
@@ -22,6 +23,7 @@ export class RecipeService {
   constructor(
     private readonly recipeRepository: RecipeRepository,
     private readonly imageGeneration: ImageGenerationService,
+    private readonly recipeImages: RecipeImageService,
   ) {}
 
   async create(
@@ -43,6 +45,23 @@ export class RecipeService {
     // It became an explicit action instead: the detail page offers it, and a
     // cook with no key uploads their own photographs.
     return recipe;
+  }
+
+  /**
+   * Replace a recipe's hero image with one the author uploaded.
+   *
+   * The path that needs no API key from anybody — which is what makes removing
+   * the shared Gemini key liveable for a cook with no Gemini account.
+   */
+  async uploadImage(
+    id: string,
+    callerId: string,
+    file: { buffer: Buffer; size: number },
+  ): Promise<Recipe> {
+    // Replacing the picture is a modification, same as regenerating it.
+    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
+    const imageUrl = this.recipeImages.store(id, file);
+    return this.recipeRepository.update(id, { imageUrl });
   }
 
   /**

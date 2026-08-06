@@ -14,22 +14,30 @@ describe('assertCanModify', () => {
   it('REFUSES someone else, even though they are signed in', () => {
     // The whole point. Every signed-in user could previously edit or delete any
     // recipe in the shared library; hiding the buttons only hid the buttons.
-    expect(() => assertCanModify(recipe(MARTIN), HEIDI)).toThrow(ForbiddenException);
+    expect(() => assertCanModify(recipe(MARTIN), HEIDI)).toThrow(
+      ForbiddenException,
+    );
   });
 
   it('names the constraint rather than saying "forbidden"', () => {
     // Someone hitting this is usually confused, not malicious.
-    expect(() => assertCanModify(recipe(MARTIN), HEIDI)).toThrow(/who added this recipe/i);
+    expect(() => assertCanModify(recipe(MARTIN), HEIDI)).toThrow(
+      /who added this recipe/i,
+    );
   });
 
   it('refuses a recipe with no recorded author rather than letting anyone edit it', () => {
     // Should not be reachable — createdById is NOT NULL — but "no owner" must
     // never read as "everyone owns it".
-    expect(() => assertCanModify(recipe(undefined), MARTIN)).toThrow(ForbiddenException);
+    expect(() => assertCanModify(recipe(undefined), MARTIN)).toThrow(
+      ForbiddenException,
+    );
   });
 
   it('refuses when the caller has no id', () => {
-    expect(() => assertCanModify(recipe(MARTIN), '')).toThrow(ForbiddenException);
+    expect(() => assertCanModify(recipe(MARTIN), '')).toThrow(
+      ForbiddenException,
+    );
   });
 
   it('throws NotFound for a missing recipe, without revealing whose it was', () => {

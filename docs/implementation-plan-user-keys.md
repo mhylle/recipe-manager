@@ -91,21 +91,28 @@ zero build warnings, i18n CLEAN.
 
 What makes "no shared key" liveable for a cook with no Gemini account.
 
-### Task B1 — Backend upload
+### Task B1 — Backend upload (DONE)
 
-- [ ] `POST /api/recipes/:id/image` multipart, author-scoped and contribution-gated
-- [ ] Validate MIME and size; write beside generated images; update `imageUrl`
-- [ ] Reject anything that is not an image, by content not just extension
-- [ ] Registered in guard coverage; tests
+- [x] `POST /api/recipes/:id/image` multipart, author-scoped and contribution-gated
+- [x] 8 MB cap; writes beside generated images; updates `imageUrl`
+- [x] Rejects by **magic bytes**, not the declared type or extension — a `.png`
+      extension on HTML is the classic route to stored XSS served from our own
+      origin. RIFF is checked for the `WEBP` subtype so .wav/.avi cannot pass.
+- [x] Multer keeps the file in memory, so a rejected upload never reaches disk
+- [x] Registered in guard coverage, with an explicit assertion that upload is
+      contribution-gated; 12 tests
 
 **Acceptance:** an author can replace a recipe's hero image by upload; a
-non-contributor gets 403; a non-image is refused.
+non-contributor gets 403; a non-image is refused. *Met: 256 backend tests.*
 
-### Task B2 — Frontend upload
+### Task B2 — Frontend upload (DONE)
 
-- [ ] Upload control on recipe detail, beside generation
-- [ ] Client-side size/type feedback before the request
-- [ ] i18n (en + da), tests
+- [x] Upload control on recipe detail beside generation, a hidden file input
+      behind a styled label
+- [x] Client-side type and size checks before the request, so an oversized photo
+      is refused without being uploaded first
+- [x] Filename carries a timestamp, so caches cannot serve the previous picture
+- [x] i18n (en + da)
 
 ---
 

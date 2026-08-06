@@ -195,6 +195,18 @@ describe('guard coverage across the whole API surface', () => {
    * cookbook, or every family member losing it — so both halves are asserted.
    */
   describe('shared-library contribution gate', () => {
+    it('gates the image UPLOAD too, not just generation', () => {
+      // Uploading replaces a picture in the shared library, so it is the same
+      // class of write as creating or regenerating.
+      const upload = routes.find(
+        (r) =>
+          r.controller === 'RecipeController' && r.handler === 'uploadImage',
+      );
+      expect(upload).toBeDefined();
+      expect(upload!.guarded).toBe(true);
+      expect(upload!.contributorGated).toBe(true);
+    });
+
     it('gates EVERY recipe mutation on the app grant', () => {
       const ungated = routes
         .filter(

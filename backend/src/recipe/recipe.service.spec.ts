@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { RecipeService } from './recipe.service';
 import { RecipeRepository } from './recipe.repository';
 import { ImageGenerationService } from '../image-generation/image-generation.service';
+import { RecipeImageService } from './recipe-image.service';
 import { Recipe } from '../shared/interfaces/recipe.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
@@ -16,6 +17,7 @@ describe('RecipeService', () => {
     generateHeroImage: jest.Mock;
     generateStepImages: jest.Mock;
   };
+  let recipeImages: { store: jest.Mock };
 
   const mockRecipe: Recipe = {
     id: 'recipe-uuid-1',
@@ -65,6 +67,12 @@ describe('RecipeService', () => {
       delete: jest.fn(),
     };
 
+    recipeImages = {
+      store: jest
+        .fn()
+        .mockReturnValue('/api/recipe-manager/images/recipes/x_upload1.png'),
+    };
+
     imageGeneration = {
       generateHeroImage: jest.fn().mockResolvedValue(null),
       generateStepImages: jest.fn().mockResolvedValue([]),
@@ -82,6 +90,8 @@ describe('RecipeService', () => {
           provide: ImageGenerationService,
           useValue: imageGeneration,
         },
+        // Upload writes to disk, which these tests have no business doing.
+        { provide: RecipeImageService, useValue: recipeImages },
       ],
     }).compile();
 
