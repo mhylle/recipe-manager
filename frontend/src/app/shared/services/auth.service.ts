@@ -52,6 +52,19 @@ export class AuthService {
    */
   readonly localUserId = signal<string | null>(null);
 
+  /**
+   * Whether this account may add to or change the SHARED recipe library.
+   *
+   * Comes from the backend's reading of the token's `apps` grant, never decided
+   * here — the client cannot be the authority on its own permissions. Used only
+   * to avoid offering buttons the API would refuse: a self-registered cook gets
+   * their own kitchen and the whole library to read, and hiding the "add recipe"
+   * they cannot use is the difference between read-only and broken.
+   *
+   * Fails closed. An unreachable /api/me leaves this false.
+   */
+  readonly canContribute = signal(false);
+
   private checked = false;
 
   checkAuth(): void {
@@ -86,11 +99,17 @@ export class AuthService {
    */
   private loadLocalIdentity(): Observable<unknown> {
     return this.http
-      .get<{ id: string }>(`${environment.apiBase}/api/me`, { withCredentials: true })
+      .get<{ id: string; canContribute?: boolean }>(`${environment.apiBase}/api/me`, {
+        withCredentials: true,
+      })
       .pipe(
-        tap((me) => this.localUserId.set(me?.id ?? null)),
+        tap((me) => {
+          this.localUserId.set(me?.id ?? null);
+          this.canContribute.set(me?.canContribute === true);
+        }),
         catchError(() => {
           this.localUserId.set(null);
+          this.canContribute.set(false);
           return of(null);
         }),
       );
@@ -119,6 +138,47 @@ export class AuthService {
       );
   }
 
+  /**
+   * Create an account on the central auth-service, then sign it in.
+   *
+   * Two calls on purpose. `POST /api/auth/register` answers 201 with
+   * `{"success":true,"message":"Registration request received"}` and sets NO
+   * cookie, so a registrant who was not then logged in would land back on the
+   * sign-in dialog wondering whether it worked. Chaining login uses credentials
+   * we already hold, at the only moment we hold them.
+   *
+   * A new account is granted the estate's default apps, which do not include
+   * this one — so the cook can immediately browse and run their own kitchen, and
+   * contributing to the shared library waits on a grant. That is the intended
+   * shape, not a failure, so this resolves successfully either way.
+   */
+  register(input: {
+    email: string;
+    firstName: string;
+    lastName: string;
+    password: string;
+  }): Observable<boolean> {
+    return this.http
+      .post<{ success?: boolean }>(
+        '/api/auth/register',
+        {
+          email: input.email,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          password: input.password,
+          confirmPassword: input.password,
+        },
+        { withCredentials: true },
+      )
+      .pipe(
+        switchMap((res) =>
+          res?.success === false
+            ? of(false)
+            : this.login(input.email, input.password),
+        ),
+      );
+  }
+
   logout(): Observable<boolean> {
     return this.http
       .post('/api/auth/logout', {}, { withCredentials: true })
@@ -140,6 +200,9 @@ export class AuthService {
     if (!user) {
       this.displayName.set(null);
       this.localUserId.set(null);
+      // Signing out must revoke the offer too. Leaving it true would show an
+      // "add recipe" button to a guest, who would then hit a 401.
+      this.canContribute.set(false);
       return;
     }
     const composed = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();

@@ -72,8 +72,64 @@ model User {
   ownedPantries     Pantry[]       @relation("PantryOwner")
   pantryMemberships PantryMember[]
   createdRecipes    Recipe[]
+  pushSubscriptions PushSubscription[]
+  scheduledTimers   ScheduledTimer[]
 
   @@index([email])
+}
+
+/// One push endpoint — one browser on one device.
+///
+/// Keyed on `endpoint`, because that is the identifier the push service issues
+/// and the only thing that identifies a device to us. The browser silently
+/// rotates it, so the write path upserts: keying on userId instead would either
+/// collapse a phone and a laptop into one row or accumulate dead endpoints that
+/// fail forever.
+///
+/// Cascade on delete, unlike Recipe. A subscription is disposable plumbing, not
+/// content — losing it costs the user one re-grant of permission.
+model PushSubscription {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint   String   @unique
+  /// The two halves of the client's ECDH keypair, as handed over by the browser.
+  p256dh     String
+  auth       String
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+/// A cooking timer that must ring even when the app is gone.
+///
+/// Exists because the in-page countdown cannot survive a locked phone: the tab
+/// is discarded, nothing ticks, and the alarm never fires. The row is the
+/// promise, and the backend keeps it whether or not any client is alive.
+///
+/// `fireAt` is computed server-side from a duration in seconds rather than
+/// accepted as an instant, so a phone with a skewed clock still rings on time.
+model ScheduledTimer {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Notification text, already localised by the client that asked for it. The
+  /// backend never translates these — it has no idea which language the person
+  /// was reading the recipe in.
+  title     String
+  body      String
+  fireAt    DateTime
+  /// Set the moment the send is claimed, which is what stops the next poll from
+  /// ringing the same timer twice. Non-null means "dealt with", not "delivered".
+  firedAt   DateTime?
+  createdAt DateTime @default(now())
+
+  // The scheduler's only query: unfired timers that are due. Ordering the index
+  // firedAt-first lets Postgres skip every already-rung row, which is all of
+  // them after a week of cooking.
+  @@index([firedAt, fireAt])
+  @@index([userId])
 }
 
 /// A kitchen. The unit of sharing.

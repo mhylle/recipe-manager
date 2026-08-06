@@ -28,7 +28,7 @@ import {
   styleUrl: './recipe-list.scss',
 })
 export class RecipeListComponent {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
 
   /**
    * Only the person who added a recipe may change it. The server enforces this;

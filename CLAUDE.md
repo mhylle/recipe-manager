@@ -3,6 +3,10 @@
 ## Zero Errors/Warnings Policy
 There is no such thing as "preexisting" errors or warnings. Every phase must be completed with **zero errors and zero warnings**. Never skip or dismiss any error/warning by attributing it to prior state — fix everything.
 
+**"Any error" means any error in the repo, not just in the files you touched.** Verification is repo-wide, never scoped to your own diff: run the full test suite, the full lint, and the full build, and read the whole output. Scoping the check to the files you edited is exactly how a change that breaks a test or a type somewhere else slips through — the file you never opened is the one that fails, and a diff-scoped check reports success. "It was already failing" is not a finding you get to stop at; either fix it or get an explicit decision to defer it.
+
+If a fix genuinely does not belong in the current change — a repo-wide reformat landing in the middle of a feature, say — do not silently leave it. Say so, quantify it, and record it as a tasktracker task before moving on. Deferring is a decision that needs an owner and a ticket, never a comment in this file.
+
 ## Architecture
 - **Backend**: NestJS 11 + Prisma 7 + PostgreSQL
 - **Frontend**: Angular 21 (standalone components, signals)

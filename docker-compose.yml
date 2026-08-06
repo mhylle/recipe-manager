@@ -8,6 +8,11 @@ services:
       - DATABASE_URL=postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD:-devpassword}@${DB_HOST:-postgres}:5432/recipe_manager_db
       - CORS_ORIGIN=${CORS_ORIGIN:-http://localhost:4200}
       - PORT=3000
+      # Optional locally. Without these, cooking timers ring only while the app
+      # is open — see .env.example for how to generate a pair.
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:dev@localhost}
     ports:
       - "${BACKEND_PORT:-8006}:3000"
     depends_on:

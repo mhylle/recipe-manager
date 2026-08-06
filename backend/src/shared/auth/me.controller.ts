@@ -1,7 +1,20 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
 import { SsoAuthGuard } from './sso-auth.guard.js';
 import { CurrentUser } from './current-user.decorator.js';
 import type { LocalUser } from './user.service.js';
+import type { RequestWithUser } from './request-with-user.js';
+
+/** The local identity, plus what this caller is allowed to do with it. */
+export type MeResponse = LocalUser & {
+  /**
+   * Whether this account may add to or change the shared recipe library.
+   *
+   * The client needs it to decide whether to offer "add recipe" at all. Hiding
+   * a button the backend would refuse is the difference between an app that
+   * looks read-only and one that looks broken.
+   */
+  canContribute: boolean;
+};
 
 /**
  * The caller's LOCAL identity.
@@ -15,7 +28,10 @@ import type { LocalUser } from './user.service.js';
 @UseGuards(SsoAuthGuard)
 export class MeController {
   @Get()
-  me(@CurrentUser() user: LocalUser): LocalUser {
-    return user;
+  me(
+    @CurrentUser() user: LocalUser,
+    @Req() request: RequestWithUser,
+  ): MeResponse {
+    return { ...user, canContribute: request.canContribute === true };
   }
 }

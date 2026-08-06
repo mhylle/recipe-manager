@@ -17,6 +17,7 @@ import {
   CookingTimerService,
   formatRemaining,
 } from '../../../shared/services/cooking-timer.service';
+import { TimerPushService } from '../../../shared/services/timer-push.service';
 import { SCALE_PRESETS, scaleFactor, scaleIngredients, type ScaleSelection } from '../recipe-scale';
 import { parseStepDurations, type StepDuration } from '../step-duration';
 import {
@@ -44,10 +45,13 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   // Exposed to the template so the toggle can reflect real lock state.
   readonly wakeLock = inject(WakeLockService);
   readonly timers = inject(CookingTimerService);
+  // Exposed to the template so the offer reflects the real subscription state.
+  readonly push = inject(TimerPushService);
 
   readonly recipe = signal<Recipe | null>(null);
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
+  readonly enablingPhoneAlarms = signal(false);
 
   readonly scalePresets = SCALE_PRESETS;
   readonly scale = signal<ScaleSelection>({ mode: 'multiplier', multiplier: 1 });
@@ -103,6 +107,15 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.authService.checkAuth();
+    // Re-attach to a subscription granted on an earlier visit, then pull back
+    // any timer the backend is still holding — the pair is what makes a timer
+    // survive the phone discarding this page.
+    void this.push.syncExistingSubscription().then(() => {
+      if (this.push.ringsOnPhone()) {
+        return this.timers.restore();
+      }
+      return undefined;
+    });
   }
 
   ngOnDestroy(): void {
@@ -149,7 +162,27 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
         name: r.name,
       }),
       duration.seconds,
+      // Translated here rather than in the service: the notification body is
+      // written by whoever knows which language the cook is reading.
+      this.locale.translate('recipe.detail.timerDone'),
     );
+  }
+
+  /**
+   * Subscribe this device so timers ring with the app closed.
+   *
+   * Driven by an explicit tap because subscribing prompts for notification
+   * permission, and a prompt fired on page load is both rude and, in most
+   * browsers, refused outright.
+   */
+  async enablePhoneAlarms(): Promise<void> {
+    if (this.enablingPhoneAlarms() || this.push.ringsOnPhone()) return;
+    this.enablingPhoneAlarms.set(true);
+    try {
+      await this.push.enable();
+    } finally {
+      this.enablingPhoneAlarms.set(false);
+    }
   }
 
   remaining(seconds: number): string {

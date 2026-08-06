@@ -32,7 +32,14 @@
         </select>
       </label>
 
-      <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
+      <!-- Offered only to accounts the API would actually accept a recipe from.
+           Showing it to everyone else turns a read-only library into a broken
+           one: a long form that 403s on submit. -->
+      @if (auth.canContribute()) {
+        <a routerLink="/recipes/new" class="btn btn--primary">{{ 'recipe.list.add' | t }}</a>
+      } @else if (auth.isAuthenticated()) {
+        <p class="recipe-list__pending">{{ 'recipe.list.contributionPending' | t }}</p>
+      }
     </div>
   </div>
 

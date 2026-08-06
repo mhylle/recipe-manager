@@ -7,6 +7,13 @@ services:
       - DATABASE_URL=postgresql://recipe_manager_user:${RECIPE_MANAGER_DB_PASSWORD}@mhylle-postgres:5432/recipe_manager_db
       - CORS_ORIGIN=https://mhylle.com
       - PORT=3000
+      # Web Push signing pair for cooking timers that ring with the app closed.
+      # No `:?` guard, unlike the MCP token: the backend treats absent keys as
+      # "feature off" and serves everything else, so failing here would take the
+      # whole app down over an optional capability.
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:mhylle@yahoo.com}
     ports:
       - "8006:3000"
     depends_on: !reset {}

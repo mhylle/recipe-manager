@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { UserService } from './user.service.js';
 import { SsoAuthGuard } from './sso-auth.guard.js';
+import { ContributorGuard } from './contributor.guard.js';
 import { MeController } from './me.controller.js';
 
 /**
@@ -11,7 +12,7 @@ import { MeController } from './me.controller.js';
 @Global()
 @Module({
   controllers: [MeController],
-  providers: [UserService, SsoAuthGuard],
-  exports: [UserService, SsoAuthGuard],
+  providers: [UserService, SsoAuthGuard, ContributorGuard],
+  exports: [UserService, SsoAuthGuard, ContributorGuard],
 })
 export class AuthModule {}

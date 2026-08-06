@@ -6,6 +6,7 @@ import {
   GUARDS_METADATA,
 } from '@nestjs/common/constants.js';
 import { SsoAuthGuard } from './sso-auth.guard.js';
+import { ContributorGuard } from './contributor.guard.js';
 
 import { AppController } from '../../app.controller.js';
 import { BilkaToGoController } from '../../bilkatogo/bilkatogo.controller.js';
@@ -15,6 +16,9 @@ import { PantryController } from '../../pantry/pantry.controller.js';
 import { RecipeController } from '../../recipe/recipe.controller.js';
 import { ShoppingListController } from '../../shopping-list/shopping-list.controller.js';
 import { StaplesController } from '../../staples/staples.controller.js';
+import { MeController } from './me.controller.js';
+import { PushController } from '../../push/push.controller.js';
+import { TimerController } from '../../push/timer.controller.js';
 
 const CONTROLLERS = [
   AppController,
@@ -25,6 +29,9 @@ const CONTROLLERS = [
   RecipeController,
   ShoppingListController,
   StaplesController,
+  MeController,
+  PushController,
+  TimerController,
 ];
 
 const WRITE_METHODS = new Set([
@@ -40,6 +47,8 @@ interface Route {
   method: RequestMethod;
   path: string;
   guarded: boolean;
+  /** Whether the route also demands an `apps` grant for this app. */
+  contributorGated: boolean;
 }
 
 /**
@@ -50,7 +59,10 @@ function collectRoutes(): Route[] {
   const routes: Route[] = [];
 
   for (const controller of CONTROLLERS) {
-    const controllerGuards: unknown[] = Reflect.getMetadata(GUARDS_METADATA, controller) ?? [];
+    const controllerGuards =
+      (Reflect.getMetadata(GUARDS_METADATA, controller) as
+        | unknown[]
+        | undefined) ?? [];
     const controllerGuarded = controllerGuards.includes(SsoAuthGuard);
     const basePath = Reflect.getMetadata(PATH_METADATA, controller) as string;
     const proto = controller.prototype as unknown as Record<string, unknown>;
@@ -60,16 +72,24 @@ function collectRoutes(): Route[] {
       const handler = proto[name];
       if (typeof handler !== 'function') continue;
 
-      const method = Reflect.getMetadata(METHOD_METADATA, handler) as RequestMethod | undefined;
+      const method = Reflect.getMetadata(METHOD_METADATA, handler) as
+        | RequestMethod
+        | undefined;
       if (method === undefined) continue;
 
-      const handlerGuards: unknown[] = Reflect.getMetadata(GUARDS_METADATA, handler) ?? [];
+      const handlerGuards =
+        (Reflect.getMetadata(GUARDS_METADATA, handler) as
+          | unknown[]
+          | undefined) ?? [];
       routes.push({
         controller: controller.name,
         handler: name,
         method,
         path: `${basePath}/${Reflect.getMetadata(PATH_METADATA, handler) as string}`,
         guarded: controllerGuarded || handlerGuards.includes(SsoAuthGuard),
+        contributorGated:
+          controllerGuards.includes(ContributorGuard) ||
+          handlerGuards.includes(ContributorGuard),
       });
     }
   }
@@ -84,14 +104,21 @@ describe('guard coverage across the whole API surface', () => {
     // Without this, a broken collector would make every assertion below vacuous:
     // "all zero write routes are guarded" passes trivially.
     expect(routes.length).toBeGreaterThanOrEqual(22);
-    expect(routes.filter((r) => WRITE_METHODS.has(r.method)).length).toBeGreaterThanOrEqual(13);
-    expect(routes.filter((r) => r.method === RequestMethod.GET).length).toBeGreaterThanOrEqual(9);
+    expect(
+      routes.filter((r) => WRITE_METHODS.has(r.method)).length,
+    ).toBeGreaterThanOrEqual(13);
+    expect(
+      routes.filter((r) => r.method === RequestMethod.GET).length,
+    ).toBeGreaterThanOrEqual(9);
   });
 
   it('guards EVERY write route', () => {
     const unguarded = routes
       .filter((r) => WRITE_METHODS.has(r.method) && !r.guarded)
-      .map((r) => `${r.controller}.${r.handler} (${RequestMethod[r.method]} ${r.path})`);
+      .map(
+        (r) =>
+          `${r.controller}.${r.handler} (${RequestMethod[r.method]} ${r.path})`,
+      );
     expect(unguarded).toEqual([]);
   });
 
@@ -144,5 +171,77 @@ describe('guard coverage across the whole API surface', () => {
     const health = routes.find((r) => r.handler === 'getHealth');
     expect(health).toBeDefined();
     expect(health!.guarded).toBe(false);
+  });
+
+  it('keeps the VAPID public key reachable without credentials', () => {
+    // It is a public key, the client needs it before it can subscribe, and its
+    // absence is how the UI knows to hide the notification offer entirely.
+    const key = routes.find(
+      (r) => r.controller === 'PushController' && r.handler === 'key',
+    );
+    expect(key).toBeDefined();
+    expect(key!.guarded).toBe(false);
+  });
+
+  /**
+   * The access model that makes open self-registration safe, stated as a test.
+   *
+   * Anyone with a valid mhylle.com account may sign in, read every recipe and
+   * run their own kitchen. Writing to the SHARED recipe library additionally
+   * needs an `apps` grant for this app. If either half of that drifts, the
+   * failure is silent — a stranger quietly gaining write access to the family
+   * cookbook, or every family member losing it — so both halves are asserted.
+   */
+  describe('shared-library contribution gate', () => {
+    it('gates EVERY recipe mutation on the app grant', () => {
+      const ungated = routes
+        .filter(
+          (r) =>
+            r.controller === 'RecipeController' &&
+            WRITE_METHODS.has(r.method) &&
+            !r.contributorGated,
+        )
+        .map((r) => `${r.handler} (${RequestMethod[r.method]} ${r.path})`);
+      expect(ungated).toEqual([]);
+    });
+
+    it('gates nothing else — a self-registered cook keeps their own kitchen', () => {
+      // Pantries, meal plans, shopping lists and staples are already isolated
+      // per kitchen, so they need authentication but not a grant. Gating them
+      // would make a newly registered account useless rather than merely
+      // read-only on the shared library.
+      const overGated = routes
+        .filter(
+          (r) => r.contributorGated && r.controller !== 'RecipeController',
+        )
+        .map((r) => `${r.controller}.${r.handler}`);
+      expect(overGated).toEqual([]);
+    });
+
+    it('leaves recipe READS open to everyone, grant or not', () => {
+      const gatedReads = routes
+        .filter(
+          (r) =>
+            r.controller === 'RecipeController' &&
+            r.method === RequestMethod.GET &&
+            (r.guarded || r.contributorGated),
+        )
+        .map((r) => r.handler);
+      expect(gatedReads).toEqual([]);
+    });
+
+    it('lets a signed-in cook set their own timers without a grant', () => {
+      const gatedTimers = routes
+        .filter((r) => r.controller === 'TimerController' && r.contributorGated)
+        .map((r) => r.handler);
+      expect(gatedTimers).toEqual([]);
+      // Still authenticated, though — a timer is addressed to a person's devices.
+      const timerWrites = routes.filter(
+        (r) =>
+          r.controller === 'TimerController' && WRITE_METHODS.has(r.method),
+      );
+      expect(timerWrites.length).toBeGreaterThanOrEqual(2);
+      expect(timerWrites.every((r) => r.guarded)).toBe(true);
+    });
   });
 });

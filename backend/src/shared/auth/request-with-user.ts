@@ -13,4 +13,13 @@ export interface RequestWithUser extends Request {
   user?: LocalUser;
   /** True when authenticated by the machine-to-machine service token. */
   isServiceCaller?: boolean;
+  /**
+   * Whether this caller may write to the SHARED recipe library.
+   *
+   * Derived from the token's `apps` grant on every request, never stored: the
+   * auth-service owns the grant, and a cached copy would keep honouring access
+   * that had been revoked. Signing in and running your own kitchen do not
+   * consult this — see app-access.ts.
+   */
+  canContribute?: boolean;
 }

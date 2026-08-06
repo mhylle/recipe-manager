@@ -8,6 +8,7 @@ import { timingSafeEqual } from 'node:crypto';
 import * as jwt from 'jsonwebtoken';
 import type { RequestWithUser } from './request-with-user.js';
 import { UserService, type SsoClaims } from './user.service.js';
+import { grantsAppAccess } from './app-access.js';
 
 /** Claims minted by the central mhylle auth-service (HS256). */
 interface JwtCookiePayload {
@@ -17,6 +18,23 @@ interface JwtCookiePayload {
   firstName?: string;
   lastName?: string;
   apps?: string[];
+}
+
+/**
+ * The identity half of a token, which is all UserService needs.
+ *
+ * Kept separate from the grant half deliberately: identity is persisted to a
+ * local row, whereas `apps` is authorisation that must be re-read from every
+ * token rather than stored.
+ */
+function claimsOf(payload: JwtCookiePayload): SsoClaims {
+  return {
+    sub: payload.sub,
+    email: payload.email,
+    name: payload.name,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+  };
 }
 
 /**
@@ -44,9 +62,14 @@ export class SsoAuthGuard implements CanActivate {
 
     const jwtToken = this.extractJwt(request);
     if (jwtToken) {
+      const payload = this.verifyJwt(jwtToken);
       // Resolving to a local row is what lets everything downstream hold a
       // foreign key to a person, and it provisions on first sight.
-      request.user = await this.users.resolveFromClaims(this.verifyJwt(jwtToken));
+      request.user = await this.users.resolveFromClaims(claimsOf(payload));
+      // Read from the token on every request rather than cached on the user
+      // row: the grant lives in the auth-service, and a stored copy would keep
+      // letting someone write after their access was revoked.
+      request.canContribute = grantsAppAccess(payload.apps);
       return true;
     }
 
@@ -59,6 +82,10 @@ export class SsoAuthGuard implements CanActivate {
       // rows nothing can later reach.
       request.user = await this.users.resolveServiceUser();
       request.isServiceCaller = true;
+      // The service token is a deliberately-issued credential for this app, so
+      // it carries contribution rights by definition — there is no `apps` claim
+      // to consult, and the MCP server's write tools exist to add recipes.
+      request.canContribute = true;
       return true;
     }
 
@@ -77,7 +104,7 @@ export class SsoAuthGuard implements CanActivate {
     return undefined;
   }
 
-  private verifyJwt(token: string): SsoClaims {
+  private verifyJwt(token: string): JwtCookiePayload {
     // .trim() defends against a trailing newline in JWT_SECRET — a documented
     // mhylle infra bug that silently breaks signature verification.
     const secret = process.env.JWT_SECRET?.trim();
@@ -88,18 +115,14 @@ export class SsoAuthGuard implements CanActivate {
     let payload: JwtCookiePayload;
     try {
       // Algorithms are pinned: without this, a token with alg "none" verifies.
-      payload = jwt.verify(token, secret, { algorithms: ['HS256'] }) as JwtCookiePayload;
+      payload = jwt.verify(token, secret, {
+        algorithms: ['HS256'],
+      }) as JwtCookiePayload;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
     }
 
-    return {
-      sub: payload.sub,
-      email: payload.email,
-      name: payload.name,
-      firstName: payload.firstName,
-      lastName: payload.lastName,
-    };
+    return payload;
   }
 
   private serviceTokenMatches(presented: string): boolean {

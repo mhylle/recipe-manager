@@ -1,0 +1,103 @@
+<dialog #dialog class="register" (close)="cancel()" [attr.aria-label]="'register.heading' | t">
+  <form class="register__form" (ngSubmit)="submit()">
+    <h2 class="register__title">{{ 'register.heading' | t }}</h2>
+    <p class="register__intro">{{ 'register.intro' | t }}</p>
+
+    <label class="register__label" for="register-email">{{ 'register.email' | t }}</label>
+    <input
+      #emailInput
+      id="register-email"
+      name="email"
+      type="email"
+      autocomplete="email"
+      class="register__input"
+      [(ngModel)]="email"
+      [disabled]="busy()"
+      required
+    />
+
+    <div class="register__row">
+      <div class="register__field">
+        <label class="register__label" for="register-first">{{ 'register.firstName' | t }}</label>
+        <input
+          id="register-first"
+          name="firstName"
+          type="text"
+          autocomplete="given-name"
+          class="register__input"
+          [(ngModel)]="firstName"
+          [disabled]="busy()"
+          required
+        />
+      </div>
+      <div class="register__field">
+        <label class="register__label" for="register-last">{{ 'register.lastName' | t }}</label>
+        <input
+          id="register-last"
+          name="lastName"
+          type="text"
+          autocomplete="family-name"
+          class="register__input"
+          [(ngModel)]="lastName"
+          [disabled]="busy()"
+          required
+        />
+      </div>
+    </div>
+
+    <label class="register__label" for="register-password">{{ 'register.password' | t }}</label>
+    <input
+      id="register-password"
+      name="password"
+      type="password"
+      autocomplete="new-password"
+      class="register__input"
+      [(ngModel)]="password"
+      [disabled]="busy()"
+      required
+    />
+    <p class="register__hint">{{ 'register.passwordRule' | t }}</p>
+
+    <label class="register__label" for="register-confirm">{{ 'register.confirmPassword' | t }}</label>
+    <input
+      id="register-confirm"
+      name="confirmPassword"
+      type="password"
+      autocomplete="new-password"
+      class="register__input"
+      [(ngModel)]="confirmPassword"
+      [disabled]="busy()"
+      required
+    />
+
+    @if (errorKey(); as key) {
+      <p class="register__error" role="alert">{{ key | t }}</p>
+    }
+
+    <!-- Said up front rather than discovered later as a missing button. -->
+    <p class="register__note">{{ 'register.contributionNote' | t }}</p>
+
+    <div class="register__actions">
+      <button
+        type="button"
+        class="btn btn--text btn--small"
+        (click)="signInInstead()"
+        [disabled]="busy()"
+      >
+        {{ 'register.haveAccount' | t }}
+      </button>
+      <span class="register__spacer"></span>
+      <button
+        type="button"
+        class="btn btn--ghost btn--small"
+        (click)="cancel()"
+        [disabled]="busy()"
+      >
+        {{ 'common.actions.cancel' | t }}
+      </button>
+      <button type="submit" class="btn btn--primary btn--small" [disabled]="busy()">
+        {{ (busy() ? 'register.creating' : 'register.create') | t }}
+      </button>
+    </div>
+  </form>
+</dialog>
