@@ -3,6 +3,7 @@ import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PantrySharingService, type PantryMember } from './pantry-sharing.service';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
 import { LocaleService, TranslatePipe } from '../../../shared/i18n';
+import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 
 /**
  * Who is in this kitchen.
@@ -32,9 +33,19 @@ export class PantrySharingComponent {
     validators: [Validators.required, Validators.email],
   });
 
-  constructor() {
-    this.reload();
-  }
+  /**
+   * Load now, and again whenever the kitchen or the language changes.
+   *
+   * Was a bare `this.reload()` in the constructor, which silently did nothing:
+   * the component is built before `/api/pantry/mine` resolves, so
+   * `context.current()` was still null, `reload()` returned early, and the member
+   * list stayed empty forever. The household looked empty even to its owner —
+   * and it appeared to work only just after an invite, which reloads explicitly.
+   *
+   * Watching the revision also fixes switching kitchens, which previously kept
+   * showing the previous household's members.
+   */
+  private readonly reloadOnChange = reloadOnKitchenChange(() => this.reload());
 
   reload(): void {
     const pantry = this.context.current();
