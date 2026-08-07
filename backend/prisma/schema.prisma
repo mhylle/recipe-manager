@@ -293,6 +293,12 @@ model Recipe {
   // display label. Moving them into translations would break filtering.
   tags              String[]
   imageUrl          String?
+  /// A gallery-sized WebP of imageUrl, around 60 KB against the original's 2 MB.
+  ///
+  /// Null means "none yet" and the list falls back to the full image, which is
+  /// what it did before thumbnails existed — so a failed or pending conversion
+  /// degrades to slow rather than to broken.
+  thumbnailUrl      String?
   // Which locale this recipe was authored in. Reads fall back to it when the
   // requested locale has no translation, so text is never blank.
   sourceLocale      String             @default("en")

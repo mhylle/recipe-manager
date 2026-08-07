@@ -5,6 +5,7 @@ import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
 import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { ImageGenerationService } from '../image-generation/image-generation.service.js';
 import { RecipeImageService } from './recipe-image.service.js';
+import { ThumbnailService } from './thumbnail.service.js';
 import { DEFAULT_LOCALE, Locale } from '../shared/i18n/locale.js';
 import { assertCanModify } from './recipe-ownership.js';
 import {
@@ -24,6 +25,7 @@ export class RecipeService {
     private readonly recipeRepository: RecipeRepository,
     private readonly imageGeneration: ImageGenerationService,
     private readonly recipeImages: RecipeImageService,
+    private readonly thumbnails: ThumbnailService,
   ) {}
 
   async create(
@@ -61,7 +63,14 @@ export class RecipeService {
     // Replacing the picture is a modification, same as regenerating it.
     assertCanModify(await this.recipeRepository.findOwner(id), callerId);
     const imageUrl = this.recipeImages.store(id, file);
-    return this.recipeRepository.update(id, { imageUrl });
+    // Awaited rather than fire-and-forget: the caller is about to render the
+    // gallery, and a thumbnail that arrives a moment later would leave the new
+    // photograph loading at full size on the very page that asked for it.
+    const thumbnailUrl = await this.thumbnails.generate(imageUrl);
+    return this.recipeRepository.update(id, {
+      imageUrl,
+      thumbnailUrl: thumbnailUrl ?? undefined,
+    });
   }
 
   /**
@@ -95,7 +104,13 @@ export class RecipeService {
       apiKey,
     );
     if (heroUrl) {
-      await this.recipeRepository.update(recipe.id, { imageUrl: heroUrl });
+      // The gallery reads the thumbnail, so generating it here is what keeps a
+      // freshly generated photograph from loading at full size in the list.
+      const thumbnailUrl = await this.thumbnails.generate(heroUrl);
+      await this.recipeRepository.update(recipe.id, {
+        imageUrl: heroUrl,
+        thumbnailUrl: thumbnailUrl ?? undefined,
+      });
     }
 
     const stepImages = await this.imageGeneration.generateStepImages(

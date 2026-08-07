@@ -1,0 +1,12 @@
+-- Gallery-sized copies of recipe photographs.
+--
+-- Measured, not guessed: the hero images are PNGs of around 2 MB each, so a
+-- gallery of forty recipes asked the browser for roughly 80 MB. The waste is the
+-- FORMAT more than the dimensions — the sources are only 1024x1024, but PNG is a
+-- poor fit for photographs. The same picture as a 600px WebP is about 62 KB.
+--
+-- Nullable, and null means "none yet": the list then falls back to the full
+-- image, exactly as it did before thumbnails existed. So a conversion that has
+-- not happened yet, or that failed, degrades to slow rather than to broken — and
+-- no backfill has to succeed before this migration is safe to deploy.
+ALTER TABLE "Recipe" ADD COLUMN "thumbnailUrl" TEXT;
