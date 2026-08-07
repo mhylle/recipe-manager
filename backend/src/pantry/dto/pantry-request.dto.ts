@@ -19,4 +19,6 @@ export class CreatePantryItemRequestDto extends CreatePantryItemDto {
   translations?: PantryTranslationDto[];
 }
 
-export class UpdatePantryItemRequestDto extends PartialType(CreatePantryItemRequestDto) {}
+export class UpdatePantryItemRequestDto extends PartialType(
+  CreatePantryItemRequestDto,
+) {}

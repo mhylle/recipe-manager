@@ -71,7 +71,9 @@ export class PantrySharingController {
 
     const rows = await this.prisma.pantryMember.findMany({
       where: { pantryId },
-      include: { user: { select: { id: true, displayName: true, email: true } } },
+      include: {
+        user: { select: { id: true, displayName: true, email: true } },
+      },
       orderBy: { joinedAt: 'asc' },
     });
 
@@ -105,12 +107,16 @@ export class PantrySharingController {
       where: { pantryId_userId: { pantryId, userId: invitee.id } },
     });
     if (existing) {
-      throw new BadRequestException(`${invitee.displayName} is already in this kitchen.`);
+      throw new BadRequestException(
+        `${invitee.displayName} is already in this kitchen.`,
+      );
     }
 
     const created = await this.prisma.pantryMember.create({
       data: { pantryId, userId: invitee.id, role: 'member' },
-      include: { user: { select: { id: true, displayName: true, email: true } } },
+      include: {
+        user: { select: { id: true, displayName: true, email: true } },
+      },
     });
 
     return {

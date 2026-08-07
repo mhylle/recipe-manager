@@ -95,7 +95,11 @@ describe('PantryService', () => {
 
       const result = await service.findById('p-test', 'test-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('p-test', 'test-uuid-1', 'en');
+      expect(repository.findById).toHaveBeenCalledWith(
+        'p-test',
+        'test-uuid-1',
+        'en',
+      );
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -119,14 +123,21 @@ describe('PantryService', () => {
       };
       repository.update.mockResolvedValue(updatedItem);
 
-      const result = await service.update('p-test', 'test-uuid-1', { quantity: 250 });
-
-      expect(repository.update).toHaveBeenCalledWith('p-test', 'test-uuid-1', {
+      const result = await service.update('p-test', 'test-uuid-1', {
         quantity: 250,
-      }, {
-        locale: 'en',
-        translations: undefined,
       });
+
+      expect(repository.update).toHaveBeenCalledWith(
+        'p-test',
+        'test-uuid-1',
+        {
+          quantity: 250,
+        },
+        {
+          locale: 'en',
+          translations: undefined,
+        },
+      );
       expect(result.quantity).toBe(250);
       expect(result.lastUpdated).not.toBe(mockPantryItem.lastUpdated);
     });

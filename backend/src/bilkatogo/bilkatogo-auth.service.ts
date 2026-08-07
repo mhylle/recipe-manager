@@ -121,15 +121,11 @@ export class BilkaToGoAuthService {
 
   private async bilkaToGoLoginJWT(idToken: string): Promise<string> {
     const response = await firstValueFrom(
-      this.httpService.post(
-        BILKATOGO_LOGIN_JWT_URL,
-        null,
-        {
-          headers: { jwt_token: idToken },
-          withCredentials: true,
-          maxRedirects: 0,
-        },
-      ),
+      this.httpService.post(BILKATOGO_LOGIN_JWT_URL, null, {
+        headers: { jwt_token: idToken },
+        withCredentials: true,
+        maxRedirects: 0,
+      }),
     );
 
     const setCookieHeaders = response.headers['set-cookie'];

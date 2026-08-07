@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Body,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { MealPlanService } from './meal-plan.service.js';
 import { DeductionService } from './deduction/deduction.service.js';
 import { AddMealPlanEntryDto } from './dto/add-meal-plan-entry.dto.js';
@@ -24,7 +34,10 @@ export class MealPlanController {
     @Query('date') date: string,
     @Query('pantryId') pantryId?: string,
   ): Promise<MealPlan> {
-    return this.mealPlanService.getOrCreateByWeek(await this.access.resolve(user, pantryId), date);
+    return this.mealPlanService.getOrCreateByWeek(
+      await this.access.resolve(user, pantryId),
+      date,
+    );
   }
 
   @Get(':id')
@@ -33,7 +46,10 @@ export class MealPlanController {
     @Param('id') id: string,
     @Query('pantryId') pantryId?: string,
   ): Promise<MealPlan> {
-    return this.mealPlanService.findById(await this.access.resolve(user, pantryId), id);
+    return this.mealPlanService.findById(
+      await this.access.resolve(user, pantryId),
+      id,
+    );
   }
 
   @Post(':id/entries')
@@ -43,7 +59,11 @@ export class MealPlanController {
     @Body() dto: AddMealPlanEntryDto,
     @Query('pantryId') pantryId?: string,
   ): Promise<MealPlan> {
-    return this.mealPlanService.addEntry(await this.access.resolve(user, pantryId), id, dto);
+    return this.mealPlanService.addEntry(
+      await this.access.resolve(user, pantryId),
+      id,
+      dto,
+    );
   }
 
   @Delete(':id/entries/:index')
@@ -53,7 +73,11 @@ export class MealPlanController {
     @Param('index', ParseIntPipe) index: number,
     @Query('pantryId') pantryId?: string,
   ): Promise<MealPlan> {
-    return this.mealPlanService.removeEntry(await this.access.resolve(user, pantryId), id, index);
+    return this.mealPlanService.removeEntry(
+      await this.access.resolve(user, pantryId),
+      id,
+      index,
+    );
   }
 
   @Post(':id/entries/:index/confirm')
@@ -64,6 +88,10 @@ export class MealPlanController {
     @Query('pantryId') pantryId?: string,
   ): Promise<void> {
     // Deducts from the pantry, so it must deduct from the RIGHT one.
-    return this.deductionService.confirmCooked(await this.access.resolve(user, pantryId), id, index);
+    return this.deductionService.confirmCooked(
+      await this.access.resolve(user, pantryId),
+      id,
+      index,
+    );
   }
 }

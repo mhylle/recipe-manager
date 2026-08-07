@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { LocalUser } from '../shared/auth/user.service.js';
 
@@ -34,7 +38,9 @@ export class PantryAccessService {
   async resolve(user: LocalUser, requestedPantryId?: string): Promise<string> {
     if (requestedPantryId) {
       const membership = await this.prisma.pantryMember.findUnique({
-        where: { pantryId_userId: { pantryId: requestedPantryId, userId: user.id } },
+        where: {
+          pantryId_userId: { pantryId: requestedPantryId, userId: user.id },
+        },
       });
       if (!membership) {
         // 403, not 404 and not an empty list. An empty list would look like a
@@ -65,7 +71,9 @@ export class PantryAccessService {
   async listForUser(user: LocalUser): Promise<PantrySummary[]> {
     const memberships = await this.prisma.pantryMember.findMany({
       where: { userId: user.id },
-      include: { pantry: { include: { _count: { select: { members: true } } } } },
+      include: {
+        pantry: { include: { _count: { select: { members: true } } } },
+      },
       orderBy: { joinedAt: 'asc' },
     });
 

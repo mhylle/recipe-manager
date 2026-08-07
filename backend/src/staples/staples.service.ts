@@ -15,7 +15,10 @@ export class StaplesService {
     return result ? { items: result.items } : { items: [] };
   }
 
-  async updateStaples(pantryId: string, config: StaplesConfig): Promise<StaplesConfig> {
+  async updateStaples(
+    pantryId: string,
+    config: StaplesConfig,
+  ): Promise<StaplesConfig> {
     const result = await this.prisma.staplesConfig.upsert({
       where: { pantryId },
       update: { items: config.items },

@@ -2,7 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface.js';
-import { DEFAULT_LOCALE, Locale, pickTranslation } from '../shared/i18n/locale.js';
+import {
+  DEFAULT_LOCALE,
+  Locale,
+  pickTranslation,
+} from '../shared/i18n/locale.js';
 
 /** A pantry item's name in one language. */
 export interface PantryTranslationInput {
@@ -13,7 +17,9 @@ export interface PantryTranslationInput {
 const PANTRY_INCLUDE = { translations: true } as const;
 
 /** Derived from Prisma so the shape cannot drift from PANTRY_INCLUDE. */
-type PantryRow = Prisma.PantryItemGetPayload<{ include: typeof PANTRY_INCLUDE }>;
+type PantryRow = Prisma.PantryItemGetPayload<{
+  include: typeof PANTRY_INCLUDE;
+}>;
 
 @Injectable()
 export class PantryRepository {
@@ -22,7 +28,10 @@ export class PantryRepository {
   async create(
     pantryId: string,
     data: Omit<PantryItem, 'id' | 'addedDate' | 'lastUpdated'>,
-    options: { sourceLocale?: Locale; translations?: PantryTranslationInput[] } = {},
+    options: {
+      sourceLocale?: Locale;
+      translations?: PantryTranslationInput[];
+    } = {},
   ): Promise<PantryItem> {
     const sourceLocale = options.sourceLocale ?? DEFAULT_LOCALE;
     const byLocale = new Map<string, string>([[sourceLocale, data.name]]);
@@ -40,7 +49,10 @@ export class PantryRepository {
         expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
         sourceLocale,
         translations: {
-          create: [...byLocale.entries()].map(([locale, name]) => ({ locale, name })),
+          create: [...byLocale.entries()].map(([locale, name]) => ({
+            locale,
+            name,
+          })),
         },
       },
       include: PANTRY_INCLUDE,
@@ -48,7 +60,10 @@ export class PantryRepository {
     return this.toInterface(result, sourceLocale);
   }
 
-  async findAll(pantryId: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem[]> {
+  async findAll(
+    pantryId: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<PantryItem[]> {
     const results = await this.prisma.pantryItem.findMany({
       where: { pantryId },
       include: PANTRY_INCLUDE,
@@ -56,7 +71,11 @@ export class PantryRepository {
     return results.map((r) => this.toInterface(r, locale));
   }
 
-  async findById(pantryId: string, id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
+  async findById(
+    pantryId: string,
+    id: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<PantryItem> {
     // findFirst with the pantry in the WHERE, not findUnique on the id alone:
     // an item id from another household must be a miss, not a read.
     const result = await this.prisma.pantryItem.findFirst({
@@ -70,7 +89,10 @@ export class PantryRepository {
   }
 
   /** Every language stored for an item — the authoring view. */
-  async findAllTranslations(pantryId: string, id: string): Promise<PantryTranslationInput[]> {
+  async findAllTranslations(
+    pantryId: string,
+    id: string,
+  ): Promise<PantryTranslationInput[]> {
     const result = await this.prisma.pantryItem.findFirst({
       where: { id, pantryId },
       include: PANTRY_INCLUDE,
@@ -96,7 +118,8 @@ export class PantryRepository {
     }
 
     // A name in the payload edits the locale being viewed, not the source locale.
-    const editLocale: Locale = options.locale ?? (existing.sourceLocale as Locale);
+    const editLocale: Locale =
+      options.locale ?? (existing.sourceLocale as Locale);
 
     const updateData: Record<string, unknown> = {};
     if (data.quantity !== undefined) updateData.quantity = data.quantity;
@@ -104,7 +127,9 @@ export class PantryRepository {
     if (data.category !== undefined) updateData.category = data.category;
     if (data.barcode !== undefined) updateData.barcode = data.barcode;
     if (data.expiryDate !== undefined) {
-      updateData.expiryDate = data.expiryDate ? new Date(data.expiryDate) : null;
+      updateData.expiryDate = data.expiryDate
+        ? new Date(data.expiryDate)
+        : null;
     }
 
     const nameEdits = new Map<string, string>();
