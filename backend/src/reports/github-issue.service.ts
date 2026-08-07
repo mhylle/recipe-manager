@@ -15,6 +15,12 @@ export type IssueResult =
 /** How long to wait on GitHub before giving up and saving without a mirror. */
 const TIMEOUT_MS = 10_000;
 
+/** Issue states are decoration on a list; a minute stale is fine. */
+const STATE_CACHE_MS = 60_000;
+
+/** Bounded so a large tracker cannot turn one page load into many requests. */
+const STATE_MAX_PAGES = 3;
+
 /**
  * Mirrors a report onto GitHub.
  *
@@ -41,6 +47,9 @@ export class GithubIssueService {
   /** owner/repo. Defaults to this app's own repository. */
   private readonly repo =
     process.env.ISSUE_MIRROR_REPO?.trim() ?? 'mhylle/recipe-manager';
+
+  private statesCache = new Map<number, 'open' | 'closed'>();
+  private statesFetchedAt = 0;
 
   get configured(): boolean {
     return this.token.length > 0 && this.repo.includes('/');
@@ -78,6 +87,74 @@ export class GithubIssueService {
     ]
       .filter((line) => line !== null)
       .join('\n');
+  }
+
+  /**
+   * Current open/closed state for mirrored issues, keyed by number.
+   *
+   * One listing request rather than one per report: with a few dozen reports the
+   * per-report version would spend a request each and hit the rate limit for no
+   * benefit. Numbers not found come back absent, and the caller shows "unknown"
+   * rather than guessing — an issue can always be older than the pages we read.
+   *
+   * Cached briefly. This is decoration on a list view; a state that is a minute
+   * stale is not worth a request on every page load.
+   */
+  async states(): Promise<Map<number, 'open' | 'closed'>> {
+    if (!this.configured) return new Map();
+
+    const fresh = Date.now() - this.statesFetchedAt < STATE_CACHE_MS;
+    if (fresh && this.statesCache.size > 0) {
+      return this.statesCache;
+    }
+
+    const found = new Map<number, 'open' | 'closed'>();
+    try {
+      for (let page = 1; page <= STATE_MAX_PAGES; page++) {
+        const url = new URL(`https://api.github.com/repos/${this.repo}/issues`);
+        url.searchParams.set('state', 'all');
+        url.searchParams.set('per_page', '100');
+        url.searchParams.set('page', String(page));
+
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${this.token}`,
+            Accept: 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+          },
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+        if (!response.ok) break;
+
+        const rows = (await response.json()) as {
+          number?: number;
+          state?: string;
+          pull_request?: unknown;
+        }[];
+        if (!Array.isArray(rows) || rows.length === 0) break;
+
+        for (const row of rows) {
+          // Pull requests share the issue numbering space and come back from this
+          // endpoint too. A report never refers to one, so skipping them keeps the
+          // map to what it claims to hold.
+          if (row.pull_request !== undefined) continue;
+          if (typeof row.number !== 'number') continue;
+          found.set(row.number, row.state === 'closed' ? 'closed' : 'open');
+        }
+        if (rows.length < 100) break;
+      }
+    } catch (error) {
+      // Same rule as create(): a decoration failing must not fail the list.
+      this.logger.warn(
+        `Could not read issue states: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      // Serve whatever the previous fetch found rather than nothing.
+      return this.statesCache;
+    }
+
+    this.statesCache = found;
+    this.statesFetchedAt = Date.now();
+    return found;
   }
 
   async create(input: IssueInput): Promise<IssueResult> {

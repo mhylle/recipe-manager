@@ -22,6 +22,14 @@ export interface ReportView {
   githubIssueNumber: number | null;
   /** Why the mirror failed, so an unsynced report can be explained. */
   githubError: string | null;
+  /**
+   * Whether the mirrored issue is still open, as GitHub currently reports it.
+   *
+   * Null means unknown — not mirrored, mirroring unconfigured, or the issue is
+   * older than the pages we read. "Unknown" is shown as such rather than guessed
+   * at, because a closed request displayed as open is worse than no badge.
+   */
+  githubState: 'open' | 'closed' | null;
 }
 
 /**
@@ -96,23 +104,46 @@ export class ReportsService {
     return this.toView(mirrored);
   }
 
-  /** The caller's own reports, newest first. */
+  /** The caller's own reports, newest first, with current issue status. */
   async listMine(reporterId: string): Promise<ReportView[]> {
     const rows = await this.prisma.report.findMany({
       where: { reporterId },
       orderBy: { createdAt: 'desc' },
       include: { reporter: { select: { displayName: true } } },
     });
-    return rows.map((row) => this.toView(row));
+    return this.withStates(rows);
   }
 
-  /** Everything, for the owner's admin view. */
+  /** Everything, for the owner's view. */
   async listAll(): Promise<ReportView[]> {
     const rows = await this.prisma.report.findMany({
       orderBy: { createdAt: 'desc' },
       include: { reporter: { select: { displayName: true } } },
     });
-    return rows.map((row) => this.toView(row));
+    return this.withStates(rows);
+  }
+
+  /**
+   * Decorate a list with current issue status.
+   *
+   * One listing request for the whole page, and a failure degrades to "unknown"
+   * rather than failing the list — the reports are ours, the status is GitHub's
+   * opinion about them, and only one of those is essential.
+   */
+  private async withStates(
+    rows: Parameters<ReportsService['toView']>[0][],
+  ): Promise<ReportView[]> {
+    const states = await this.github.states();
+    return rows.map((row) => {
+      const view = this.toView(row);
+      return {
+        ...view,
+        githubState:
+          view.githubIssueNumber === null
+            ? null
+            : (states.get(view.githubIssueNumber) ?? null),
+      };
+    });
   }
 
   /**
@@ -195,6 +226,8 @@ export class ReportsService {
       githubIssueUrl: row.githubIssueUrl,
       githubIssueNumber: row.githubIssueNumber,
       githubError: row.githubError,
+      // Filled in by withStates(); a bare toView() knows nothing about GitHub.
+      githubState: null,
     };
   }
 }

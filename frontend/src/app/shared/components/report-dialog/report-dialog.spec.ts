@@ -17,6 +17,7 @@ const saved = (over: Partial<Report> = {}): Report => ({
   githubIssueUrl: 'https://github.com/mhylle/recipe-manager/issues/42',
   githubIssueNumber: 42,
   githubError: null,
+  githubState: 'open',
   ...over,
 });
 

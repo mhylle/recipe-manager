@@ -91,7 +91,11 @@ interface GithubStub {
   configured: boolean;
   calls: unknown[];
   result: IssueResult;
+  /** Test-facing: what GitHub currently says about each issue number. */
+  issueStates: Map<number, 'open' | 'closed'>;
   create: jest.Mock;
+  /** Service-facing: returns issueStates. */
+  states: jest.Mock;
 }
 
 /**
@@ -105,7 +109,11 @@ function createGithubStub(
     url: 'https://github.com/x/y/issues/42',
   },
 ): GithubStub {
-  const state = { result, calls: [] as unknown[] };
+  const state = {
+    result,
+    calls: [] as unknown[],
+    issueStates: new Map<number, 'open' | 'closed'>(),
+  };
   return {
     configured: true,
     get calls() {
@@ -117,10 +125,17 @@ function createGithubStub(
     set result(value: IssueResult) {
       state.result = value;
     },
+    get issueStates() {
+      return state.issueStates;
+    },
+    set issueStates(value: Map<number, 'open' | 'closed'>) {
+      state.issueStates = value;
+    },
     create: jest.fn((input: unknown) => {
       state.calls.push(input);
       return Promise.resolve(state.result);
     }),
+    states: jest.fn(() => Promise.resolve(state.issueStates)),
   };
 }
 
@@ -281,6 +296,46 @@ describe('ReportsService', () => {
       await expect(service.retryMirror('nope')).rejects.toThrow(
         NotFoundException,
       );
+    });
+  });
+
+  describe('issue status', () => {
+    it('reports the current state of a mirrored issue', async () => {
+      await service.create(REPORTER, INPUT);
+      stub.issueStates = new Map([[42, 'closed']]);
+
+      const listed = await service.listMine('u-1');
+      expect(listed[0].githubState).toBe('closed');
+    });
+
+    it('says unknown rather than guessing when GitHub has no answer', async () => {
+      // A closed request shown as open is worse than no badge at all.
+      await service.create(REPORTER, INPUT);
+      stub.issueStates = new Map();
+
+      expect((await service.listMine('u-1'))[0].githubState).toBeNull();
+    });
+
+    it('says unknown for a report that was never mirrored', async () => {
+      build({ ok: false, error: 'GitHub responded 401' });
+      await service.create(REPORTER, INPUT);
+
+      const listed = await service.listMine('u-1');
+      expect(listed[0].githubIssueNumber).toBeNull();
+      expect(listed[0].githubState).toBeNull();
+    });
+
+    it('asks GitHub once for a whole list, not once per report', async () => {
+      // Per-report lookups would spend a request each and hit the rate limit for
+      // no benefit.
+      await service.create(REPORTER, { ...INPUT, title: 'One' });
+      await service.create(REPORTER, { ...INPUT, title: 'Two' });
+      stub.states.mockClear();
+
+      const listed = await service.listAll();
+
+      expect(listed).toHaveLength(2);
+      expect(stub.states).toHaveBeenCalledTimes(1);
     });
   });
 });

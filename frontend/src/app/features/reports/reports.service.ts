@@ -17,6 +17,8 @@ export interface Report {
   githubIssueUrl: string | null;
   githubIssueNumber: number | null;
   githubError: string | null;
+  /** GitHub's current view. Null means unknown, never assumed open. */
+  githubState: 'open' | 'closed' | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -35,5 +37,10 @@ export class ReportsService {
 
   mine(): Observable<Report[]> {
     return this.http.get<Report[]>(`${this.baseUrl}/mine`, { withCredentials: true });
+  }
+
+  /** Everything, for the owner. 403 for anyone else. */
+  all(): Observable<Report[]> {
+    return this.http.get<Report[]>(this.baseUrl, { withCredentials: true });
   }
 }
