@@ -6,12 +6,16 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 
 import { routes } from './app.routes';
 import { localeInterceptor } from './shared/i18n/locale.interceptor';
+import { pantryContextInterceptor } from './shared/services/pantry-context.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withFetch(), withInterceptors([localeInterceptor])),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([localeInterceptor, pantryContextInterceptor]),
+    ),
     provideServiceWorker('ngsw-worker.js', {
       enabled: !isDevMode(),
       // Wait for the app to settle before registering, so the worker never
