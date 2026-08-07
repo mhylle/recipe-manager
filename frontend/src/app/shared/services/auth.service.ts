@@ -190,6 +190,19 @@ export class AuthService {
       );
   }
 
+  /**
+   * Ask for a password-reset link.
+   *
+   * Resolves the same way whether or not the address has an account: the
+   * auth-service does not say, and neither should we — a form that reveals which
+   * addresses are registered is a way to enumerate them.
+   */
+  requestPasswordReset(email: string): Observable<boolean> {
+    return this.http
+      .post('/api/auth/forgot-password', { email }, { withCredentials: true })
+      .pipe(map(() => true));
+  }
+
   logout(): Observable<boolean> {
     return this.http
       .post('/api/auth/logout', {}, { withCredentials: true })

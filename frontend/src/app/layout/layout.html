@@ -44,6 +44,14 @@
       (signedIn)="onSignedIn()"
       (dismissed)="onDismissed()"
       (wantsRegister)="openRegister()"
+      (wantsPasswordReset)="openForgotPassword()"
+    />
+  }
+
+  @if (forgotOpen()) {
+    <app-forgot-password-dialog
+      (dismissed)="onForgotClosed()"
+      (wantsSignIn)="backToSignInFromForgot()"
     />
   }
 

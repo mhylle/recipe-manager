@@ -4,6 +4,7 @@ import { LanguageSwitcherComponent } from '../shared/i18n/language-switcher/lang
 import { LoginDialogComponent } from '../shared/components/login-dialog/login-dialog';
 import { RegisterDialogComponent } from '../shared/components/register-dialog/register-dialog';
 import { ReportDialogComponent } from '../shared/components/report-dialog/report-dialog';
+import { ForgotPasswordDialogComponent } from '../shared/components/forgot-password-dialog/forgot-password-dialog';
 import { AuthService } from '../shared/services/auth.service';
 import { PantryContextService } from '../shared/services/pantry-context.service';
 import { LoginPromptService } from '../shared/services/login-prompt.service';
@@ -20,6 +21,7 @@ import { TranslatePipe } from '../shared/i18n';
     LoginDialogComponent,
     RegisterDialogComponent,
     ReportDialogComponent,
+    ForgotPasswordDialogComponent,
     TranslatePipe,
   ],
   templateUrl: './layout.html',
@@ -50,6 +52,9 @@ export class LayoutComponent {
    * the point of the button is that it is always within reach.
    */
   readonly reportOpen = signal(false);
+
+  /** The password-reset request, reached from sign-in. */
+  readonly forgotOpen = signal(false);
 
   openLogin(): void {
     this.prompt.open();
@@ -82,6 +87,20 @@ export class LayoutComponent {
 
   onRegisterDismissed(): void {
     this.registerOpen.set(false);
+  }
+
+  openForgotPassword(): void {
+    this.prompt.close();
+    this.forgotOpen.set(true);
+  }
+
+  onForgotClosed(): void {
+    this.forgotOpen.set(false);
+  }
+
+  backToSignInFromForgot(): void {
+    this.forgotOpen.set(false);
+    this.prompt.open();
   }
 
   openReport(): void {
