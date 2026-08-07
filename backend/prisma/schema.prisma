@@ -32,6 +32,12 @@ enum PantryCategory {
   other
 }
 
+/// What someone is telling us about.
+enum ReportKind {
+  defect
+  improvement
+}
+
 enum Difficulty {
   easy
   medium
@@ -115,8 +121,41 @@ model User {
   pushSubscriptions PushSubscription[]
   scheduledTimers   ScheduledTimer[]
   mcpApiKeys        McpApiKey[]
+  reports           Report[]
 
   @@index([email])
+}
+
+/// Something a cook reported: a fault, or a wish.
+///
+/// The row is the record, and GitHub is a mirror of it. Saving happens first and
+/// unconditionally: an unreachable API, a missing token or a rate limit must
+/// never lose somebody's bug report, and the whole point of the button is that
+/// reporting is frictionless enough to actually get used.
+model Report {
+  id          String     @id @default(uuid())
+  kind        ReportKind
+  title       String
+  description String
+  /// Who reported it. RESTRICT, not cascade — deleting a person must not erase
+  /// the defects they found, which may still be open.
+  reporterId  String
+  reporter    User       @relation(fields: [reporterId], references: [id], onDelete: Restrict)
+  /// What the client was looking at. Saves a round trip of "where were you?".
+  pagePath    String?
+  createdAt   DateTime   @default(now())
+
+  /// Mirror state. Null issue number means "not on GitHub", for any reason.
+  githubIssueNumber Int?
+  githubIssueUrl    String?
+  githubSyncedAt    DateTime?
+  /// Why the mirror failed, kept so an unsynced report can be explained rather
+  /// than silently looking like nobody cared.
+  githubError       String?
+
+  // The owner's list reads newest-first; the reporter's own list filters by them.
+  @@index([createdAt])
+  @@index([reporterId])
 }
 
 /// A personal credential for the MCP server.

@@ -21,6 +21,7 @@ import { PushController } from '../../push/push.controller.js';
 import { TimerController } from '../../push/timer.controller.js';
 import { ProfileController } from '../../profile/profile.controller.js';
 import { AdminController } from '../../admin/admin.controller.js';
+import { ReportsController } from '../../reports/reports.controller.js';
 
 const CONTROLLERS = [
   AppController,
@@ -36,6 +37,7 @@ const CONTROLLERS = [
   TimerController,
   ProfileController,
   AdminController,
+  ReportsController,
 ];
 
 const WRITE_METHODS = new Set([
@@ -219,6 +221,17 @@ describe('guard coverage across the whole API surface', () => {
         )
         .map((r) => `${r.handler} (${RequestMethod[r.method]} ${r.path})`);
       expect(ungated).toEqual([]);
+    });
+
+    it('lets anyone report a fault without a contribution grant', () => {
+      // Gating this would mean the people most likely to hit a wall — the ones
+      // who cannot contribute yet — are the ones who cannot report it.
+      const reports = routes.filter(
+        (r) => r.controller === 'ReportsController',
+      );
+      expect(reports.length).toBeGreaterThanOrEqual(4);
+      expect(reports.every((r) => r.guarded)).toBe(true);
+      expect(reports.some((r) => r.contributorGated)).toBe(false);
     });
 
     it('leaves the admin routes to OwnerGuard, not the contribution gate', () => {

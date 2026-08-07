@@ -14,6 +14,7 @@ import { BilkaToGoModule } from './bilkatogo/bilkatogo.module.js';
 import { PushModule } from './push/push.module.js';
 import { ProfileModule } from './profile/profile.module.js';
 import { AdminModule } from './admin/admin.module.js';
+import { ReportsModule } from './reports/reports.module.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdminModule } from './admin/admin.module.js';
     PushModule,
     ProfileModule,
     AdminModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

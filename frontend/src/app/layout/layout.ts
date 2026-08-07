@@ -3,6 +3,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { LanguageSwitcherComponent } from '../shared/i18n/language-switcher/language-switcher';
 import { LoginDialogComponent } from '../shared/components/login-dialog/login-dialog';
 import { RegisterDialogComponent } from '../shared/components/register-dialog/register-dialog';
+import { ReportDialogComponent } from '../shared/components/report-dialog/report-dialog';
 import { AuthService } from '../shared/services/auth.service';
 import { PantryContextService } from '../shared/services/pantry-context.service';
 import { LoginPromptService } from '../shared/services/login-prompt.service';
@@ -18,6 +19,7 @@ import { TranslatePipe } from '../shared/i18n';
     LanguageSwitcherComponent,
     LoginDialogComponent,
     RegisterDialogComponent,
+    ReportDialogComponent,
     TranslatePipe,
   ],
   templateUrl: './layout.html',
@@ -40,6 +42,14 @@ export class LayoutComponent {
    * no account.
    */
   readonly registerOpen = signal(false);
+
+  /**
+   * The report dialog, reachable from the footer on every page.
+   *
+   * Local state like sign-up: nothing outside the layout needs to demand it, and
+   * the point of the button is that it is always within reach.
+   */
+  readonly reportOpen = signal(false);
 
   openLogin(): void {
     this.prompt.open();
@@ -72,6 +82,14 @@ export class LayoutComponent {
 
   onRegisterDismissed(): void {
     this.registerOpen.set(false);
+  }
+
+  openReport(): void {
+    this.reportOpen.set(true);
+  }
+
+  onReportClosed(): void {
+    this.reportOpen.set(false);
   }
 
   backToSignIn(): void {
