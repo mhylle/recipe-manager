@@ -12,8 +12,8 @@ services:
       # is open — see .env.example for how to generate a pair.
       - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
-      - GITHUB_ISSUE_TOKEN=${GITHUB_ISSUE_TOKEN:-}
-      - GITHUB_ISSUE_REPO=${GITHUB_ISSUE_REPO:-mhylle/recipe-manager}
+      - ISSUE_MIRROR_TOKEN=${ISSUE_MIRROR_TOKEN:-}
+      - ISSUE_MIRROR_REPO=${ISSUE_MIRROR_REPO:-mhylle/recipe-manager}
       - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:dev@localhost}
     ports:
       - "${BACKEND_PORT:-8006}:3000"

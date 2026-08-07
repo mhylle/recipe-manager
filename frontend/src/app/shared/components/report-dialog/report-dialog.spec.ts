@@ -138,6 +138,19 @@ describe('ReportDialogComponent', () => {
     });
   });
 
+  it('warns that the report becomes public before it is sent', () => {
+    // The repository is public, so the text and the reporter's name become
+    // world-readable and permanent. Discovering that from a link in the
+    // confirmation would be too late.
+    const warning = (fixture.nativeElement as HTMLElement).querySelector(
+      '.report__warning',
+    );
+    expect(warning).not.toBeNull();
+    // The two things a reporter must understand before typing.
+    expect(warning?.textContent).toContain('public');
+    expect(warning?.textContent).toContain('GitHub');
+  });
+
   it('reports dismissal so the host can close it', () => {
     let dismissed = false;
     component.dismissed.subscribe(() => (dismissed = true));

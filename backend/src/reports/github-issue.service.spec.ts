@@ -9,8 +9,8 @@ const INPUT = {
 };
 
 describe('GithubIssueService', () => {
-  const savedToken = process.env.GITHUB_ISSUE_TOKEN;
-  const savedRepo = process.env.GITHUB_ISSUE_REPO;
+  const savedToken = process.env.ISSUE_MIRROR_TOKEN;
+  const savedRepo = process.env.ISSUE_MIRROR_REPO;
   let fetchMock: jest.Mock;
 
   /** The JSON body of one outbound call, typed rather than reached into. */
@@ -26,17 +26,17 @@ describe('GithubIssueService', () => {
   };
 
   beforeEach(() => {
-    process.env.GITHUB_ISSUE_TOKEN = 'ghp_test_token_value';
-    process.env.GITHUB_ISSUE_REPO = 'mhylle/recipe-manager';
+    process.env.ISSUE_MIRROR_TOKEN = 'ghp_test_token_value';
+    process.env.ISSUE_MIRROR_REPO = 'mhylle/recipe-manager';
     fetchMock = jest.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
   });
 
   afterEach(() => {
-    if (savedToken === undefined) delete process.env.GITHUB_ISSUE_TOKEN;
-    else process.env.GITHUB_ISSUE_TOKEN = savedToken;
-    if (savedRepo === undefined) delete process.env.GITHUB_ISSUE_REPO;
-    else process.env.GITHUB_ISSUE_REPO = savedRepo;
+    if (savedToken === undefined) delete process.env.ISSUE_MIRROR_TOKEN;
+    else process.env.ISSUE_MIRROR_TOKEN = savedToken;
+    if (savedRepo === undefined) delete process.env.ISSUE_MIRROR_REPO;
+    else process.env.ISSUE_MIRROR_REPO = savedRepo;
     jest.restoreAllMocks();
   });
 
@@ -109,7 +109,7 @@ describe('GithubIssueService', () => {
 
   describe('failing safely', () => {
     it('reports being unconfigured rather than throwing', async () => {
-      delete process.env.GITHUB_ISSUE_TOKEN;
+      delete process.env.ISSUE_MIRROR_TOKEN;
       const service = new GithubIssueService();
 
       expect(service.configured).toBe(false);

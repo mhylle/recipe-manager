@@ -71,6 +71,11 @@
       ></textarea>
       <p class="report__hint">{{ 'report.descriptionHint' | t }}</p>
 
+      <!-- Said before sending, not after. The repository is public, so the text
+           and the reporter's name become world-readable and permanent — that is
+           not something to discover from a link in the confirmation. -->
+      <p class="report__warning">{{ 'report.publicWarning' | t }}</p>
+
       @if (errorKey(); as key) {
         <p class="report__error" role="alert">{{ key | t }}</p>
       }
