@@ -16,6 +16,7 @@ type RegisterErrorKey =
   | 'register.errRequired'
   | 'register.errPasswordMismatch'
   | 'register.errPasswordWeak'
+  | 'register.errPasswordCharset'
   | 'register.errEmailTaken'
   | 'register.errTooMany'
   | 'register.errFailed';
@@ -96,10 +97,21 @@ export class RegisterDialogComponent {
       this.errorKey.set('register.errPasswordMismatch');
       return;
     }
-    // Mirrors the auth-service's own rule, whose message is "Password must be at
-    // least 6 characters and contain at least one number".
+    // Mirrors the auth-service's rule as it ACTUALLY behaves, which is not what
+    // it says. Verified against the live endpoint: `Abcdef1!` is refused with
+    // "Password must be at least 6 characters and contain at least one number",
+    // while `Abcdef1` is accepted — so the real rule also forbids anything
+    // outside letters and digits, and the server's message misdescribes it.
+    //
+    // Checked here so someone is told the truth immediately rather than being
+    // bounced by a server that blames the wrong thing, and without burning one of
+    // the five attempts a minute nginx allows.
     if (this.password.length < 6 || !/\d/.test(this.password)) {
       this.errorKey.set('register.errPasswordWeak');
+      return;
+    }
+    if (!/^[A-Za-z0-9]+$/.test(this.password)) {
+      this.errorKey.set('register.errPasswordCharset');
       return;
     }
 
@@ -144,7 +156,10 @@ export class RegisterDialogComponent {
   private errorFor(status: number | undefined): RegisterErrorKey {
     if (status === 429) return 'register.errTooMany';
     if (status === 409) return 'register.errEmailTaken';
-    if (status === 400) return 'register.errPasswordWeak';
+    // The server blames length or a missing digit for every password problem,
+    // including a rejected special character. Naming the charset here is the
+    // likeliest truth once our own pre-checks have passed.
+    if (status === 400) return 'register.errPasswordCharset';
     return 'register.errFailed';
   }
 

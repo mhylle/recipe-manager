@@ -63,6 +63,30 @@ describe('RegisterDialogComponent', () => {
       httpTesting.expectNone('/api/auth/register');
     });
 
+    it('catches a special character, which the server silently forbids', () => {
+      // Verified against the live endpoint: `Abcdef1!` is refused while
+      // `Abcdef1` is accepted, and the server blames length or a missing digit
+      // either way. Catching it here tells the truth immediately, and without
+      // burning one of the five attempts a minute nginx allows.
+      fillValid();
+      component.password = 'Abcdef1!';
+      component.confirmPassword = 'Abcdef1!';
+      component.submit();
+
+      expect(component.errorKey()).toBe('register.errPasswordCharset');
+      httpTesting.expectNone('/api/auth/register');
+    });
+
+    it('accepts a letters-and-numbers password', () => {
+      fillValid();
+      component.password = 'Abcdef1';
+      component.confirmPassword = 'Abcdef1';
+      component.submit();
+
+      httpTesting.expectOne('/api/auth/register').flush({ success: true });
+      httpTesting.expectOne('/api/auth/login').flush({ success: false });
+    });
+
     it('catches a too-short password', () => {
       fillValid();
       component.password = 'ab1';

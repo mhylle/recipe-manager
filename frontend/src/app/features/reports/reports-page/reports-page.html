@@ -1,0 +1,65 @@
+<section class="reports">
+  <h1 class="reports__title">{{ 'reports.title' | t }}</h1>
+  <p class="reports__lede">
+    {{ (showingAll() ? 'reports.ledeAll' : 'reports.ledeMine') | t }}
+  </p>
+
+  @if (loading()) {
+    <p role="status">{{ 'common.loading' | t }}</p>
+  } @else if (failed()) {
+    <p class="reports__error" role="alert">{{ 'reports.errFailed' | t }}</p>
+  } @else if (items().length === 0) {
+    <p role="status">{{ 'reports.empty' | t }}</p>
+  } @else {
+    <p class="reports__summary">
+      {{ 'reports.summary' | t: { open: openCount(), total: items().length } }}
+    </p>
+
+    <ul class="reports__list">
+      @for (report of items(); track report.id) {
+        <li class="reports__row">
+          <div class="reports__head">
+            <span
+              class="reports__kind"
+              [class.reports__kind--defect]="report.kind === 'defect'"
+            >{{ (report.kind === 'defect' ? 'report.kindDefect' : 'report.kindImprovement') | t }}</span>
+            <span
+              class="reports__status"
+              [class.reports__status--open]="report.githubState === 'open'"
+              [class.reports__status--closed]="report.githubState === 'closed'"
+            >{{ statusKey(report) | t }}</span>
+          </div>
+
+          <h2 class="reports__name">
+            @if (report.githubIssueUrl) {
+              <a [href]="report.githubIssueUrl" target="_blank" rel="noopener">{{ report.title }}</a>
+            } @else {
+              {{ report.title }}
+            }
+          </h2>
+
+          <p class="reports__body">{{ report.description }}</p>
+
+          <p class="reports__meta">
+            @if (showingAll()) {
+              <span>{{ report.reporterName }}</span>
+              <span aria-hidden="true">&middot;</span>
+            }
+            <span>{{ report.createdAt | localeDate }}</span>
+            @if (report.pagePath) {
+              <span aria-hidden="true">&middot;</span>
+              <code class="reports__page">{{ report.pagePath }}</code>
+            }
+          </p>
+
+          <!-- Only the owner can act on this, and only they see it. -->
+          @if (showingAll() && report.githubError) {
+            <p class="reports__warn">
+              {{ 'reports.mirrorFailed' | t: { reason: report.githubError } }}
+            </p>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>
