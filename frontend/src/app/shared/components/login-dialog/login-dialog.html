@@ -32,6 +32,12 @@
       <p class="login__error" role="alert">{{ key | t }}</p>
     }
 
+    <p class="login__forgot">
+      <button type="button" class="login__forgot-btn" (click)="forgotPassword()" [disabled]="busy()">
+        {{ 'forgot.link' | t }}
+      </button>
+    </p>
+
     <div class="login__actions">
       <button
         type="button"
