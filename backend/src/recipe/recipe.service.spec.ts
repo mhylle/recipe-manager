@@ -11,6 +11,7 @@ import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
 import { RecipeVisibilityService } from './recipe-visibility.service';
+import { PantryAccessService } from '../pantry/pantry-access.service';
 
 describe('RecipeService', () => {
   let service: RecipeService;
@@ -103,6 +104,11 @@ describe('RecipeService', () => {
         { provide: RecipeImageService, useValue: recipeImages },
         // Writes files and shells out to libvips; neither belongs in these tests.
         { provide: ThumbnailService, useValue: thumbnails },
+        // Only transferAuthor consults it; covered in recipe-transfer.spec.ts.
+        {
+          provide: PantryAccessService,
+          useValue: { shareAKitchen: jest.fn().mockResolvedValue(false) },
+        },
         // The membership lookup behind "who may read this". Stubbed to a viewer
         // with no kitchens: these tests are about delegation, and the policy
         // itself is covered in recipe-visibility.spec.ts.

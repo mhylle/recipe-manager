@@ -35,6 +35,7 @@ import { OptionalSsoAuthGuard } from '../shared/auth/optional-sso-auth.guard.js'
 import { ContributorGuard } from '../shared/auth/contributor.guard.js';
 import { PantryAccessService } from '../pantry/pantry-access.service.js';
 import { GenerateImagesDto } from './dto/generate-images.dto.js';
+import { TransferRecipeDto } from './dto/transfer-recipe.dto.js';
 import { MAX_IMAGE_BYTES } from './recipe-image.service.js';
 
 @Controller('recipes')
@@ -145,6 +146,23 @@ export class RecipeController {
       dto.translations,
       dto.sourceLocale,
     );
+  }
+
+  /**
+   * Hand a recipe to the person who actually cooked it.
+   *
+   * A permission change, not an edit — afterwards the previous author can no
+   * longer modify or delete it — so it is its own endpoint rather than a field
+   * on PATCH, where it could ride along in an ordinary save.
+   */
+  @UseGuards(SsoAuthGuard, ContributorGuard)
+  @Post(':id/transfer')
+  async transfer(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Body() dto: TransferRecipeDto,
+  ): Promise<Recipe> {
+    return this.recipeService.transferAuthor(id, user.id, dto.userId);
   }
 
   @UseGuards(SsoAuthGuard, ContributorGuard)

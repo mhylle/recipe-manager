@@ -308,6 +308,18 @@ export const en = {
     'Only members of your kitchen will see it. Everyone else sees the shared library without it.',
   'recipe.form.privateNoKitchen':
     'You have no kitchen yet, so a private recipe would be visible to you alone.',
+  'recipe.transfer.action': 'Change author',
+  'recipe.transfer.title': 'Hand this recipe over',
+  'recipe.transfer.lede': 'Give {{name}} to whoever actually cooked it.',
+  'recipe.transfer.chooseLabel': 'Choose the new author',
+  'recipe.transfer.warning':
+    '{{name}} becomes the author. You will no longer be able to edit or delete this recipe, and they can hand it back.',
+  'recipe.transfer.confirm': 'Hand it over',
+  'recipe.transfer.working': 'Handing over2026',
+  'recipe.transfer.noone':
+    'There is nobody else in this kitchen yet. Share the kitchen with them first, then hand the recipe over.',
+  'recipe.transfer.loadFailed': 'Could not load the people in this kitchen.',
+  'recipe.transfer.failed': 'That did not work. You can only hand a recipe to someone you share a kitchen with.',
   'recipe.list.private': 'Private',
   'recipe.detail.private': 'Private to your kitchen',
   'recipe.form.ingredients': 'Ingredients',

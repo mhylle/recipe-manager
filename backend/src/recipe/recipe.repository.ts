@@ -271,6 +271,23 @@ export class RecipeRepository {
   }
 
   /** Every language stored for a recipe — the authoring view, not a reading view. */
+  /**
+   * Move a recipe's attribution to another person.
+   *
+   * Kept out of `update` on purpose: everything that goes through there is a
+   * change to the recipe, whereas this is a change to who controls it. Letting
+   * `createdById` ride along in a general update payload would mean a client
+   * could reassign a recipe by adding a field to an ordinary edit.
+   */
+  async reassignAuthor(id: string, newAuthorId: string): Promise<Recipe> {
+    const result = await this.prisma.recipe.update({
+      where: { id },
+      data: { createdById: newAuthorId },
+      include: RECIPE_INCLUDE,
+    });
+    return this.toInterface(result, result.sourceLocale as Locale);
+  }
+
   /** Just the author, for the ownership check. Avoids hydrating the whole row. */
   async findOwner(id: string): Promise<{ createdById: string } | null> {
     return this.prisma.recipe.findUnique({
