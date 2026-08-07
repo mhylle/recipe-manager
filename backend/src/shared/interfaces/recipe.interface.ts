@@ -22,6 +22,8 @@ export interface Recipe {
   difficulty: Difficulty;
   tags: string[];
   imageUrl?: string;
+  /** Gallery-sized WebP. Absent means the list falls back to imageUrl. */
+  thumbnailUrl?: string;
   /** Who added this recipe. Attribution only — every user sees every recipe. */
   createdBy?: { id: string; displayName: string };
 }

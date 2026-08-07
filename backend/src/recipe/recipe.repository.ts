@@ -109,6 +109,7 @@ export class RecipeRepository {
         tags: canonicalTags(data.tags),
         createdById,
         imageUrl: data.imageUrl,
+        thumbnailUrl: data.thumbnailUrl,
         sourceLocale,
         translations: {
           create: byLocale.map((t) => ({
@@ -309,6 +310,10 @@ export class RecipeRepository {
     if (data.difficulty !== undefined) updateData.difficulty = data.difficulty;
     if (data.tags !== undefined) updateData.tags = canonicalTags(data.tags);
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    // Null is meaningful here — "conversion failed, fall back to the full
+    // image" — so this checks for undefined rather than falsiness.
+    if (data.thumbnailUrl !== undefined)
+      updateData.thumbnailUrl = data.thumbnailUrl;
     if (options.sourceLocale !== undefined) {
       // Reject anything outside the supported set. An unrecognised sourceLocale
       // is worse than useless: reads fall back to it, so a junk value silently
@@ -469,6 +474,7 @@ export class RecipeRepository {
       difficulty: result.difficulty as Recipe['difficulty'],
       tags: result.tags,
       imageUrl: result.imageUrl ?? undefined,
+      thumbnailUrl: result.thumbnailUrl ?? undefined,
       // Attribution for the byline. Only the display name travels — the address
       // is not the reader's business.
       createdBy: result.createdBy

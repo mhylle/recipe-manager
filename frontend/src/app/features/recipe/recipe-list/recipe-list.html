@@ -83,8 +83,11 @@
                        layout shift and the browser fetches only what is on
                        screen. Without this, forty cards asked for tens of
                        megabytes of hero images at once. -->
+                  <!-- The thumbnail is around 60KB against the original's 2MB.
+                       Falling back to the full image keeps the card working for
+                       anything not yet converted, which is what null means. -->
                   <img
-                    [src]="recipe.imageUrl"
+                    [src]="recipe.thumbnailUrl ?? recipe.imageUrl"
                     [alt]="recipe.name"
                     class="gallery-item__image"
                     loading="lazy"

@@ -5,6 +5,7 @@ import { RecipeService } from './recipe.service';
 import { RecipeRepository } from './recipe.repository';
 import { ImageGenerationService } from '../image-generation/image-generation.service';
 import { RecipeImageService } from './recipe-image.service';
+import { ThumbnailService } from './thumbnail.service';
 import { Recipe } from '../shared/interfaces/recipe.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
@@ -18,6 +19,7 @@ describe('RecipeService', () => {
     generateStepImages: jest.Mock;
   };
   let recipeImages: { store: jest.Mock };
+  let thumbnails: { generate: jest.Mock };
 
   const mockRecipe: Recipe = {
     id: 'recipe-uuid-1',
@@ -67,6 +69,12 @@ describe('RecipeService', () => {
       delete: jest.fn(),
     };
 
+    thumbnails = {
+      generate: jest
+        .fn()
+        .mockResolvedValue('/api/recipe-manager/images/recipes/thumbs/x.webp'),
+    };
+
     recipeImages = {
       store: jest
         .fn()
@@ -92,6 +100,8 @@ describe('RecipeService', () => {
         },
         // Upload writes to disk, which these tests have no business doing.
         { provide: RecipeImageService, useValue: recipeImages },
+        // Writes files and shells out to libvips; neither belongs in these tests.
+        { provide: ThumbnailService, useValue: thumbnails },
       ],
     }).compile();
 
@@ -328,6 +338,59 @@ describe('RecipeService', () => {
       expect(imageGeneration.generateStepImages).toHaveBeenCalledWith(
         expect.anything(),
         'caller-supplied-key',
+      );
+    });
+  });
+
+  describe('thumbnails', () => {
+    it('makes one when a photograph is uploaded', async () => {
+      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.update.mockResolvedValue(mockRecipe);
+
+      await service.uploadImage('recipe-1', 'user-1', {
+        buffer: Buffer.from('x'),
+        size: 1,
+      });
+
+      expect(thumbnails.generate).toHaveBeenCalled();
+      expect(repository.update).toHaveBeenCalledWith(
+        'recipe-1',
+        expect.objectContaining({
+          thumbnailUrl: '/api/recipe-manager/images/recipes/thumbs/x.webp',
+        }),
+      );
+    });
+
+    it('makes one when an image is generated', async () => {
+      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findById.mockResolvedValue(mockRecipe);
+      imageGeneration.generateHeroImage.mockResolvedValue(
+        '/api/recipe-manager/images/recipes/hero.png',
+      );
+
+      await service.regenerateImages('recipe-1', 'user-1', 'a-key');
+      await new Promise((r) => setImmediate(r));
+
+      expect(thumbnails.generate).toHaveBeenCalledWith(
+        '/api/recipe-manager/images/recipes/hero.png',
+      );
+    });
+
+    it('still saves the image when thumbnailing fails', async () => {
+      // Null means "use the full image", which is what happened before
+      // thumbnails existed — a failure degrades to slow, not to broken.
+      thumbnails.generate.mockResolvedValue(null);
+      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.update.mockResolvedValue(mockRecipe);
+
+      await service.uploadImage('recipe-1', 'user-1', {
+        buffer: Buffer.from('x'),
+        size: 1,
+      });
+
+      expect(repository.update).toHaveBeenCalledWith(
+        'recipe-1',
+        expect.objectContaining({ thumbnailUrl: undefined }),
       );
     });
   });
