@@ -1,0 +1,93 @@
+<dialog #dialog class="report" (close)="close()" [attr.aria-label]="'report.heading' | t">
+  @if (sent(); as report) {
+    <div class="report__done">
+      <h2 class="report__title">{{ 'report.thanksHeading' | t }}</h2>
+      <p class="report__intro">{{ 'report.thanksBody' | t }}</p>
+
+      @if (report.githubIssueUrl) {
+        <p class="report__intro">
+          <a [href]="report.githubIssueUrl" target="_blank" rel="noopener" class="report__link">{{
+            'report.viewIssue' | t: { number: report.githubIssueNumber ?? '' }
+          }}</a>
+        </p>
+      } @else {
+        <!-- Saved but not mirrored. Saying so is honest, and it is not a failure
+             the reporter needs to do anything about. -->
+        <p class="report__note">{{ 'report.savedNotMirrored' | t }}</p>
+      }
+
+      <div class="report__actions">
+        <button type="button" class="btn btn--primary btn--small" (click)="close()">
+          {{ 'common.actions.close' | t }}
+        </button>
+      </div>
+    </div>
+  } @else {
+    <form class="report__form" (ngSubmit)="submit()">
+      <h2 class="report__title">{{ 'report.heading' | t }}</h2>
+      <p class="report__intro">{{ 'report.intro' | t }}</p>
+
+      <fieldset class="report__kinds">
+        <legend class="report__label">{{ 'report.kindLabel' | t }}</legend>
+        <label class="report__kind">
+          <input type="radio" name="kind" value="defect" [(ngModel)]="kind" [disabled]="busy()" />
+          {{ 'report.kindDefect' | t }}
+        </label>
+        <label class="report__kind">
+          <input
+            type="radio"
+            name="kind"
+            value="improvement"
+            [(ngModel)]="kind"
+            [disabled]="busy()"
+          />
+          {{ 'report.kindImprovement' | t }}
+        </label>
+      </fieldset>
+
+      <label class="report__label" for="report-title">{{ 'report.titleLabel' | t }}</label>
+      <input
+        #titleInput
+        id="report-title"
+        name="title"
+        type="text"
+        class="report__input"
+        [(ngModel)]="title"
+        [disabled]="busy()"
+        maxlength="120"
+      />
+
+      <label class="report__label" for="report-description">{{
+        'report.descriptionLabel' | t
+      }}</label>
+      <textarea
+        id="report-description"
+        name="description"
+        class="report__textarea"
+        rows="6"
+        [(ngModel)]="description"
+        [disabled]="busy()"
+        maxlength="5000"
+      ></textarea>
+      <p class="report__hint">{{ 'report.descriptionHint' | t }}</p>
+
+      @if (errorKey(); as key) {
+        <p class="report__error" role="alert">{{ key | t }}</p>
+      }
+
+      <div class="report__actions">
+        <button
+          type="button"
+          class="btn btn--ghost btn--small"
+          (click)="close()"
+          [disabled]="busy()"
+        >
+          {{ 'common.actions.cancel' | t }}
+        </button>
+        <button type="submit" class="btn btn--primary btn--small" [disabled]="busy()">
+          {{ (busy() ? 'report.sending' : 'report.send') | t }}
+        </button>
+      </div>
+    </form>
+  }
+</dialog>

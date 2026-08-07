@@ -47,6 +47,10 @@
     />
   }
 
+  @if (reportOpen()) {
+    <app-report-dialog (dismissed)="onReportClosed()" />
+  }
+
   @if (registerOpen()) {
     <app-register-dialog
       (registered)="onRegistered()"
@@ -61,6 +65,11 @@
       <nav class="footer__links" [attr.aria-label]="'layout.nav.secondaryLabel' | t">
         <a routerLink="/shopping-list">{{ 'layout.footer.shoppingList' | t }}</a>
         <a routerLink="/staples">{{ 'layout.footer.essentials' | t }}</a>
+        @if (auth.isAuthenticated()) {
+          <button type="button" class="footer__report" (click)="openReport()">
+            {{ 'report.button' | t }}
+          </button>
+        }
       </nav>
       <div class="footer__copy">&copy; 2024 {{ 'layout.brand' | t }}. {{ 'layout.footer.tagline' | t }}</div>
     </div>

@@ -269,3 +269,19 @@
   background: var(--outline-variant);
   margin-right: 0.25rem;
 }
+
+// A link, not a button, visually: it sits in the footer nav among the other
+// links and should not shout. Reachable from every page, which is the point.
+.footer__report {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--primary);
+  }
+}
