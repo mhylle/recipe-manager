@@ -6,6 +6,7 @@ import {
   GUARDS_METADATA,
 } from '@nestjs/common/constants.js';
 import { SsoAuthGuard } from './sso-auth.guard.js';
+import { OptionalSsoAuthGuard } from './optional-sso-auth.guard.js';
 import { ContributorGuard } from './contributor.guard.js';
 
 import { AppController } from '../../app.controller.js';
@@ -53,6 +54,8 @@ interface Route {
   method: RequestMethod;
   path: string;
   guarded: boolean;
+  /** Carries OptionalSsoAuthGuard: open to guests, but identity-aware. */
+  optionallyGuarded: boolean;
   /** Whether the route also demands an `apps` grant for this app. */
   contributorGated: boolean;
 }
@@ -93,6 +96,7 @@ function collectRoutes(): Route[] {
         method,
         path: `${basePath}/${Reflect.getMetadata(PATH_METADATA, handler) as string}`,
         guarded: controllerGuarded || handlerGuards.includes(SsoAuthGuard),
+        optionallyGuarded: handlerGuards.includes(OptionalSsoAuthGuard),
         contributorGated:
           controllerGuards.includes(ContributorGuard) ||
           handlerGuards.includes(ContributorGuard),
@@ -135,13 +139,16 @@ describe('guard coverage across the whole API surface', () => {
   });
 
   /**
-   * The read policy changed when pantries arrived, and this test is where it is
-   * stated. Recipes are one shared library, so their reads stay public. Kitchen
-   * state belongs to a pantry, and there is no pantry without a user — so those
-   * reads are guarded, and the app is read-only-ish rather than fully usable
-   * when logged out.
+   * The read policy changed twice, and this test is where it is stated.
+   *
+   * Pantries made kitchen state user-specific, so those reads are guarded and
+   * the app is read-only-ish when logged out. Private recipes then made the
+   * recipe library *identity-aware* without making it private: a guest still
+   * browses it, but what comes back depends on who is asking. That is
+   * OptionalSsoAuthGuard, and it is deliberately not the same thing as either
+   * "guarded" or "no guard at all".
    */
-  it('keeps RECIPE reads public — the library is shared', () => {
+  it('never REQUIRES credentials to read a recipe — the library is shared', () => {
     const publicReadControllers = ['RecipeController', 'AppController'];
     const wronglyGuarded = routes
       .filter(
@@ -152,6 +159,21 @@ describe('guard coverage across the whole API surface', () => {
       )
       .map((r) => `${r.controller}.${r.handler}`);
     expect(wronglyGuarded).toEqual([]);
+  });
+
+  it('makes every RECIPE read identity-aware, so private recipes can be filtered', () => {
+    // Dropping the optional guard would not fail any other test here: the read
+    // would still answer, still be unguarded, and would simply treat everyone
+    // as a guest — quietly hiding people's own private recipes from them.
+    const blind = routes
+      .filter(
+        (r) =>
+          r.method === RequestMethod.GET &&
+          r.controller === 'RecipeController' &&
+          !r.optionallyGuarded,
+      )
+      .map((r) => `${r.controller}.${r.handler}`);
+    expect(blind).toEqual([]);
   });
 
   it('guards KITCHEN reads — pantry state cannot be resolved without a user', () => {

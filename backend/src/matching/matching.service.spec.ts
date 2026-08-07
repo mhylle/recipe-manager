@@ -62,7 +62,7 @@ describe('MatchingService', () => {
         },
         {
           provide: RecipeService,
-          useValue: { findAll: jest.fn() },
+          useValue: { findAllFor: jest.fn() },
         },
         {
           provide: StaplesService,
@@ -100,9 +100,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.canMakeNow).toHaveLength(1);
     expect(result.canMakeNow[0].name).toBe('Pancakes');
@@ -131,9 +131,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(1);
@@ -162,9 +162,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.almostCanMake).toHaveLength(1);
     expect(result.almostCanMake[0].missingIngredients).toHaveLength(1);
@@ -189,9 +189,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.almostCanMake).toHaveLength(1);
     expect(result.almostCanMake[0].missingIngredients).toHaveLength(2);
@@ -227,9 +227,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(0);
@@ -272,9 +272,9 @@ describe('MatchingService', () => {
       items: ['Salt', 'Pepper', 'Oil'],
     });
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     // Salt, Pepper, Oil are staples so only Flour counts, and we have it
     expect(result.canMakeNow).toHaveLength(1);
@@ -300,10 +300,10 @@ describe('MatchingService', () => {
     );
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
     // Request 8 servings = 400g flour needed, only have 300g
-    const result = await service.matchRecipes('p-test', 8);
+    const result = await service.matchRecipes('u-viewer', 'p-test', 8);
 
     expect(result.canMakeNow).toHaveLength(0);
     expect(result.almostCanMake).toHaveLength(1);
@@ -347,9 +347,9 @@ describe('MatchingService', () => {
     ]);
 
     pantryService.findAll.mockResolvedValue(pantry);
-    recipeService.findAll.mockResolvedValue(page([recipe]));
+    recipeService.findAllFor.mockResolvedValue(page([recipe]));
 
-    const result = await service.matchRecipes('p-test');
+    const result = await service.matchRecipes('u-viewer', 'p-test');
 
     expect(result.missingMany).toHaveLength(1);
     expect(result.canMakeNow).toHaveLength(0);

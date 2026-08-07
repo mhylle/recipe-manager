@@ -24,6 +24,8 @@ export interface Recipe {
   imageUrl?: string;
   /** Gallery-sized WebP. Absent means fall back to imageUrl. */
   thumbnailUrl?: string;
-  /** Who added it. Attribution only — every user sees every recipe. */
+  /** Who added it, and the one person who can always read it back. */
   createdBy?: { id: string; displayName: string };
+  /** True means only the author's kitchen sees it. Absent reads as false. */
+  isPrivate?: boolean;
 }

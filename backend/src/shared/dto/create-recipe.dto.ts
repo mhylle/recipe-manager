@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsEnum,
   IsArray,
+  IsBoolean,
   IsOptional,
   ValidateNested,
   Min,
@@ -70,4 +71,16 @@ export class CreateRecipeDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  /**
+   * Narrow this recipe to the author's kitchen. Absent means the shared
+   * library, which is what a recipe is unless someone says otherwise.
+   *
+   * Which kitchen is never taken from the body — the server resolves it from
+   * the author's own membership, so this flag cannot be used to file a recipe
+   * into a kitchen the caller does not belong to.
+   */
+  @IsOptional()
+  @IsBoolean()
+  isPrivate?: boolean;
 }

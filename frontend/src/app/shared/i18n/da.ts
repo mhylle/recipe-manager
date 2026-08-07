@@ -275,6 +275,14 @@ export const da: Dictionary = {
   'recipe.form.difficultyPlaceholder': 'Vælg sværhedsgrad',
   'recipe.form.tags': 'Tags (kommasepareret)',
   'recipe.form.tagsPlaceholder': 'f.eks. morgenmad, hurtig, italiensk',
+  'recipe.form.visibility': 'Hvem kan se den',
+  'recipe.form.private': 'Behold denne opskrift i mit køkken',
+  'recipe.form.privateHint':
+    'Kun medlemmer af dit køkken kan se den. Alle andre ser det fælles bibliotek uden den.',
+  'recipe.form.privateNoKitchen':
+    'Du har ikke et køkken endnu, så en privat opskrift vil kun være synlig for dig.',
+  'recipe.list.private': 'Privat',
+  'recipe.detail.private': 'Privat for dit køkken',
   'recipe.form.ingredients': 'Ingredienser',
   'recipe.form.ingredientNamePlaceholder': 'Ingrediensnavn',
   'recipe.form.ingredientNameLabel': 'Ingrediens {{index}} navn',

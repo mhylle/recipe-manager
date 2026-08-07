@@ -44,15 +44,23 @@ export class MatchingService {
    * first page would silently stop suggesting anything added after the hundredth
    * recipe, and would look like a ranking quirk rather than a missing read.
    */
-  private async loadEveryRecipe(): Promise<Recipe[]> {
+  private async loadEveryRecipe(viewerId: string): Promise<Recipe[]> {
     const all: Recipe[] = [];
     let offset = 0;
 
     for (;;) {
-      const page = await this.recipeService.findAll({}, undefined, {
-        limit: MAX_PAGE_LIMIT,
-        offset,
-      });
+      // Filtered to what this cook may read: suggesting a recipe they cannot
+      // open would be worse than not suggesting it, and a private recipe from
+      // their own kitchen must still be suggested.
+      const page = await this.recipeService.findAllFor(
+        viewerId,
+        {},
+        undefined,
+        {
+          limit: MAX_PAGE_LIMIT,
+          offset,
+        },
+      );
       all.push(...page.data);
       offset += page.data.length;
       if (page.data.length === 0 || all.length >= page.total) {
@@ -62,11 +70,12 @@ export class MatchingService {
   }
 
   async matchRecipes(
+    viewerId: string,
     pantryId: string,
     servingsOverride?: number,
   ): Promise<MatchResult> {
     const [recipes, pantryItems, staplesConfig] = await Promise.all([
-      this.loadEveryRecipe(),
+      this.loadEveryRecipe(viewerId),
       this.pantryService.findAll(pantryId),
       this.staplesService.getStaples(pantryId),
     ]);

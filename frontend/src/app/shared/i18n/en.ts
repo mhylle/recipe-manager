@@ -302,6 +302,14 @@ export const en = {
   'recipe.form.difficultyPlaceholder': 'Select difficulty',
   'recipe.form.tags': 'Tags (comma-separated)',
   'recipe.form.tagsPlaceholder': 'e.g. breakfast, quick, italian',
+  'recipe.form.visibility': 'Who can see this',
+  'recipe.form.private': 'Keep this recipe in my kitchen',
+  'recipe.form.privateHint':
+    'Only members of your kitchen will see it. Everyone else sees the shared library without it.',
+  'recipe.form.privateNoKitchen':
+    'You have no kitchen yet, so a private recipe would be visible to you alone.',
+  'recipe.list.private': 'Private',
+  'recipe.detail.private': 'Private to your kitchen',
   'recipe.form.ingredients': 'Ingredients',
   'recipe.form.ingredientNamePlaceholder': 'Ingredient name',
   'recipe.form.ingredientNameLabel': 'Ingredient {{index}} name',

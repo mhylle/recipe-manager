@@ -261,6 +261,7 @@ model Pantry {
   staples       StaplesConfig?
   mealPlans     MealPlan[]
   shoppingLists ShoppingList[]
+  recipes       Recipe[]
 
   @@index([ownerId])
 }
@@ -302,11 +303,24 @@ model Recipe {
   // Which locale this recipe was authored in. Reads fall back to it when the
   // requested locale has no translation, so text is never blank.
   sourceLocale      String             @default("en")
-  /// Who added this recipe. Attribution, not access control — every user sees
-  /// every recipe. Restrict, never Cascade: deleting a person must not delete
+  /// Who added this recipe. Attribution first, and — since private recipes —
+  /// also the one person who can always read it back, whatever happens to the
+  /// kitchen below. Restrict, never Cascade: deleting a person must not delete
   /// the family's cookbook.
   createdById       String
   createdBy         User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  /// False means the shared library, which is what a recipe is by default and
+  /// what every recipe was before this column existed. True narrows it to the
+  /// members of `pantry` (plus the author, always).
+  isPrivate         Boolean            @default(false)
+  /// Which kitchen a private recipe belongs to, captured when it was written.
+  ///
+  /// A person can be in two kitchens, so "the author's household" is not a
+  /// question the data could answer without naming one. SetNull, not Cascade:
+  /// deleting a kitchen must not delete recipes, and a private recipe left
+  /// without one falls back to author-only — never to public.
+  pantryId          String?
+  pantry            Pantry?            @relation(fields: [pantryId], references: [id], onDelete: SetNull)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   ingredients       RecipeIngredient[]
@@ -318,6 +332,10 @@ model Recipe {
   @@index([difficulty])
   @@index([createdAt])
   @@index([createdById])
+  // Every read now carries a visibility clause. The common shape is
+  // "isPrivate = false", so lead with it; pantryId covers the member arm.
+  @@index([isPrivate])
+  @@index([pantryId])
 }
 
 // All localised recipe prose lives here, including the source locale — there is no

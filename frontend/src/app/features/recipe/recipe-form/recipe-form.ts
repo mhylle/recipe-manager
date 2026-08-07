@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  inject,
+  signal,
+  OnInit,
+} from '@angular/core';
 import { FormGroup, FormControl, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
@@ -8,6 +15,7 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 import { EnumLabelPipe, LOCALES, LocaleService, TranslatePipe } from '../../../shared/i18n';
 import type { Locale } from '../../../shared/i18n';
 import { RecipeTranslation } from '../../../shared/models/translation.model';
+import { PantryContextService } from '../../../shared/services/pantry-context.service';
 
 /** The prose fields of the form, for one language. */
 interface LocalisedDraft {
@@ -37,6 +45,7 @@ export class RecipeFormComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
 
   private readonly localeService = inject(LocaleService);
+  private readonly pantryContext = inject(PantryContextService);
 
   readonly isEditMode = signal(false);
   private editId = '';
@@ -73,8 +82,19 @@ export class RecipeFormComponent implements OnInit {
     difficulty: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     tags: new FormControl('', { nonNullable: true }),
     instructions: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    // Off by default: the shared library is the norm, and a recipe nobody
+    // expected to be hidden is worse than one nobody expected to be shared.
+    isPrivate: new FormControl(false, { nonNullable: true }),
     ingredients: new FormArray<FormGroup>([]),
   });
+
+  /**
+   * Whether the author has a kitchen to keep a private recipe in.
+   *
+   * With none, private still works but narrows to them alone, and the form says
+   * so rather than letting someone assume a household saw it.
+   */
+  readonly hasKitchen = computed(() => this.pantryContext.currentId() !== null);
 
   get ingredientsArray(): FormArray {
     return this.form.controls.ingredients;
@@ -92,6 +112,8 @@ export class RecipeFormComponent implements OnInit {
           cookTime: recipe.cookTime,
           difficulty: recipe.difficulty,
           tags: recipe.tags.join(', '),
+          // Absent reads as public — the same default a new recipe gets.
+          isPrivate: recipe.isPrivate ?? false,
         });
         // Clear and re-populate ingredients (quantities/units are shared across
         // languages; only the names are localised).
@@ -205,6 +227,7 @@ export class RecipeFormComponent implements OnInit {
       difficulty: value.difficulty as Difficulty,
       tags: value.tags ? value.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [],
       instructions: splitLines(own.instructions),
+      isPrivate: value.isPrivate,
       ingredients: value.ingredients.map((ing, index) => ({
         name: own.ingredientNames[index] ?? '',
         quantity: Number(ing['quantity']),

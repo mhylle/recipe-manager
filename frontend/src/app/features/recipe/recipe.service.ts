@@ -6,6 +6,7 @@ import { Recipe } from '../../shared/models/recipe.model';
 import { RecipeTranslation } from '../../shared/models/translation.model';
 import { bcp47Of, type Locale } from '../../shared/i18n';
 import { environment } from '../../../environments/environment';
+import { PantryContextService } from '../../shared/services/pantry-context.service';
 
 /** The list envelope the API answers with. */
 interface PagedRecipes {
@@ -38,6 +39,7 @@ type RecipeWrite<T> = T & { translations?: RecipeTranslation[] };
 @Injectable({ providedIn: 'root' })
 export class RecipeService {
   private readonly http = inject(HttpClient);
+  private readonly pantryContext = inject(PantryContextService);
   private readonly baseUrl = `${environment.apiBase}/api/recipes`;
 
   /**
@@ -78,8 +80,21 @@ export class RecipeService {
     return this.http.get<RecipeTranslation[]>(`${this.baseUrl}/${id}/translations`);
   }
 
+  /**
+   * Add a recipe, pinned to the kitchen currently on screen.
+   *
+   * The pantry id is sent explicitly rather than through the kitchen-scoped
+   * interceptor, which covers reads too — the recipe list is a shared library
+   * and has no business carrying one. The server still checks membership; this
+   * only says WHICH of the author's kitchens they meant, so that someone
+   * working in the summerhouse does not file a private recipe at home.
+   */
   create(recipe: RecipeWrite<Omit<Recipe, 'id'>>, authoringLocale?: Locale): Observable<Recipe> {
-    return this.http.post<Recipe>(this.baseUrl, recipe, authoringHeader(authoringLocale));
+    const pantryId = this.pantryContext.currentId();
+    return this.http.post<Recipe>(this.baseUrl, recipe, {
+      ...authoringHeader(authoringLocale),
+      ...(pantryId ? { params: { pantryId } } : {}),
+    });
   }
 
   update(

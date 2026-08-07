@@ -19,6 +19,11 @@ import {
   type PageRequest,
   type Paged,
 } from '../shared/pagination.js';
+import {
+  visibilityWhere,
+  UNRESTRICTED,
+  type RecipeAudience,
+} from './recipe-visibility.js';
 
 /** Filters the recipe list accepts. Every one is applied in SQL. */
 export interface RecipeSearchFilters {
@@ -87,6 +92,8 @@ export class RecipeRepository {
     options: {
       sourceLocale?: Locale;
       translations?: RecipeTranslationInput[];
+      /** The author's kitchen, which is what a private recipe is narrowed to. */
+      pantryId?: string | null;
     } = {},
   ): Promise<Recipe> {
     const sourceLocale = options.sourceLocale ?? DEFAULT_LOCALE;
@@ -111,6 +118,10 @@ export class RecipeRepository {
         imageUrl: data.imageUrl,
         thumbnailUrl: data.thumbnailUrl,
         sourceLocale,
+        isPrivate: data.isPrivate ?? false,
+        // Recorded whether or not the recipe is private today, so that turning
+        // privacy on later does not have to guess which kitchen was meant.
+        pantryId: options.pantryId ?? null,
         translations: {
           create: byLocale.map((t) => ({
             locale: t.locale,
@@ -151,8 +162,9 @@ export class RecipeRepository {
     filters: RecipeSearchFilters = {},
     locale: Locale = DEFAULT_LOCALE,
     page: PageRequest = {},
+    audience: RecipeAudience,
   ): Promise<Paged<Recipe>> {
-    const where = this.buildWhere(filters, locale);
+    const where = this.buildWhere(filters, locale, audience);
     const { limit, offset } = normalisePageRequest(page);
 
     // One round trip for the page, one for the count. The count must use the
@@ -190,6 +202,7 @@ export class RecipeRepository {
   private buildWhere(
     filters: RecipeSearchFilters,
     locale: Locale,
+    audience: RecipeAudience,
   ): Prisma.RecipeWhereInput {
     const where: Prisma.RecipeWhereInput = {};
 
@@ -229,12 +242,26 @@ export class RecipeRepository {
       ];
     }
 
+    // Under AND rather than merged in: the text search above already owns the
+    // top-level OR, and visibility needs an OR of its own. Assigning either one
+    // over the other would quietly widen the read to recipes the caller may not
+    // see, which is the one bug this clause exists to prevent.
+    where.AND = [visibilityWhere(audience)];
+
     return where;
   }
 
-  async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Recipe> {
-    const result = await this.prisma.recipe.findUnique({
-      where: { id },
+  async findById(
+    id: string,
+    locale: Locale = DEFAULT_LOCALE,
+    audience: RecipeAudience,
+  ): Promise<Recipe> {
+    // findFirst, not findUnique: the visibility clause is part of the lookup so
+    // a recipe the caller may not read is simply not found. Fetching it and
+    // then refusing would answer "this id exists and is not yours", which is
+    // more than a stranger needs to learn from a URL they guessed.
+    const result = await this.prisma.recipe.findFirst({
+      where: { AND: [{ id }, visibilityWhere(audience)] },
       include: RECIPE_INCLUDE,
     });
     if (!result) {
@@ -252,9 +279,15 @@ export class RecipeRepository {
     });
   }
 
-  async findAllTranslations(id: string): Promise<RecipeTranslationInput[]> {
-    const result = await this.prisma.recipe.findUnique({
-      where: { id },
+  async findAllTranslations(
+    id: string,
+    audience: RecipeAudience,
+  ): Promise<RecipeTranslationInput[]> {
+    // Same visibility rule as findById. This route returns the recipe's prose in
+    // every language, so leaving it unfiltered would hand out the whole of a
+    // private recipe to anyone who appended /translations to the URL.
+    const result = await this.prisma.recipe.findFirst({
+      where: { AND: [{ id }, visibilityWhere(audience)] },
       include: RECIPE_INCLUDE,
     });
     if (!result) {
@@ -314,6 +347,10 @@ export class RecipeRepository {
     // image" — so this checks for undefined rather than falsiness.
     if (data.thumbnailUrl !== undefined)
       updateData.thumbnailUrl = data.thumbnailUrl;
+    if (data.isPrivate !== undefined) updateData.isPrivate = data.isPrivate;
+    // Null is meaningful: it un-pins a recipe from a kitchen, which for a
+    // private one leaves it readable by its author alone.
+    if (data.pantryId !== undefined) updateData.pantryId = data.pantryId;
     if (options.sourceLocale !== undefined) {
       // Reject anything outside the supported set. An unrecognised sourceLocale
       // is worse than useless: reads fall back to it, so a junk value silently
@@ -428,11 +465,15 @@ export class RecipeRepository {
       }
     });
 
-    return this.findById(id, editLocale);
+    // Re-read to return the updated row. Unrestricted because ownership was
+    // already checked before the write — filtering here would hide an author's
+    // own recipe from them the moment they made it private.
+    return this.findById(id, editLocale, UNRESTRICTED);
   }
 
   async delete(id: string): Promise<void> {
-    await this.findById(id);
+    // Existence check only, after the caller's ownership was verified.
+    await this.findById(id, DEFAULT_LOCALE, UNRESTRICTED);
     await this.prisma.recipe.delete({ where: { id } });
   }
 
@@ -480,6 +521,10 @@ export class RecipeRepository {
       createdBy: result.createdBy
         ? { id: result.createdBy.id, displayName: result.createdBy.displayName }
         : undefined,
+      // Sent so the UI can badge a private recipe without a second request.
+      // Only ever reaches someone allowed to read the row at all.
+      isPrivate: result.isPrivate,
+      pantryId: result.pantryId,
       ingredients: result.ingredients.map((ing) => ({
         name:
           pickTranslation(ing.translations, locale, result.sourceLocale)

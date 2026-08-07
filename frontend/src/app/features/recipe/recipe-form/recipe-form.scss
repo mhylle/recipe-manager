@@ -34,7 +34,8 @@
   margin-bottom: 0;
 }
 
-.ingredients-section {
+.ingredients-section,
+.visibility-section {
   background: var(--surface-container-low);
   border: none;
   border-radius: var(--radius-xl);
@@ -42,10 +43,36 @@
   margin-bottom: 1rem;
 }
 
-.ingredients-section legend {
+.ingredients-section legend,
+.visibility-section legend {
   font-weight: 600;
   color: var(--on-surface);
   padding: 0 0.5rem;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  // Danish runs 30-40% longer than English, so the label wraps rather than
+  // stretching the row and pushing the checkbox off its text.
+  line-height: 1.4;
+}
+
+.checkbox-row input {
+  // A 24px target rather than the browser default ~13px: this is tapped on a
+  // phone in a kitchen, and it must clear the WCAG pointer-target minimum.
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+
+.hint {
+  margin: 0.6rem 0 0;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
 }
 
 .ingredient-row {

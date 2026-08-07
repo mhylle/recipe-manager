@@ -47,6 +47,9 @@
           }
         </div>
         <h1 class="recipe-view__title">{{ recipe()!.name }}</h1>
+        @if (recipe()!.isPrivate) {
+          <p class="recipe-view__private">{{ 'recipe.detail.private' | t }}</p>
+        }
         <p class="recipe-view__description">{{ recipe()!.description }}</p>
       </div>
     </div>
