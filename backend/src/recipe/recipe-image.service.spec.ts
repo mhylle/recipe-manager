@@ -47,7 +47,7 @@ describe('RecipeImageService', () => {
       });
 
       expect(url).toMatch(
-        /^\/api\/recipe-manager\/images\/recipes\/recipe-1_upload\d+\.png$/,
+        /^\/api\/recipe-manager\/images\/recipes\/recipe-1_upload\d+-[0-9a-f]{8}\.png$/,
       );
       expect(storedFiles()).toHaveLength(1);
     });

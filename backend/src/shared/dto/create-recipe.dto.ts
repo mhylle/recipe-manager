@@ -4,7 +4,6 @@ import {
   IsEnum,
   IsArray,
   IsOptional,
-  IsUrl,
   ValidateNested,
   Min,
 } from 'class-validator';

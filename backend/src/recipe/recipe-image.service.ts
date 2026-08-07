@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -61,7 +62,9 @@ export class RecipeImageService {
    *
    * The filename carries the recipe id plus a timestamp: reusing a bare
    * `<id>.png` would leave browsers and the service worker showing the previous
-   * picture from cache, which reads as "the upload silently failed".
+   * picture from cache, which reads as "the upload silently failed". The random
+   * suffix keeps that true for two uploads landing in the same millisecond,
+   * which a timestamp alone cannot distinguish.
    */
   store(recipeId: string, file: { buffer: Buffer; size: number }): string {
     if (file.size === 0) {
@@ -76,7 +79,8 @@ export class RecipeImageService {
     const format = this.detect(file.buffer);
     fs.mkdirSync(this.outputDir, { recursive: true });
 
-    const filename = `${recipeId}_upload${String(Date.now())}.${format.ext}`;
+    const suffix = randomBytes(4).toString('hex');
+    const filename = `${recipeId}_upload${String(Date.now())}-${suffix}.${format.ext}`;
     fs.writeFileSync(path.join(this.outputDir, filename), file.buffer);
     this.logger.log(
       `Uploaded hero image for ${recipeId} (${(file.size / 1024).toFixed(0)} KB, ${format.mime})`,

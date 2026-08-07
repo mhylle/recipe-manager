@@ -1,5 +1,9 @@
 import 'reflect-metadata';
-import { ValidationPipe, ArgumentMetadata, BadRequestException } from '@nestjs/common';
+import {
+  ValidationPipe,
+  ArgumentMetadata,
+  BadRequestException,
+} from '@nestjs/common';
 import {
   CreatePantryItemRequestDto,
   UpdatePantryItemRequestDto,
@@ -26,7 +30,12 @@ const meta = (metatype: ArgumentMetadata['metatype']): ArgumentMetadata => ({
   data: '',
 });
 
-const VALID_PANTRY = { name: 'Salt', quantity: 1, unit: 'tsp', category: 'spices' };
+const VALID_PANTRY = {
+  name: 'Salt',
+  quantity: 1,
+  unit: 'tsp',
+  category: 'spices',
+};
 
 const VALID_RECIPE = {
   name: 'Test',
@@ -37,7 +46,9 @@ const VALID_RECIPE = {
   difficulty: 'easy',
   tags: [],
   instructions: ['Do the thing'],
-  ingredients: [{ name: 'Salt', quantity: 1, unit: 'tsp', pantryCategory: 'spices' }],
+  ingredients: [
+    { name: 'Salt', quantity: 1, unit: 'tsp', pantryCategory: 'spices' },
+  ],
 };
 
 describe('write-body validation actually runs', () => {
@@ -60,8 +71,9 @@ describe('write-body validation actually runs', () => {
     it('accepts a valid body', async () => {
       // The distractor: an implementation that rejected everything would pass
       // every negative case below and still be broken.
-      await expect(pipe.transform({ ...VALID_PANTRY }, meta(CreatePantryItemRequestDto)))
-        .resolves.toEqual(expect.objectContaining({ name: 'Salt' }));
+      await expect(
+        pipe.transform({ ...VALID_PANTRY }, meta(CreatePantryItemRequestDto)),
+      ).resolves.toEqual(expect.objectContaining({ name: 'Salt' }));
     });
 
     it('rejects a missing required field', async () => {
@@ -73,18 +85,24 @@ describe('write-body validation actually runs', () => {
 
     it('rejects an invalid enum value', async () => {
       await expect(
-        pipe.transform({ ...VALID_PANTRY, unit: 'furlong' }, meta(CreatePantryItemRequestDto)),
+        pipe.transform(
+          { ...VALID_PANTRY, unit: 'furlong' },
+          meta(CreatePantryItemRequestDto),
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('rejects a wrong-typed number', async () => {
       await expect(
-        pipe.transform({ ...VALID_PANTRY, quantity: 'lots' }, meta(CreatePantryItemRequestDto)),
+        pipe.transform(
+          { ...VALID_PANTRY, quantity: 'lots' },
+          meta(CreatePantryItemRequestDto),
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('strips unknown properties instead of passing them through', async () => {
-      const result = await pipe.transform(
+      const result: unknown = await pipe.transform(
         { ...VALID_PANTRY, sneaky: 'value' },
         meta(CreatePantryItemRequestDto),
       );
@@ -106,7 +124,11 @@ describe('write-body validation actually runs', () => {
           { ...VALID_PANTRY, translations: [{ locale: 'da', name: 'Salt' }] },
           meta(CreatePantryItemRequestDto),
         ),
-      ).resolves.toEqual(expect.objectContaining({ translations: [{ locale: 'da', name: 'Salt' }] }));
+      ).resolves.toEqual(
+        expect.objectContaining({
+          translations: [{ locale: 'da', name: 'Salt' }],
+        }),
+      );
     });
   });
 
@@ -119,7 +141,10 @@ describe('write-body validation actually runs', () => {
 
     it('rejects an invalid difficulty', async () => {
       await expect(
-        pipe.transform({ ...VALID_RECIPE, difficulty: 'impossible' }, meta(CreateRecipeRequestDto)),
+        pipe.transform(
+          { ...VALID_RECIPE, difficulty: 'impossible' },
+          meta(CreateRecipeRequestDto),
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -127,13 +152,19 @@ describe('write-body validation actually runs', () => {
       // Previously this reached the service and was caught there; now it is
       // named at the boundary. "klingon" got as far as the database once.
       await expect(
-        pipe.transform({ ...VALID_RECIPE, sourceLocale: 'klingon' }, meta(CreateRecipeRequestDto)),
+        pipe.transform(
+          { ...VALID_RECIPE, sourceLocale: 'klingon' },
+          meta(CreateRecipeRequestDto),
+        ),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('accepts a supported sourceLocale', async () => {
       await expect(
-        pipe.transform({ ...VALID_RECIPE, sourceLocale: 'da' }, meta(CreateRecipeRequestDto)),
+        pipe.transform(
+          { ...VALID_RECIPE, sourceLocale: 'da' },
+          meta(CreateRecipeRequestDto),
+        ),
       ).resolves.toEqual(expect.objectContaining({ sourceLocale: 'da' }));
     });
 
@@ -142,7 +173,15 @@ describe('write-body validation actually runs', () => {
         pipe.transform(
           {
             ...VALID_RECIPE,
-            translations: [{ locale: 'da', name: 'Test', description: 'x', instructions: 'not-an-array', ingredientNames: [] }],
+            translations: [
+              {
+                locale: 'da',
+                name: 'Test',
+                description: 'x',
+                instructions: 'not-an-array',
+                ingredientNames: [],
+              },
+            ],
           },
           meta(CreateRecipeRequestDto),
         ),
@@ -163,7 +202,10 @@ describe('write-body validation actually runs', () => {
         pipe.transform({ unit: 'furlong' }, meta(UpdatePantryItemRequestDto)),
       ).rejects.toThrow(BadRequestException);
       await expect(
-        pipe.transform({ difficulty: 'impossible' }, meta(UpdateRecipeRequestDto)),
+        pipe.transform(
+          { difficulty: 'impossible' },
+          meta(UpdateRecipeRequestDto),
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
