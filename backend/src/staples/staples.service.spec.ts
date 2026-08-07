@@ -7,16 +7,19 @@ import { PrismaService } from '../prisma/prisma.service';
 // service.
 
 function createPrismaStub() {
-  const rows = new Map<string, { id: string; pantryId: string; items: string[] }>();
+  const rows = new Map<
+    string,
+    { id: string; pantryId: string; items: string[] }
+  >();
   let lastTouched: string | null = null;
   return {
     row: () => (lastTouched ? (rows.get(lastTouched) ?? null) : null),
     staplesConfig: {
-      findUnique: jest.fn(async ({ where }: { where: { pantryId: string } }) =>
-        rows.get(where.pantryId) ?? null,
+      findUnique: jest.fn(({ where }: { where: { pantryId: string } }) =>
+        Promise.resolve(rows.get(where.pantryId) ?? null),
       ),
       upsert: jest.fn(
-        async ({
+        ({
           where,
           create,
           update,
@@ -31,7 +34,7 @@ function createPrismaStub() {
             : { id: `staples-${where.pantryId}`, ...create };
           rows.set(where.pantryId, next);
           lastTouched = where.pantryId;
-          return next;
+          return Promise.resolve(next);
         },
       ),
     },
@@ -54,7 +57,9 @@ describe('StaplesService', () => {
 
     it('should return saved staples', async () => {
       await service.updateStaples('p-test', { items: ['salt', 'pepper'] });
-      expect(await service.getStaples('p-test')).toEqual({ items: ['salt', 'pepper'] });
+      expect(await service.getStaples('p-test')).toEqual({
+        items: ['salt', 'pepper'],
+      });
     });
   });
 
@@ -80,7 +85,9 @@ describe('StaplesService', () => {
       await service.updateStaples('p-summerhouse', { items: ['sugar'] });
 
       expect(await service.getStaples('p-home')).toEqual({ items: ['salt'] });
-      expect(await service.getStaples('p-summerhouse')).toEqual({ items: ['sugar'] });
+      expect(await service.getStaples('p-summerhouse')).toEqual({
+        items: ['sugar'],
+      });
     });
   });
 

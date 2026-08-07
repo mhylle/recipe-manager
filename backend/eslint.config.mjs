@@ -29,6 +29,9 @@ export default tseslint.config(
       '@typescript-eslint/no-explicit-any': 'off',
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
+      // Omitting a key by destructuring it away is deliberate, not a dead
+      // variable — the whole point is that the binding goes unread.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
       "prettier/prettier": ["error", { endOfLine: "auto" }],
     },
   },
