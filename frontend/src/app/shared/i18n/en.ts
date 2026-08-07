@@ -128,6 +128,7 @@ export const en = {
   'report.errTooMany': 'That is a lot of reports in one hour. Give it a moment before sending more.',
   'report.errSignedOut': 'Your session has expired. Sign in again and resend.',
   'report.errFailed': 'That did not send. Try again in a moment.',
+  'layout.footer.guide': 'AI assistant guide',
   'common.loading': 'Loading\u2026',
   'geminiKey.heading': 'Generate images',
   'geminiKey.unlockIntro': 'Unlock your stored Gemini key to generate images. It is decrypted here in your browser \u2014 the server cannot do it for you.',
@@ -196,6 +197,7 @@ export const en = {
   'profile.gemini.errMismatch': 'The two passphrases do not match.',
   'profile.gemini.errUnsupported': 'This browser cannot encrypt the key, so it cannot be stored here.',
   'profile.gemini.errFailed': 'That did not work. Try again in a moment.',
+  'recipe.list.showMore': 'Show {{count}} more',
   'recipe.list.contributionPending':
     'Your account cannot add to the shared recipe collection yet.',
   'common.update.available': 'A new version is available.',

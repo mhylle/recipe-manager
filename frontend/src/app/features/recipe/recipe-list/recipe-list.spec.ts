@@ -152,4 +152,67 @@ describe('RecipeListComponent', () => {
     expect(tags.length).toBeGreaterThan(0);
     expect(tags[0].textContent.trim()).toBe('breakfast');
   });
+
+  describe('gallery windowing', () => {
+    /** Twenty-five recipes, so the twelve-per-window behaviour is visible. */
+    const many = (count: number): Recipe[] =>
+      Array.from({ length: count }, (_, i) => ({
+        ...mockRecipes[0],
+        id: `r-${String(i)}`,
+        name: `Recipe ${String(i).padStart(2, '0')}`,
+      }));
+
+    beforeEach(() => {
+      mockRecipeService.getAll.mockReturnValue(of(many(25)));
+      // The component loads via loadItems(), as the other cases here do.
+      component.loadItems();
+      fixture.detectChanges();
+    });
+
+    it('renders a window rather than every card', () => {
+      // Each card carries a photograph, and the hero images are megabytes each,
+      // so rendering the whole collection asked the browser for tens of
+      // megabytes at once.
+      expect(component.sortedItems()).toHaveLength(25);
+      expect(component.galleryItems()).toHaveLength(12);
+    });
+
+    it('says how many are still hidden', () => {
+      expect(component.hasMoreToShow()).toBe(true);
+      expect(component.remainingCount()).toBe(13);
+    });
+
+    it('grows the window a page at a time', () => {
+      component.showMore();
+      expect(component.galleryItems()).toHaveLength(24);
+      expect(component.remainingCount()).toBe(1);
+
+      component.showMore();
+      expect(component.galleryItems()).toHaveLength(25);
+      expect(component.hasMoreToShow()).toBe(false);
+    });
+
+    it('never renders more than exist', () => {
+      component.showMore();
+      component.showMore();
+      component.showMore();
+      expect(component.galleryItems()).toHaveLength(25);
+    });
+
+    it('windows the RENDER, not the data, so filtering still searches everything', () => {
+      // The service deliberately fetches every page because sorting and
+      // filtering are client-side; only the rendering is limited.
+      expect(component.items()).toHaveLength(25);
+    });
+
+    it('returns to the first page when the filters change', () => {
+      component.showMore();
+      expect(component.galleryItems()).toHaveLength(24);
+
+      component.onFiltersChanged({ query: 'pan' } as never);
+
+      // A new search should start at its first result, not partway down.
+      expect(component.visibleCount()).toBe(12);
+    });
+  });
 });

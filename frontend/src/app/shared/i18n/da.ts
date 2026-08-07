@@ -104,6 +104,7 @@ export const da: Dictionary = {
   'report.errTooMany': 'Det er mange rapporter p\u00e5 en time. Vent et \u00f8jeblik, f\u00f8r du sender flere.',
   'report.errSignedOut': 'Din session er udl\u00f8bet. Log ind igen og send p\u00e5 ny.',
   'report.errFailed': 'Det blev ikke sendt. Pr\u00f8v igen om et \u00f8jeblik.',
+  'layout.footer.guide': 'Guide til AI-assistent',
   'common.loading': 'Indl\u00e6ser\u2026',
   'geminiKey.heading': 'Generer billeder',
   'geminiKey.unlockIntro': 'L\u00e5s din gemte Gemini-n\u00f8gle op for at generere billeder. Den dekrypteres her i din browser \u2014 serveren kan ikke g\u00f8re det for dig.',
@@ -172,6 +173,7 @@ export const da: Dictionary = {
   'profile.gemini.errMismatch': 'De to adgangss\u00e6tninger er ikke ens.',
   'profile.gemini.errUnsupported': 'Denne browser kan ikke kryptere n\u00f8glen, s\u00e5 den kan ikke gemmes her.',
   'profile.gemini.errFailed': 'Det lykkedes ikke. Pr\u00f8v igen om et \u00f8jeblik.',
+  'recipe.list.showMore': 'Vis {{count}} flere',
   'recipe.list.contributionPending':
     'Din konto kan endnu ikke tilføje til den fælles opskriftssamling.',
   'common.update.available': 'En ny version er klar.',

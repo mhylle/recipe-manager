@@ -65,6 +65,9 @@
       <nav class="footer__links" [attr.aria-label]="'layout.nav.secondaryLabel' | t">
         <a routerLink="/shopping-list">{{ 'layout.footer.shoppingList' | t }}</a>
         <a routerLink="/staples">{{ 'layout.footer.essentials' | t }}</a>
+        <!-- Was reachable only from the foot of the dashboard, which is not
+             "easily" if you are anywhere else. -->
+        <a routerLink="/mcp-guide">{{ 'layout.footer.guide' | t }}</a>
         @if (auth.isAuthenticated()) {
           <button type="button" class="footer__report" (click)="openReport()">
             {{ 'report.button' | t }}

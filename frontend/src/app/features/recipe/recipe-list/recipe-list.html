@@ -75,11 +75,21 @@
         <!-- Image-led. Recipes without a photograph get a monogram rather than a
              broken frame, so the grid stays even. -->
         <div class="recipe-gallery" role="list">
-          @for (recipe of sortedItems(); track recipe.id) {
+          @for (recipe of galleryItems(); track recipe.id) {
             <a [routerLink]="['/recipes', recipe.id]" class="gallery-item" role="listitem">
               <div class="gallery-item__frame">
                 @if (recipe.imageUrl) {
-                  <img [src]="recipe.imageUrl" [alt]="recipe.name" class="gallery-item__image" />
+                  <!-- The frame already reserves 4/3, so deferring costs no
+                       layout shift and the browser fetches only what is on
+                       screen. Without this, forty cards asked for tens of
+                       megabytes of hero images at once. -->
+                  <img
+                    [src]="recipe.imageUrl"
+                    [alt]="recipe.name"
+                    class="gallery-item__image"
+                    loading="lazy"
+                    decoding="async"
+                  />
                 } @else {
                   <span class="gallery-item__monogram" aria-hidden="true">{{ initial(recipe.name) }}</span>
                 }
@@ -94,6 +104,14 @@
             </a>
           }
         </div>
+
+        @if (hasMoreToShow()) {
+          <div class="recipe-gallery__more">
+            <button type="button" class="btn btn--ghost btn--small" (click)="showMore()">
+              {{ 'recipe.list.showMore' | t: { count: remainingCount() } }}
+            </button>
+          </div>
+        }
       }
 
       @default {

@@ -20,6 +20,16 @@ import {
   writeStoredViewMode,
 } from '../recipe-view-mode';
 
+/**
+ * How many gallery cards to render at a time.
+ *
+ * The gallery is the expensive view: each card carries a photograph, and the
+ * hero images are megabytes each, so rendering the whole collection asked the
+ * browser for tens of megabytes on one page load. The list and table views show
+ * no images and stay whole — paginating them would only break Ctrl+F.
+ */
+const GALLERY_PAGE = 12;
+
 @Component({
   selector: 'app-recipe-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -66,6 +76,28 @@ export class RecipeListComponent {
     sortRecipes(this.items(), this.sortOrder(), this.locale.locale()),
   );
 
+  /**
+   * How many gallery cards are currently rendered.
+   *
+   * Sorting and filtering stay client-side over the whole collection — which is
+   * why the service fetches every page — so this windows the RENDER, not the
+   * data. Narrowing a filter therefore still searches everything.
+   */
+  readonly visibleCount = signal(GALLERY_PAGE);
+
+  readonly galleryItems = computed(() => this.sortedItems().slice(0, this.visibleCount()));
+
+  readonly hasMoreToShow = computed(() => this.sortedItems().length > this.visibleCount());
+
+  /** How many are still hidden, so the control can say what it will do. */
+  readonly remainingCount = computed(() =>
+    Math.max(0, this.sortedItems().length - this.visibleCount()),
+  );
+
+  showMore(): void {
+    this.visibleCount.update((n) => n + GALLERY_PAGE);
+  }
+
   // Re-fetches on every language switch; API content is localised server-side.
   private readonly reload = reloadOnLocaleChange(() => this.loadItems());
 
@@ -98,6 +130,9 @@ export class RecipeListComponent {
 
   onFiltersChanged(filters: RecipeFilters): void {
     this.currentFilters = filters;
+    // Back to the top of the window: a new search should start at its first
+    // result, not partway down because the previous one had been scrolled.
+    this.visibleCount.set(GALLERY_PAGE);
     this.loadItems(filters);
   }
 

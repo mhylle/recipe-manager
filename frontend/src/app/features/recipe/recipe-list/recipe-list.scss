@@ -309,3 +309,11 @@
     transform: none;
   }
 }
+
+// Centred under the grid, so growing the window reads as "there is more below"
+// rather than as a stray control.
+.recipe-gallery__more {
+  display: flex;
+  justify-content: center;
+  margin-top: 1.5rem;
+}
