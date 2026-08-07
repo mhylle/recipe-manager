@@ -25,6 +25,7 @@ export class MatchingController {
   ): Promise<MatchResult> {
     const servingsNum = servings ? parseInt(servings, 10) : undefined;
     return this.matchingService.matchRecipes(
+      user.id,
       await this.access.resolve(user, pantryId),
       servingsNum,
     );

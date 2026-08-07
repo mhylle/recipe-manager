@@ -13,6 +13,8 @@ import {
   type RecipeSearchFilters,
 } from './recipe.repository.js';
 import type { PageRequest, Paged } from '../shared/pagination.js';
+import { ANONYMOUS, UNRESTRICTED } from './recipe-visibility.js';
+import { RecipeVisibilityService } from './recipe-visibility.service.js';
 
 // Re-exported: callers have always imported the filter shape from the service.
 export type { RecipeSearchFilters };
@@ -26,6 +28,7 @@ export class RecipeService {
     private readonly imageGeneration: ImageGenerationService,
     private readonly recipeImages: RecipeImageService,
     private readonly thumbnails: ThumbnailService,
+    private readonly visibility: RecipeVisibilityService,
   ) {}
 
   async create(
@@ -33,12 +36,17 @@ export class RecipeService {
     dto: CreateRecipeDto,
     locale: Locale = DEFAULT_LOCALE,
     translations?: RecipeTranslationInput[],
+    pantryId?: string | null,
   ): Promise<Recipe> {
     // The locale the author is writing in becomes the recipe's source locale —
     // the fallback every other language resolves to.
     const recipe = await this.recipeRepository.create(createdById, dto, {
       sourceLocale: locale,
       translations,
+      // The kitchen this was written in, resolved by the controller from the
+      // author's membership rather than taken from the body — a client-supplied
+      // pantry id would let anyone file a recipe into someone else's kitchen.
+      pantryId,
     });
     // Deliberately does NOT generate images.
     //
@@ -87,7 +95,14 @@ export class RecipeService {
   ): Promise<Recipe> {
     // Regenerating replaces someone's photographs, so it is a modification.
     assertCanModify(await this.recipeRepository.findOwner(id), callerId);
-    const recipe = await this.recipeRepository.findById(id);
+    // Unrestricted: the ownership check above already settled who may do this,
+    // and an author regenerating images for their own private recipe must not
+    // then fail to load it.
+    const recipe = await this.recipeRepository.findById(
+      id,
+      DEFAULT_LOCALE,
+      UNRESTRICTED,
+    );
     // Fire-and-forget — returns immediately
     this.generateImagesAsync(recipe, apiKey).catch((err) =>
       this.logger.error(`Image regeneration failed for ${recipe.name}: ${err}`),
@@ -124,22 +139,71 @@ export class RecipeService {
     }
   }
 
-  async findAll(
+  /**
+   * The library as one person sees it. `viewerId` undefined means a guest.
+   *
+   * Resolving the viewer here rather than in the controller keeps "who may read
+   * this" in one place: a handler cannot forget the step and quietly serve the
+   * anonymous list to someone who was signed in.
+   */
+  async findAllFor(
+    viewerId: string | undefined,
     filters: RecipeSearchFilters = {},
     locale: Locale = DEFAULT_LOCALE,
     page: PageRequest = {},
   ): Promise<Paged<Recipe>> {
-    // Filtering, ordering and paging all happen in SQL. The text query still
-    // matches what the reader sees — the repository resolves that per locale.
-    return this.recipeRepository.findAll(filters, locale, page);
+    // Filtering, ordering, paging and visibility all happen in SQL. A private
+    // recipe dropped after the query would leave a short page and a `total`
+    // that overcounts what the reader can actually open.
+    return this.recipeRepository.findAll(
+      filters,
+      locale,
+      page,
+      await this.audienceFor(viewerId),
+    );
   }
 
-  async findById(id: string, locale: Locale = DEFAULT_LOCALE): Promise<Recipe> {
-    return this.recipeRepository.findById(id, locale);
+  async findByIdFor(
+    viewerId: string | undefined,
+    id: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<Recipe> {
+    return this.recipeRepository.findById(
+      id,
+      locale,
+      await this.audienceFor(viewerId),
+    );
   }
 
-  async findAllTranslations(id: string): Promise<RecipeTranslationInput[]> {
-    return this.recipeRepository.findAllTranslations(id);
+  async findAllTranslationsFor(
+    viewerId: string | undefined,
+    id: string,
+  ): Promise<RecipeTranslationInput[]> {
+    return this.recipeRepository.findAllTranslations(
+      id,
+      await this.audienceFor(viewerId),
+    );
+  }
+
+  /**
+   * A recipe resolved for machinery, with no visibility filter.
+   *
+   * The callers are shopping lists and pantry deduction, which resolve a recipe
+   * the reader already put in their own meal plan — the kitchen check happened
+   * before the entry was ever readable. Filtering here would break a private
+   * recipe in the reader's own plan, which is the opposite of what privacy is
+   * meant to do. Named loudly because it must never serve an HTTP read of the
+   * recipe collection.
+   */
+  async findByIdUnrestricted(
+    id: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<Recipe> {
+    return this.recipeRepository.findById(id, locale, UNRESTRICTED);
+  }
+
+  private async audienceFor(viewerId: string | undefined) {
+    return (await this.visibility.forUser(viewerId)) ?? ANONYMOUS;
   }
 
   async update(

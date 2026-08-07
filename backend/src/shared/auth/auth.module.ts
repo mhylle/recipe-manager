@@ -1,6 +1,7 @@
 import { Global, Module } from '@nestjs/common';
 import { UserService } from './user.service.js';
 import { SsoAuthGuard } from './sso-auth.guard.js';
+import { OptionalSsoAuthGuard } from './optional-sso-auth.guard.js';
 import { ContributorGuard } from './contributor.guard.js';
 import { McpKeyService } from './mcp-key.service.js';
 import { OwnerGuard } from './owner.guard.js';
@@ -17,6 +18,7 @@ import { MeController } from './me.controller.js';
   providers: [
     UserService,
     SsoAuthGuard,
+    OptionalSsoAuthGuard,
     ContributorGuard,
     McpKeyService,
     OwnerGuard,
@@ -24,6 +26,7 @@ import { MeController } from './me.controller.js';
   exports: [
     UserService,
     SsoAuthGuard,
+    OptionalSsoAuthGuard,
     ContributorGuard,
     McpKeyService,
     OwnerGuard,

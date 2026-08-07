@@ -38,7 +38,9 @@ export class ShoppingListService {
 
     for (const entry of plan.entries) {
       try {
-        const recipe = await this.recipeService.findById(entry.recipeId);
+        const recipe = await this.recipeService.findByIdUnrestricted(
+          entry.recipeId,
+        );
         const scaleFactor = entry.servings / recipe.servings;
 
         for (const ingredient of recipe.ingredients) {
@@ -89,7 +91,7 @@ export class ShoppingListService {
     recipeId: string,
     servings?: number,
   ): Promise<ShoppingList> {
-    const recipe = await this.recipeService.findById(recipeId);
+    const recipe = await this.recipeService.findByIdUnrestricted(recipeId);
     const [pantryItems, staplesConfig] = await Promise.all([
       this.pantryService.findAll(pantryId),
       this.staplesService.getStaples(pantryId),

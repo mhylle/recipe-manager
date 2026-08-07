@@ -5,8 +5,13 @@ import { RecipeRepository } from './recipe.repository.js';
 import { RecipeImageService } from './recipe-image.service.js';
 import { ThumbnailService } from './thumbnail.service.js';
 import { ThumbnailBackfillService } from './thumbnail-backfill.service.js';
+import { RecipeVisibilityService } from './recipe-visibility.service.js';
+import { PantryModule } from '../pantry/pantry.module.js';
 
 @Module({
+  // For PantryAccessService: creating a recipe pins it to the author's kitchen,
+  // and only the membership check can say which kitchen that legitimately is.
+  imports: [PantryModule],
   controllers: [RecipeController],
   providers: [
     RecipeService,
@@ -14,6 +19,7 @@ import { ThumbnailBackfillService } from './thumbnail-backfill.service.js';
     RecipeImageService,
     ThumbnailService,
     ThumbnailBackfillService,
+    RecipeVisibilityService,
   ],
   exports: [RecipeService],
 })

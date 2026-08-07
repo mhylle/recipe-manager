@@ -28,7 +28,9 @@ export class DeductionService {
     for (const plan of mealPlans) {
       for (const entry of plan.entries) {
         try {
-          const recipe = await this.recipeService.findById(entry.recipeId);
+          const recipe = await this.recipeService.findByIdUnrestricted(
+            entry.recipeId,
+          );
           const scaleFactor = entry.servings / recipe.servings;
 
           for (const ingredient of recipe.ingredients) {
@@ -60,7 +62,9 @@ export class DeductionService {
     if (!entry) return;
 
     try {
-      const recipe = await this.recipeService.findById(entry.recipeId);
+      const recipe = await this.recipeService.findByIdUnrestricted(
+        entry.recipeId,
+      );
       const scaleFactor = entry.servings / recipe.servings;
 
       // Deduct from pantry

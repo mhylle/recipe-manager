@@ -23,18 +23,26 @@ import { Recipe } from '../shared/interfaces/recipe.interface.js';
 import { Difficulty } from '../shared/enums/index.js';
 import { ReqLocale } from '../shared/i18n/req-locale.decorator.js';
 import { toPagedResponse, type PagedResponse } from '../shared/pagination.js';
-import { CurrentUser } from '../shared/auth/current-user.decorator.js';
+import {
+  CurrentUser,
+  MaybeCurrentUser,
+} from '../shared/auth/current-user.decorator.js';
 import type { LocalUser } from '../shared/auth/user.service.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
+import { OptionalSsoAuthGuard } from '../shared/auth/optional-sso-auth.guard.js';
 import { ContributorGuard } from '../shared/auth/contributor.guard.js';
+import { PantryAccessService } from '../pantry/pantry-access.service.js';
 import { GenerateImagesDto } from './dto/generate-images.dto.js';
 import { MAX_IMAGE_BYTES } from './recipe-image.service.js';
 
 @Controller('recipes')
 export class RecipeController {
-  constructor(private readonly recipeService: RecipeService) {}
+  constructor(
+    private readonly recipeService: RecipeService,
+    private readonly pantryAccess: PantryAccessService,
+  ) {}
 
   @UseGuards(SsoAuthGuard, ContributorGuard)
   @Post()
@@ -42,12 +50,35 @@ export class RecipeController {
     @CurrentUser() user: LocalUser,
     @Body() dto: CreateRecipeRequestDto,
     @ReqLocale() locale: Locale,
+    @Query('pantryId') pantryId?: string,
   ): Promise<Recipe> {
-    return this.recipeService.create(user.id, dto, locale, dto.translations);
+    // Resolved through the membership check, never trusted from the request: a
+    // caller who is not in that kitchen is refused rather than quietly filed
+    // into it. With no id supplied this is their default kitchen, and someone
+    // with no kitchen at all writes a recipe pinned to none.
+    const kitchenId = await this.pantryAccess
+      .resolve(user, pantryId)
+      .catch(() => null);
+
+    return this.recipeService.create(
+      user.id,
+      dto,
+      locale,
+      dto.translations,
+      kitchenId,
+    );
   }
 
+  /**
+   * The shared library, minus anything private that is not the caller's.
+   *
+   * Guarded optionally rather than not at all: guests must keep browsing, but
+   * the read cannot filter private recipes without knowing who is asking.
+   */
+  @UseGuards(OptionalSsoAuthGuard)
   @Get()
   async findAll(
+    @MaybeCurrentUser() user?: LocalUser,
     @Query('q') query?: string,
     @Query('difficulty') difficulty?: string,
     @Query('maxPrepTime') maxPrepTime?: string,
@@ -64,27 +95,38 @@ export class RecipeController {
     if (maxCookTime) filters.maxCookTime = parseInt(maxCookTime, 10);
     if (tags) filters.tags = tags.split(',').map((t) => t.trim());
 
-    const paged = await this.recipeService.findAll(filters, locale, {
-      limit: limit === undefined ? undefined : Number(limit),
-      offset: offset === undefined ? undefined : Number(offset),
-    });
+    const paged = await this.recipeService.findAllFor(
+      user?.id,
+      filters,
+      locale,
+      {
+        limit: limit === undefined ? undefined : Number(limit),
+        offset: offset === undefined ? undefined : Number(offset),
+      },
+    );
     return toPagedResponse(paged);
   }
 
+  @UseGuards(OptionalSsoAuthGuard)
   @Get(':id')
   async findById(
     @Param('id') id: string,
     @ReqLocale() locale: Locale,
+    @MaybeCurrentUser() user?: LocalUser,
   ): Promise<Recipe> {
-    return this.recipeService.findById(id, locale);
+    // A recipe the caller may not read comes back 404, not 403 — see the
+    // repository. Guessing an id should not confirm that it exists.
+    return this.recipeService.findByIdFor(user?.id, id, locale);
   }
 
   /** Every stored language for a recipe — powers the per-language editing UI. */
+  @UseGuards(OptionalSsoAuthGuard)
   @Get(':id/translations')
   async findTranslations(
     @Param('id') id: string,
+    @MaybeCurrentUser() user?: LocalUser,
   ): Promise<RecipeTranslationInput[]> {
-    return this.recipeService.findAllTranslations(id);
+    return this.recipeService.findAllTranslationsFor(user?.id, id);
   }
 
   @UseGuards(SsoAuthGuard, ContributorGuard)

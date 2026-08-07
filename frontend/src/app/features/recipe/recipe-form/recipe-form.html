@@ -110,6 +110,21 @@
       <input id="tags" type="text" class="input" formControlName="tags" [attr.placeholder]="'recipe.form.tagsPlaceholder' | t" />
     </div>
 
+    <fieldset class="visibility-section">
+      <legend>{{ 'recipe.form.visibility' | t }}</legend>
+      <label class="checkbox-row" for="isPrivate">
+        <input id="isPrivate" type="checkbox" formControlName="isPrivate" aria-describedby="private-hint" />
+        <span>{{ 'recipe.form.private' | t }}</span>
+      </label>
+      <p id="private-hint" class="hint">
+        @if (hasKitchen()) {
+          {{ 'recipe.form.privateHint' | t }}
+        } @else {
+          {{ 'recipe.form.privateNoKitchen' | t }}
+        }
+      </p>
+    </fieldset>
+
     <fieldset class="ingredients-section">
       <legend>{{ 'recipe.form.ingredients' | t }} <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span></legend>
       <div formArrayName="ingredients">

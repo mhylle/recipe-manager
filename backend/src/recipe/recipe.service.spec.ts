@@ -10,6 +10,7 @@ import { Recipe } from '../shared/interfaces/recipe.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { Difficulty } from '../shared/enums/difficulty.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
+import { RecipeVisibilityService } from './recipe-visibility.service';
 
 describe('RecipeService', () => {
   let service: RecipeService;
@@ -102,6 +103,17 @@ describe('RecipeService', () => {
         { provide: RecipeImageService, useValue: recipeImages },
         // Writes files and shells out to libvips; neither belongs in these tests.
         { provide: ThumbnailService, useValue: thumbnails },
+        // The membership lookup behind "who may read this". Stubbed to a viewer
+        // with no kitchens: these tests are about delegation, and the policy
+        // itself is covered in recipe-visibility.spec.ts.
+        {
+          provide: RecipeVisibilityService,
+          useValue: {
+            forUser: jest.fn((userId?: string) =>
+              Promise.resolve(userId ? { userId, pantryIds: [] } : null),
+            ),
+          },
+        },
       ],
     }).compile();
 
@@ -193,7 +205,7 @@ describe('RecipeService', () => {
         offset: 0,
       });
 
-      const result = await service.findAll();
+      const result = await service.findAllFor('u-martin');
 
       expect(repository.findAll).toHaveBeenCalled();
       expect(result.data).toEqual(recipes);
@@ -209,7 +221,7 @@ describe('RecipeService', () => {
         offset: 0,
       });
 
-      const result = await service.findAll();
+      const result = await service.findAllFor('u-martin');
 
       expect(result.data).toEqual([]);
       expect(result.total).toBe(0);
@@ -220,9 +232,12 @@ describe('RecipeService', () => {
     it('should return recipe when found', async () => {
       repository.findById.mockResolvedValue(mockRecipe);
 
-      const result = await service.findById('recipe-uuid-1');
+      const result = await service.findByIdFor('u-martin', 'recipe-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('recipe-uuid-1', 'en');
+      expect(repository.findById).toHaveBeenCalledWith('recipe-uuid-1', 'en', {
+        userId: 'u-martin',
+        pantryIds: [],
+      });
       expect(result).toEqual(mockRecipe);
     });
 
@@ -231,9 +246,9 @@ describe('RecipeService', () => {
         new NotFoundException('recipes with id missing-id not found'),
       );
 
-      await expect(service.findById('missing-id')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.findByIdFor('u-martin', 'missing-id'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 

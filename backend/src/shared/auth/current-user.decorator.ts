@@ -28,3 +28,18 @@ export const CurrentUser = createParamDecorator(
     return request.user;
   },
 );
+
+/**
+ * The caller when there is one, `undefined` when the request is anonymous.
+ *
+ * For routes behind OptionalSsoAuthGuard, where "nobody is signed in" is a
+ * normal, expected answer rather than the wiring mistake `CurrentUser` guards
+ * against. Reach for this only on routes guests are meant to reach; on a guarded
+ * route it would turn a missing guard into a silent authorisation hole instead
+ * of the loud error above.
+ */
+export const MaybeCurrentUser = createParamDecorator(
+  (_data: unknown, context: ExecutionContext): LocalUser | undefined => {
+    return context.switchToHttp().getRequest<RequestWithUser>().user;
+  },
+);

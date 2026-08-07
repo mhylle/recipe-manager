@@ -317,3 +317,12 @@
   justify-content: center;
   margin-top: 1.5rem;
 }
+
+// A private recipe is the exception, so it is marked rather than left to be
+// inferred from its absence elsewhere. Colour alone would not carry it — the
+// word is the signal, per WCAG 1.4.1.
+.badge--private {
+  background: var(--surface-container-high);
+  color: var(--on-surface-variant);
+  border: 1px solid var(--outline-variant);
+}

@@ -58,6 +58,9 @@
             <div class="recipe-row" role="listitem">
               <a [routerLink]="['/recipes', recipe.id]" class="recipe-row__title">{{ recipe.name }}</a>
               <span class="recipe-row__badge" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
+              @if (recipe.isPrivate) {
+                <span class="badge badge--private">{{ 'recipe.list.private' | t }}</span>
+              }
               <span class="recipe-row__meta">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
               <span class="recipe-row__meta">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
               <div class="recipe-row__actions">
@@ -99,6 +102,9 @@
               </div>
               <div class="gallery-item__body">
                 <h3 class="gallery-item__title">{{ recipe.name }}</h3>
+                @if (recipe.isPrivate) {
+                  <span class="badge badge--private">{{ 'recipe.list.private' | t }}</span>
+                }
                 <span class="gallery-item__meta">
                   {{ recipe.difficulty | enumLabel: 'difficulty' }}
                   &middot; {{ 'recipe.list.servings' | t: { count: recipe.servings } }}
@@ -123,6 +129,9 @@
             <div class="card recipe-card" role="listitem">
               <div class="recipe-card__header">
                 <a [routerLink]="['/recipes', recipe.id]" class="recipe-card__title">{{ recipe.name }}</a>
+                @if (recipe.isPrivate) {
+                  <span class="badge badge--private">{{ 'recipe.list.private' | t }}</span>
+                }
                 <span class="recipe-card__difficulty" [class]="'badge badge--' + recipe.difficulty">{{ recipe.difficulty | enumLabel: 'difficulty' }}</span>
               </div>
               <p class="recipe-card__description">{{ recipe.description }}</p>

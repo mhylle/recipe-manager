@@ -127,3 +127,99 @@ describe('RecipeFormComponent', () => {
     expect(mockRecipeService.update).not.toHaveBeenCalled();
   });
 });
+
+describe('RecipeFormComponent — keeping a recipe in your kitchen', () => {
+  let fixture: ComponentFixture<RecipeFormComponent>;
+  let component: RecipeFormComponent;
+  let recipeService: { create: ReturnType<typeof vi.fn>; update: ReturnType<typeof vi.fn>; getById: ReturnType<typeof vi.fn>; getTranslations: ReturnType<typeof vi.fn> };
+
+  /** Enough of a filled form that onSubmit is not short-circuited by validation. */
+  function fillRequiredFields(): void {
+    component.form.patchValue({
+      name: 'Cheesecake',
+      description: 'Lime and white chocolate',
+      servings: 8,
+      prepTime: 20,
+      cookTime: 0,
+      difficulty: Difficulty.EASY,
+      instructions: 'Chill it',
+    });
+    component.ingredientsArray.at(0).patchValue({
+      name: 'Lime',
+      quantity: 2,
+      unit: 'pcs',
+      pantryCategory: 'produce',
+    });
+  }
+
+  beforeEach(async () => {
+    recipeService = {
+      create: vi.fn().mockReturnValue(of({ id: 'new-1' })),
+      update: vi.fn().mockReturnValue(of({ id: 'existing-1' })),
+      getById: vi.fn(),
+      getTranslations: vi.fn().mockReturnValue(of([])),
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [RecipeFormComponent],
+      providers: [
+        provideRouter([{ path: 'recipes', component: DummyComponent }]),
+        { provide: RecipeService, useValue: recipeService },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => null } } },
+        },
+      ],
+    }).compileComponents();
+
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    fixture = TestBed.createComponent(RecipeFormComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('starts public, because the shared library is the norm', () => {
+    // A recipe nobody expected to be hidden is worse than one nobody expected
+    // to be shared: the first looks like the save failed.
+    expect(component.form.controls.isPrivate.value).toBe(false);
+  });
+
+  it('sends isPrivate false when the author leaves the toggle alone', () => {
+    // The distractor: an implementation that never sent the field at all would
+    // also "work" here until the backend default changed under it.
+    fillRequiredFields();
+
+    component.onSubmit();
+
+    expect(recipeService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ isPrivate: false }),
+      expect.anything(),
+    );
+  });
+
+  it('sends isPrivate true once the author ticks the box', () => {
+    fillRequiredFields();
+    component.form.controls.isPrivate.setValue(true);
+
+    component.onSubmit();
+
+    expect(recipeService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ isPrivate: true }),
+      expect.anything(),
+    );
+  });
+
+  it('renders a checkbox the label is wired to', () => {
+    // Without the for/id pairing the label is decoration and the control is
+    // unreachable by name for anyone using a screen reader.
+    const input: HTMLInputElement = fixture.nativeElement.querySelector('#isPrivate');
+    const label: HTMLLabelElement = fixture.nativeElement.querySelector('label[for="isPrivate"]');
+
+    expect(input).toBeTruthy();
+    expect(input.type).toBe('checkbox');
+    expect(label).toBeTruthy();
+    expect(input.getAttribute('aria-describedby')).toBe('private-hint');
+    expect(fixture.nativeElement.querySelector('#private-hint')).toBeTruthy();
+  });
+});
