@@ -11,12 +11,17 @@ import {
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { TranslatePipe } from '../../i18n';
+import {
+  PASSWORD_MAX_BYTES,
+  PASSWORD_MIN_LENGTH,
+  byteLength,
+} from '../../services/password-policy';
 
 type RegisterErrorKey =
   | 'register.errRequired'
   | 'register.errPasswordMismatch'
   | 'register.errPasswordWeak'
-  | 'register.errPasswordCharset'
+  | 'register.errPasswordLong'
   | 'register.errEmailTaken'
   | 'register.errTooMany'
   | 'register.errFailed';
@@ -97,21 +102,23 @@ export class RegisterDialogComponent {
       this.errorKey.set('register.errPasswordMismatch');
       return;
     }
-    // Mirrors the auth-service's rule as it ACTUALLY behaves, which is not what
-    // it says. Verified against the live endpoint: `Abcdef1!` is refused with
-    // "Password must be at least 6 characters and contain at least one number",
-    // while `Abcdef1` is accepted — so the real rule also forbids anything
-    // outside letters and digits, and the server's message misdescribes it.
+    // Mirrors the auth-service's shared password policy, which is now
+    // length-only per NIST SP 800-63B (recipe-manager#47). Every character is
+    // allowed — punctuation, spaces, non-ASCII — and no character class is
+    // required. The old rule here banned everything outside letters and digits
+    // and demanded a digit, which is exactly what rejected real passphrases.
     //
-    // Checked here so someone is told the truth immediately rather than being
-    // bounced by a server that blames the wrong thing, and without burning one of
-    // the five attempts a minute nginx allows.
-    if (this.password.length < 6 || !/\d/.test(this.password)) {
+    // Checked before the request so a typo is named immediately rather than
+    // burning one of the five attempts a minute nginx allows.
+    if (this.password.length < PASSWORD_MIN_LENGTH) {
       this.errorKey.set('register.errPasswordWeak');
       return;
     }
-    if (!/^[A-Za-z0-9]+$/.test(this.password)) {
-      this.errorKey.set('register.errPasswordCharset');
+    // Bytes, not characters: bcrypt truncates at 72 bytes, so this is where the
+    // server stops looking. 'é' is one character but two bytes, so a form that
+    // counted characters would pass something the server then refuses.
+    if (byteLength(this.password) > PASSWORD_MAX_BYTES) {
+      this.errorKey.set('register.errPasswordLong');
       return;
     }
 
@@ -150,16 +157,15 @@ export class RegisterDialogComponent {
    * 429 is the 5-per-minute brake on credential endpoints — reporting it as a
    * rejected address would send someone editing a perfectly good email. 409 is a
    * taken address, which means "sign in instead". 400 is the server's own
-   * validation, which our pre-checks should already have caught; if it still
-   * arrives, the password rule is the overwhelmingly likely cause.
+   * validation, which the checks above should already have caught.
    */
   private errorFor(status: number | undefined): RegisterErrorKey {
     if (status === 429) return 'register.errTooMany';
     if (status === 409) return 'register.errEmailTaken';
-    // The server blames length or a missing digit for every password problem,
-    // including a rejected special character. Naming the charset here is the
-    // likeliest truth once our own pre-checks have passed.
-    if (status === 400) return 'register.errPasswordCharset';
+    // Now that the client mirrors the server's policy exactly, a 400 that still
+    // arrives means the two have drifted apart again — so this says the password
+    // was refused without inventing a reason the server did not give.
+    if (status === 400) return 'register.errPasswordWeak';
     return 'register.errFailed';
   }
 

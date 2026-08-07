@@ -9,6 +9,10 @@ import { AuthService } from '../../../shared/services/auth.service';
 import { envelopeSupported, sealKey } from '../../../shared/services/key-envelope';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '../../../shared/i18n';
+import {
+  PASSWORD_MIN_LENGTH,
+  checkPassword,
+} from '../../../shared/services/password-policy';
 
 type ProfileMessage =
   | 'profile.gemini.saved'
@@ -18,6 +22,17 @@ type ProfileMessage =
   | 'profile.gemini.errMismatch'
   | 'profile.gemini.errUnsupported'
   | 'profile.gemini.errFailed';
+
+type PasswordMessage =
+  | 'profile.password.changed'
+  | 'profile.password.errRequired'
+  | 'profile.password.errMismatch'
+  | 'profile.password.errWeak'
+  | 'profile.password.errLong'
+  | 'profile.password.errSame'
+  | 'profile.password.errWrongCurrent'
+  | 'profile.password.errTooMany'
+  | 'profile.password.errFailed';
 
 /**
  * A cook's own settings.
@@ -54,6 +69,101 @@ export class ProfilePageComponent {
   apiKey = '';
   passphrase = '';
   confirmPassphrase = '';
+
+  // --- Password ------------------------------------------------------------
+
+  readonly passwordBusy = signal(false);
+  readonly passwordMessage = signal<PasswordMessage | null>(null);
+  readonly passwordMessageIsError = computed(() => {
+    const key = this.passwordMessage();
+    return key !== null && key.includes('.err');
+  });
+
+  /** Surfaced in the hint so the rule is stated before it is broken. */
+  readonly passwordMinLength = PASSWORD_MIN_LENGTH;
+
+  currentPassword = '';
+  newPassword = '';
+  confirmNewPassword = '';
+
+  /**
+   * Change the account password.
+   *
+   * Everything checkable locally is checked first — the endpoint is throttled
+   * alongside login, so a mismatch or a too-short password must not spend one of
+   * the allowed attempts. Only `currentPassword` being wrong needs the server.
+   */
+  changePassword(): void {
+    if (this.passwordBusy()) {
+      return;
+    }
+    if (!this.currentPassword || !this.newPassword) {
+      this.passwordMessage.set('profile.password.errRequired');
+      return;
+    }
+    if (this.newPassword !== this.confirmNewPassword) {
+      this.passwordMessage.set('profile.password.errMismatch');
+      return;
+    }
+    if (this.newPassword === this.currentPassword) {
+      // Not a server rule, but a change that changes nothing is a mistake worth
+      // naming rather than reporting as success.
+      this.passwordMessage.set('profile.password.errSame');
+      return;
+    }
+    const problem = checkPassword(this.newPassword);
+    if (problem === 'tooShort') {
+      this.passwordMessage.set('profile.password.errWeak');
+      return;
+    }
+    if (problem === 'tooLong') {
+      this.passwordMessage.set('profile.password.errLong');
+      return;
+    }
+
+    this.passwordBusy.set(true);
+    this.passwordMessage.set(null);
+
+    this.auth.changePassword(this.currentPassword, this.newPassword).subscribe({
+      next: (ok) => {
+        this.passwordBusy.set(false);
+        this.clearPasswordFields();
+        this.passwordMessage.set(
+          ok ? 'profile.password.changed' : 'profile.password.errFailed',
+        );
+      },
+      error: (err: { status?: number }) => {
+        this.passwordBusy.set(false);
+        // The new password is cleared but the current one is not: if the server
+        // says it was wrong, retyping the whole form to fix one field is a
+        // pointless punishment.
+        this.newPassword = '';
+        this.confirmNewPassword = '';
+        this.passwordMessage.set(this.passwordErrorFor(err.status));
+      },
+    });
+  }
+
+  /**
+   * 401 here means the CURRENT password was wrong, not that the session expired
+   * — the request only reached validation because the cookie was accepted. 429
+   * is the throttle this endpoint shares with login, and reporting it as a wrong
+   * password would send someone hunting for a mistake they did not make.
+   */
+  private passwordErrorFor(status: number | undefined): PasswordMessage {
+    if (status === 429) return 'profile.password.errTooMany';
+    if (status === 401 || status === 403) {
+      return 'profile.password.errWrongCurrent';
+    }
+    if (status === 400) return 'profile.password.errWeak';
+    return 'profile.password.errFailed';
+  }
+
+  private clearPasswordFields(): void {
+    this.currentPassword = '';
+    this.newPassword = '';
+    this.confirmNewPassword = '';
+  }
 
   // --- MCP keys ------------------------------------------------------------
 

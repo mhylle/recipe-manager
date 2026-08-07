@@ -97,6 +97,69 @@
     </article>
 
     <article class="profile__card">
+      <h2 class="profile__card-title">{{ 'profile.password.heading' | t }}</h2>
+      <p class="profile__intro">{{ 'profile.password.intro' | t }}</p>
+
+      <form class="profile__form" (ngSubmit)="changePassword()">
+        <label class="profile__label" for="current-password">
+          {{ 'profile.password.current' | t }}
+        </label>
+        <input
+          id="current-password"
+          class="input"
+          type="password"
+          autocomplete="current-password"
+          [(ngModel)]="currentPassword"
+          name="currentPassword"
+        />
+
+        <label class="profile__label" for="new-password">
+          {{ 'profile.password.new' | t }}
+        </label>
+        <input
+          id="new-password"
+          class="input"
+          type="password"
+          autocomplete="new-password"
+          aria-describedby="new-password-hint"
+          [(ngModel)]="newPassword"
+          name="newPassword"
+        />
+        <p id="new-password-hint" class="profile__hint">
+          {{ 'profile.password.hint' | t: { min: passwordMinLength } }}
+        </p>
+
+        <label class="profile__label" for="confirm-new-password">
+          {{ 'profile.password.confirm' | t }}
+        </label>
+        <input
+          id="confirm-new-password"
+          class="input"
+          type="password"
+          autocomplete="new-password"
+          [(ngModel)]="confirmNewPassword"
+          name="confirmNewPassword"
+        />
+
+        @if (passwordMessage()) {
+          <p
+            class="profile__status"
+            [class.profile__status--error]="passwordMessageIsError()"
+            [attr.role]="passwordMessageIsError() ? 'alert' : 'status'"
+          >
+            {{ passwordMessage()! | t }}
+          </p>
+        }
+
+        <div class="profile__actions">
+          <button type="submit" class="btn btn--primary" [disabled]="passwordBusy()">
+            {{ (passwordBusy() ? 'profile.password.working' : 'profile.password.submit') | t }}
+          </button>
+        </div>
+      </form>
+    </article>
+
+    <article class="profile__card">
       <h2 class="profile__card-title">{{ 'profile.mcp.heading' | t }}</h2>
       <p class="profile__intro">{{ 'profile.mcp.intro' | t }}</p>
       <p class="profile__intro">
