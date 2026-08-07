@@ -84,7 +84,11 @@ export class ShoppingListService {
     });
   }
 
-  async generateFromRecipe(pantryId: string, recipeId: string, servings?: number): Promise<ShoppingList> {
+  async generateFromRecipe(
+    pantryId: string,
+    recipeId: string,
+    servings?: number,
+  ): Promise<ShoppingList> {
     const recipe = await this.recipeService.findById(recipeId);
     const [pantryItems, staplesConfig] = await Promise.all([
       this.pantryService.findAll(pantryId),
@@ -137,7 +141,11 @@ export class ShoppingListService {
     return this.shoppingListRepository.findById(id);
   }
 
-  async toggleItem(pantryId: string, id: string, itemIndex: number): Promise<ShoppingList> {
+  async toggleItem(
+    pantryId: string,
+    id: string,
+    itemIndex: number,
+  ): Promise<ShoppingList> {
     return this.shoppingListRepository.toggleItemByIndex(id, itemIndex);
   }
 }

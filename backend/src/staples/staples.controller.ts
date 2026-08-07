@@ -21,7 +21,9 @@ export class StaplesController {
     @CurrentUser() user: LocalUser,
     @Query('pantryId') pantryId?: string,
   ): Promise<StaplesConfig> {
-    return this.staplesService.getStaples(await this.access.resolve(user, pantryId));
+    return this.staplesService.getStaples(
+      await this.access.resolve(user, pantryId),
+    );
   }
 
   @Put()
@@ -30,6 +32,9 @@ export class StaplesController {
     @Body() dto: UpdateStaplesDto,
     @Query('pantryId') pantryId?: string,
   ): Promise<StaplesConfig> {
-    return this.staplesService.updateStaples(await this.access.resolve(user, pantryId), dto);
+    return this.staplesService.updateStaples(
+      await this.access.resolve(user, pantryId),
+      dto,
+    );
   }
 }

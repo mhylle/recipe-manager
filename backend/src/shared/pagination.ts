@@ -44,7 +44,10 @@ export const DEFAULT_PAGE_LIMIT = 100;
 export const MAX_PAGE_LIMIT = 500;
 
 /** Clamp caller-supplied paging into something the database can be asked for. */
-export function normalisePageRequest(page: PageRequest): { limit: number; offset: number } {
+export function normalisePageRequest(page: PageRequest): {
+  limit: number;
+  offset: number;
+} {
   const rawLimit = Number(page.limit);
   const rawOffset = Number(page.offset);
 
@@ -53,7 +56,8 @@ export function normalisePageRequest(page: PageRequest): { limit: number; offset
       ? Math.min(Math.floor(rawLimit), MAX_PAGE_LIMIT)
       : DEFAULT_PAGE_LIMIT;
 
-  const offset = Number.isFinite(rawOffset) && rawOffset > 0 ? Math.floor(rawOffset) : 0;
+  const offset =
+    Number.isFinite(rawOffset) && rawOffset > 0 ? Math.floor(rawOffset) : 0;
 
   return { limit, offset };
 }

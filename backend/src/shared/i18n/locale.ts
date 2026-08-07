@@ -13,7 +13,10 @@ export type Locale = (typeof SUPPORTED_LOCALES)[number];
 export const DEFAULT_LOCALE: Locale = 'en';
 
 export function isLocale(value: unknown): value is Locale {
-  return typeof value === 'string' && (SUPPORTED_LOCALES as readonly string[]).includes(value);
+  return (
+    typeof value === 'string' &&
+    (SUPPORTED_LOCALES as readonly string[]).includes(value)
+  );
 }
 
 /**
@@ -25,7 +28,9 @@ export function isLocale(value: unknown): value is Locale {
  * Anything unrecognised (or a missing header) falls back to the default rather
  * than throwing, because a bad header must never fail an API request.
  */
-export function resolveLocale(acceptLanguage: string | undefined | null): Locale {
+export function resolveLocale(
+  acceptLanguage: string | undefined | null,
+): Locale {
   if (!acceptLanguage) {
     return DEFAULT_LOCALE;
   }

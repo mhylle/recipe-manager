@@ -11,7 +11,10 @@ import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
 
 /** The controller now resolves its kitchen from the caller, so tests need one. */
 const martinUser = {
-  id: 'u-martin', ssoSubject: 's-martin', email: 'mhylle@yahoo.com', displayName: 'Martin Hylleberg',
+  id: 'u-martin',
+  ssoSubject: 's-martin',
+  email: 'mhylle@yahoo.com',
+  displayName: 'Martin Hylleberg',
 };
 
 describe('PantryController', () => {
@@ -39,15 +42,19 @@ describe('PantryController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PantryController],
-      providers: [{ provide: PantryService, useValue: mockService },
+      providers: [
+        { provide: PantryService, useValue: mockService },
         {
           // Membership resolution has its own spec. Here it just hands back the
           // kitchen so the controller's delegation is what is being tested.
           provide: PantryAccessService,
-          useValue: { resolve: jest.fn().mockResolvedValue('p-test'), listForUser: jest.fn() },
+          useValue: {
+            resolve: jest.fn().mockResolvedValue('p-test'),
+            listForUser: jest.fn(),
+          },
         },
       ],
-    })// The controller is the unit here. Whether the guard admits a caller is
+    }) // The controller is the unit here. Whether the guard admits a caller is
       // SsoAuthGuard's own concern and is covered in its spec; wiring the real
       // one in would drag the user directory and Prisma into a controller test.
       .overrideGuard(SsoAuthGuard)
@@ -71,7 +78,12 @@ describe('PantryController', () => {
 
       const result = await controller.create(martinUser, dto, 'en');
 
-      expect(service.create).toHaveBeenCalledWith('p-test', dto, 'en', undefined);
+      expect(service.create).toHaveBeenCalledWith(
+        'p-test',
+        dto,
+        'en',
+        undefined,
+      );
       expect(result).toEqual(mockPantryItem);
     });
   });
@@ -102,7 +114,11 @@ describe('PantryController', () => {
 
       const result = await controller.findById(martinUser, 'test-uuid-1', 'en');
 
-      expect(service.findById).toHaveBeenCalledWith('p-test', 'test-uuid-1', 'en');
+      expect(service.findById).toHaveBeenCalledWith(
+        'p-test',
+        'test-uuid-1',
+        'en',
+      );
       expect(result).toEqual(mockPantryItem);
     });
 
@@ -111,9 +127,9 @@ describe('PantryController', () => {
         new NotFoundException('pantry with id missing-id not found'),
       );
 
-      await expect(controller.findById(martinUser, 'missing-id', 'en')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        controller.findById(martinUser, 'missing-id', 'en'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -122,13 +138,19 @@ describe('PantryController', () => {
       const updatedItem = { ...mockPantryItem, quantity: 250 };
       service.update.mockResolvedValue(updatedItem);
 
-      const result = await controller.update(martinUser, 'test-uuid-1', { quantity: 250 }, 'en');
+      const result = await controller.update(
+        martinUser,
+        'test-uuid-1',
+        { quantity: 250 },
+        'en',
+      );
 
-      expect(service.update).toHaveBeenCalledWith('p-test', 
+      expect(service.update).toHaveBeenCalledWith(
+        'p-test',
         'test-uuid-1',
         {
-        quantity: 250,
-      },
+          quantity: 250,
+        },
         'en',
         undefined,
       );

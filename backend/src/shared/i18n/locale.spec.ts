@@ -1,4 +1,9 @@
-import { resolveLocale, pickTranslation, isLocale, DEFAULT_LOCALE } from './locale.js';
+import {
+  resolveLocale,
+  pickTranslation,
+  isLocale,
+  DEFAULT_LOCALE,
+} from './locale.js';
 
 describe('resolveLocale', () => {
   it('resolves a simple tag', () => {

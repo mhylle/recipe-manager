@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Patch, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { ShoppingListService } from './shopping-list.service.js';
 import type { ShoppingList } from '../shared/interfaces/shopping-list.interface.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
@@ -21,7 +30,10 @@ export class ShoppingListController {
     @Param('mealPlanId') mealPlanId: string,
     @Query('pantryId') pantryId?: string,
   ): Promise<ShoppingList> {
-    return this.shoppingListService.generate(await this.access.resolve(user, pantryId), mealPlanId);
+    return this.shoppingListService.generate(
+      await this.access.resolve(user, pantryId),
+      mealPlanId,
+    );
   }
 
   @Post('from-recipe/:recipeId')
@@ -45,7 +57,10 @@ export class ShoppingListController {
     @Param('id') id: string,
     @Query('pantryId') pantryId?: string,
   ): Promise<ShoppingList> {
-    return this.shoppingListService.findById(await this.access.resolve(user, pantryId), id);
+    return this.shoppingListService.findById(
+      await this.access.resolve(user, pantryId),
+      id,
+    );
   }
 
   @Patch(':id/items/:index')
@@ -55,6 +70,10 @@ export class ShoppingListController {
     @Param('index', ParseIntPipe) index: number,
     @Query('pantryId') pantryId?: string,
   ): Promise<ShoppingList> {
-    return this.shoppingListService.toggleItem(await this.access.resolve(user, pantryId), id, index);
+    return this.shoppingListService.toggleItem(
+      await this.access.resolve(user, pantryId),
+      id,
+      index,
+    );
   }
 }

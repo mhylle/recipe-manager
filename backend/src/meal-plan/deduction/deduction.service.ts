@@ -50,7 +50,11 @@ export class DeductionService {
     });
   }
 
-  async confirmCooked(pantryId: string, mealPlanId: string, entryIndex: number): Promise<void> {
+  async confirmCooked(
+    pantryId: string,
+    mealPlanId: string,
+    entryIndex: number,
+  ): Promise<void> {
     const plan = await this.mealPlanService.findById(pantryId, mealPlanId);
     const entry = plan.entries[entryIndex];
     if (!entry) return;
@@ -70,7 +74,9 @@ export class DeductionService {
         if (pantryItem) {
           const deductQty = ingredient.quantity * scaleFactor;
           const newQty = Math.max(0, pantryItem.quantity - deductQty);
-          await this.pantryService.update(pantryId, pantryItem.id, { quantity: newQty });
+          await this.pantryService.update(pantryId, pantryItem.id, {
+            quantity: newQty,
+          });
         }
       }
     } catch {

@@ -17,7 +17,10 @@ export class PantryService {
     locale: Locale = DEFAULT_LOCALE,
     translations?: PantryTranslationInput[],
   ): Promise<PantryItem> {
-    return this.pantryRepository.create(pantryId, dto, { sourceLocale: locale, translations });
+    return this.pantryRepository.create(pantryId, dto, {
+      sourceLocale: locale,
+      translations,
+    });
   }
 
   async findAll(
@@ -44,11 +47,18 @@ export class PantryService {
     return result;
   }
 
-  async findById(pantryId: string, id: string, locale: Locale = DEFAULT_LOCALE): Promise<PantryItem> {
+  async findById(
+    pantryId: string,
+    id: string,
+    locale: Locale = DEFAULT_LOCALE,
+  ): Promise<PantryItem> {
     return this.pantryRepository.findById(pantryId, id, locale);
   }
 
-  async findAllTranslations(pantryId: string, id: string): Promise<PantryTranslationInput[]> {
+  async findAllTranslations(
+    pantryId: string,
+    id: string,
+  ): Promise<PantryTranslationInput[]> {
     return this.pantryRepository.findAllTranslations(pantryId, id);
   }
 
@@ -59,7 +69,10 @@ export class PantryService {
     locale: Locale = DEFAULT_LOCALE,
     translations?: PantryTranslationInput[],
   ): Promise<PantryItem> {
-    return this.pantryRepository.update(pantryId, id, dto, { locale, translations });
+    return this.pantryRepository.update(pantryId, id, dto, {
+      locale,
+      translations,
+    });
   }
 
   async delete(pantryId: string, id: string): Promise<void> {

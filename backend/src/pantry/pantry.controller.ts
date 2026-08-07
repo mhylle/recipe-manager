@@ -1,6 +1,20 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, HttpCode, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  HttpCode,
+  UseGuards,
+} from '@nestjs/common';
 import { PantryService } from './pantry.service.js';
-import { PantryAccessService, type PantrySummary } from './pantry-access.service.js';
+import {
+  PantryAccessService,
+  type PantrySummary,
+} from './pantry-access.service.js';
 import {
   CreatePantryItemRequestDto,
   UpdatePantryItemRequestDto,

@@ -107,11 +107,18 @@ describe('MealPlanService', () => {
 
   describe('removeEntry', () => {
     it('should remove entry at index', async () => {
-      repository.removeEntryByIndex.mockResolvedValue({ ...mockPlan, entries: [] });
+      repository.removeEntryByIndex.mockResolvedValue({
+        ...mockPlan,
+        entries: [],
+      });
 
       const result = await service.removeEntry('p-test', 'plan-1', 0);
 
-      expect(repository.removeEntryByIndex).toHaveBeenCalledWith('p-test', 'plan-1', 0);
+      expect(repository.removeEntryByIndex).toHaveBeenCalledWith(
+        'p-test',
+        'plan-1',
+        0,
+      );
       expect(result.entries).toHaveLength(0);
     });
 

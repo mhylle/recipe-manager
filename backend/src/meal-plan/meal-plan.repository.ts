@@ -1,12 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { MealPlan, MealPlanEntry } from '../shared/interfaces/meal-plan.interface.js';
+import {
+  MealPlan,
+  MealPlanEntry,
+} from '../shared/interfaces/meal-plan.interface.js';
 
 @Injectable()
 export class MealPlanRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(pantryId: string, data: Omit<MealPlan, 'id'>): Promise<MealPlan> {
+  async create(
+    pantryId: string,
+    data: Omit<MealPlan, 'id'>,
+  ): Promise<MealPlan> {
     const result = await this.prisma.mealPlan.create({
       data: {
         pantryId,
@@ -45,7 +51,10 @@ export class MealPlanRepository {
     return this.toInterface(result);
   }
 
-  async findByWeek(pantryId: string, weekStartDate: string): Promise<MealPlan | null> {
+  async findByWeek(
+    pantryId: string,
+    weekStartDate: string,
+  ): Promise<MealPlan | null> {
     // The week is unique PER PANTRY now, so the lookup needs both.
     const result = await this.prisma.mealPlan.findUnique({
       where: { pantryId_weekStartDate: { pantryId, weekStartDate } },
@@ -54,7 +63,11 @@ export class MealPlanRepository {
     return result ? this.toInterface(result) : null;
   }
 
-  async addEntry(pantryId: string, mealPlanId: string, entry: MealPlanEntry): Promise<MealPlan> {
+  async addEntry(
+    pantryId: string,
+    mealPlanId: string,
+    entry: MealPlanEntry,
+  ): Promise<MealPlan> {
     // Resolve the plan inside the pantry FIRST. Without this, a plan id from
     // another household would happily accept entries.
     await this.findById(pantryId, mealPlanId);
@@ -70,7 +83,11 @@ export class MealPlanRepository {
     return this.findById(pantryId, mealPlanId);
   }
 
-  async removeEntryByIndex(pantryId: string, mealPlanId: string, index: number): Promise<MealPlan> {
+  async removeEntryByIndex(
+    pantryId: string,
+    mealPlanId: string,
+    index: number,
+  ): Promise<MealPlan> {
     await this.findById(pantryId, mealPlanId);
     const entries = await this.prisma.mealPlanEntry.findMany({
       where: { mealPlanId },
@@ -97,7 +114,11 @@ export class MealPlanRepository {
     return entries[index];
   }
 
-  async update(pantryId: string, id: string, data: Partial<MealPlan>): Promise<MealPlan> {
+  async update(
+    pantryId: string,
+    id: string,
+    data: Partial<MealPlan>,
+  ): Promise<MealPlan> {
     await this.findById(pantryId, id);
     if (data.weekStartDate !== undefined) {
       await this.prisma.mealPlan.update({
