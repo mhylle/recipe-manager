@@ -14,8 +14,12 @@ import { PantryContextService } from './pantry-context.service';
  */
 const KITCHEN_SCOPED = [
   'pantry',
-  'meal-plan',
-  'shopping-list',
+  // PLURAL, matching the controllers: meal-plans and shopping-lists. Getting
+  // these singular shipped an interceptor that skipped both — and the boundary
+  // check below, which exists to keep `/api/pantries` out, is precisely what
+  // excluded them. Every entry here is copied from a @Controller() path.
+  'meal-plans',
+  'shopping-lists',
   'staples',
   'recipes/match',
   'bilkatogo',
