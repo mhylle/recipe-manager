@@ -56,6 +56,132 @@ describe('ProfilePageComponent', () => {
     component.confirmPassphrase = PASS;
   };
 
+  describe('changing the account password', () => {
+    const fillPassword = (
+      current = 'old-password',
+      next = 'Ada.Lovelace,1815',
+      confirm = next,
+    ) => {
+      component.currentPassword = current;
+      component.newPassword = next;
+      component.confirmNewPassword = confirm;
+    };
+
+    it('sends exactly the two fields the endpoint accepts', () => {
+      // The auth-service validates with forbidNonWhitelisted, so a third field
+      // — confirmPassword, which its old docs wrongly showed — is a 400.
+      flushState();
+      fillPassword();
+
+      component.changePassword();
+
+      const req = httpTesting.expectOne('/api/auth/change-password');
+      expect(Object.keys(req.request.body as object).sort()).toEqual([
+        'currentPassword',
+        'newPassword',
+      ]);
+      req.flush({ success: true });
+    });
+
+    it('accepts a passphrase with punctuation', () => {
+      // The #47 rule is gone. A change-password form that kept it would reject
+      // exactly the passwords the policy now encourages.
+      flushState();
+      fillPassword('old-password', 'correct horse battery staple');
+
+      component.changePassword();
+
+      httpTesting.expectOne('/api/auth/change-password').flush({ success: true });
+      expect(component.passwordMessage()).toBe('profile.password.changed');
+    });
+
+    it('clears the fields once it has landed', () => {
+      // They are secrets; leaving them in the DOM after the change is done is
+      // the kind of thing a shared kitchen tablet makes expensive.
+      flushState();
+      fillPassword();
+
+      component.changePassword();
+      httpTesting.expectOne('/api/auth/change-password').flush({ success: true });
+
+      expect(component.currentPassword).toBe('');
+      expect(component.newPassword).toBe('');
+      expect(component.confirmNewPassword).toBe('');
+    });
+
+    it('catches a mismatch without spending a throttled attempt', () => {
+      // The endpoint shares login's five-a-minute brake.
+      flushState();
+      fillPassword('old-password', 'Ada.Lovelace,1815', 'something-else');
+
+      component.changePassword();
+
+      expect(component.passwordMessage()).toBe('profile.password.errMismatch');
+      httpTesting.expectNone('/api/auth/change-password');
+    });
+
+    it('catches a too-short new password locally', () => {
+      flushState();
+      fillPassword('old-password', 'short');
+
+      component.changePassword();
+
+      expect(component.passwordMessage()).toBe('profile.password.errWeak');
+      httpTesting.expectNone('/api/auth/change-password');
+    });
+
+    it('refuses a new password identical to the current one', () => {
+      flushState();
+      fillPassword('Ada.Lovelace,1815', 'Ada.Lovelace,1815');
+
+      component.changePassword();
+
+      expect(component.passwordMessage()).toBe('profile.password.errSame');
+      httpTesting.expectNone('/api/auth/change-password');
+    });
+
+    it('reads 401 as a wrong current password, not an expired session', () => {
+      // The cookie was accepted or the request would not have reached
+      // validation at all.
+      flushState();
+      fillPassword();
+
+      component.changePassword();
+      httpTesting
+        .expectOne('/api/auth/change-password')
+        .flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      expect(component.passwordMessage()).toBe('profile.password.errWrongCurrent');
+    });
+
+    it('reads 429 as throttling rather than a wrong password', () => {
+      // Reporting the throttle as a wrong password sends someone hunting for a
+      // mistake they did not make.
+      flushState();
+      fillPassword();
+
+      component.changePassword();
+      httpTesting
+        .expectOne('/api/auth/change-password')
+        .flush({}, { status: 429, statusText: 'Too Many Requests' });
+
+      expect(component.passwordMessage()).toBe('profile.password.errTooMany');
+    });
+
+    it('keeps the current password on a failure so only one field is retyped', () => {
+      flushState();
+      fillPassword();
+
+      component.changePassword();
+      httpTesting
+        .expectOne('/api/auth/change-password')
+        .flush({}, { status: 401, statusText: 'Unauthorized' });
+
+      expect(component.currentPassword).toBe('old-password');
+      expect(component.newPassword).toBe('');
+    });
+  });
+
   describe('validation before any request', () => {
     it('requires a key and a passphrase', async () => {
       flushState();

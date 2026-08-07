@@ -203,6 +203,32 @@ export class AuthService {
       .pipe(map(() => true));
   }
 
+  /**
+   * Change the password of the signed-in account.
+   *
+   * Exactly two fields. The auth-service runs its ValidationPipe with
+   * `forbidNonWhitelisted`, so sending a third — `confirmPassword`, which its
+   * old docs wrongly showed — is a 400. Matching the confirmation is the
+   * client's job and happens before this is called.
+   *
+   * The response sets a fresh `auth_token` cookie. Changing the password bumps
+   * the account's token version, which signs out every OTHER session while the
+   * new cookie keeps this one alive — so nothing needs re-authenticating here,
+   * but it is worth telling the user their other devices were signed out.
+   */
+  changePassword(
+    currentPassword: string,
+    newPassword: string,
+  ): Observable<boolean> {
+    return this.http
+      .post<{ success?: boolean }>(
+        '/api/auth/change-password',
+        { currentPassword, newPassword },
+        { withCredentials: true },
+      )
+      .pipe(map((res) => res?.success !== false));
+  }
+
   logout(): Observable<boolean> {
     return this.http
       .post('/api/auth/logout', {}, { withCredentials: true })

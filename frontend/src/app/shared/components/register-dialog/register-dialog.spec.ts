@@ -55,36 +55,50 @@ describe('RegisterDialogComponent', () => {
 
     it('catches a password with no digit, matching the server rule', () => {
       fillValid();
-      component.password = 'kitchens';
-      component.confirmPassword = 'kitchens';
+      component.password = 'kitchen';
+      component.confirmPassword = 'kitchen';
       component.submit();
 
       expect(component.errorKey()).toBe('register.errPasswordWeak');
       httpTesting.expectNone('/api/auth/register');
     });
 
-    it('catches a special character, which the server silently forbids', () => {
-      // Verified against the live endpoint: `Abcdef1!` is refused while
-      // `Abcdef1` is accepted, and the server blames length or a missing digit
-      // either way. Catching it here tells the truth immediately, and without
-      // burning one of the five attempts a minute nginx allows.
+    it('sends a passphrase with punctuation, which used to be refused here', () => {
+      // The #47 regression. This exact shape was rejected client-side before the
+      // auth-service dropped its letters-and-digits-only rule, so it must now
+      // reach the network rather than being stopped by the form.
       fillValid();
-      component.password = 'Abcdef1!';
-      component.confirmPassword = 'Abcdef1!';
+      component.password = 'Ada.Lovelace,1815';
+      component.confirmPassword = 'Ada.Lovelace,1815';
       component.submit();
 
-      expect(component.errorKey()).toBe('register.errPasswordCharset');
-      httpTesting.expectNone('/api/auth/register');
+      expect(component.errorKey()).toBeNull();
+      httpTesting.expectOne('/api/auth/register').flush({ success: true });
+      httpTesting.expectOne('/api/auth/login').flush({ success: false });
     });
 
-    it('accepts a letters-and-numbers password', () => {
+    it('sends a password with no digit at all', () => {
+      // The digit requirement is gone with the charset rule.
       fillValid();
-      component.password = 'Abcdef1';
-      component.confirmPassword = 'Abcdef1';
+      component.password = 'correct horse battery';
+      component.confirmPassword = 'correct horse battery';
       component.submit();
 
       httpTesting.expectOne('/api/auth/register').flush({ success: true });
       httpTesting.expectOne('/api/auth/login').flush({ success: false });
+    });
+
+    it('catches a password that is too long in BYTES', () => {
+      // 37 accented characters are 74 bytes. A check counting characters would
+      // pass this and let the server refuse it after a round trip.
+      fillValid();
+      const long = 'é'.repeat(37);
+      component.password = long;
+      component.confirmPassword = long;
+      component.submit();
+
+      expect(component.errorKey()).toBe('register.errPasswordLong');
+      httpTesting.expectNone('/api/auth/register');
     });
 
     it('catches a too-short password', () => {
