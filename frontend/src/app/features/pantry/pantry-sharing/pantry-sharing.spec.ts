@@ -150,4 +150,49 @@ describe('PantrySharingComponent', () => {
 
     httpTesting.expectNone((r) => r.method === 'POST');
   });
+
+  it('actually submits when the Share button is pressed', () => {
+    // The bug this pins down, and the reason every other test here missed it:
+    // they all called component.invite() directly. The TEMPLATE was the broken
+    // part. `(ngSubmit)` is an output of FormGroupDirective — with no
+    // [formGroup] on the <form> and FormsModule not imported, Angular bound a
+    // listener for a DOM event nothing raises, so the submit button fell
+    // through to a native form submission. The page reloaded, no request was
+    // ever made, and the reload wiped the evidence.
+    context.load();
+    build();
+    resolvePantry();
+    fixture.detectChanges();
+    httpTesting.expectOne((r) => r.url.endsWith('/api/pantries/p-1/members')).flush([MEMBERS[0]]);
+
+    component.emailControl.setValue('heidi@example.com');
+    fixture.detectChanges();
+
+    const form: HTMLFormElement = fixture.nativeElement.querySelector('form.sharing__invite');
+    form.dispatchEvent(new Event('submit'));
+
+    const req = httpTesting.expectOne(
+      (r) => r.method === 'POST' && r.url.endsWith('/api/pantries/p-1/members'),
+    );
+    expect(req.request.body).toEqual({ email: 'heidi@example.com' });
+    req.flush(MEMBERS[1]);
+    httpTesting.expectOne((r) => r.url.endsWith('/api/pantries/p-1/members')).flush(MEMBERS);
+  });
+
+  it('has an owner on the invite form, so the browser cannot submit it natively', () => {
+    // Stated directly as well, because the symptom of losing it is a page
+    // reload that destroys the console output you would debug it with.
+    context.load();
+    build();
+    resolvePantry();
+    fixture.detectChanges();
+    httpTesting.expectOne((r) => r.url.endsWith('/api/pantries/p-1/members')).flush([MEMBERS[0]]);
+
+    // NgControlStatusGroup adds these, and it only attaches to a form that a
+    // formGroup/ngForm directive owns. An unowned form carries none of them —
+    // which is precisely the state that let the browser submit it natively.
+    const form: HTMLFormElement = fixture.nativeElement.querySelector('form.sharing__invite');
+    expect(form.classList.contains('ng-untouched')).toBe(true);
+    expect(form.classList.contains('ng-pristine')).toBe(true);
+  });
 });

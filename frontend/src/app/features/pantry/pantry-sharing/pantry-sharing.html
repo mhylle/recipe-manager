@@ -32,14 +32,14 @@
     </ul>
 
     @if (pantry.isOwner) {
-      <form class="sharing__invite" (ngSubmit)="invite()">
+      <form class="sharing__invite" [formGroup]="inviteForm" (ngSubmit)="invite()">
         <label class="sharing__label" for="invite-email">{{ 'pantry.sharing.inviteLabel' | t }}</label>
         <div class="sharing__row">
           <input
             id="invite-email"
             type="email"
             class="sharing__input"
-            [formControl]="emailControl"
+            formControlName="email"
             [attr.placeholder]="'pantry.sharing.invitePlaceholder' | t"
           />
           <button type="submit" class="btn btn--primary btn--small" [disabled]="busy() || emailControl.invalid">

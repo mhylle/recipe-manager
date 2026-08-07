@@ -8,7 +8,8 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "check:i18n": "node tools/check-hardcoded-strings.mjs $(find src/app \\( -name '*.html' -o -name '*.ts' \\) ! -name '*.spec.ts')",
-    "check": "npm run check:i18n"
+    "check": "npm run check:i18n && npm run check:forms",
+    "check:forms": "node tools/check-form-submit.mjs $(find src/app -name '*.html')"
   },
   "prettier": {
     "printWidth": 100,

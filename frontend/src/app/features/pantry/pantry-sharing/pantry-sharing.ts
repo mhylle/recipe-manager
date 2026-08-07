@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { PantrySharingService, type PantryMember } from './pantry-sharing.service';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
 import { LocaleService, TranslatePipe } from '../../../shared/i18n';
@@ -32,6 +32,18 @@ export class PantrySharingComponent {
     nonNullable: true,
     validators: [Validators.required, Validators.email],
   });
+
+  /**
+   * Wraps the one control so the <form> has an owner.
+   *
+   * Load-bearing, not ceremony. `(ngSubmit)` is an output of FormGroupDirective
+   * (or of NgForm, from FormsModule). With neither on the element, Angular binds
+   * a listener for a DOM event named "ngSubmit" that nothing ever raises — so
+   * the submit button fell through to a NATIVE form submission and reloaded the
+   * page. The invite request was never made, the error was never shown, and the
+   * reload wiped the network log that would have said so.
+   */
+  readonly inviteForm = new FormGroup({ email: this.emailControl });
 
   /**
    * Load now, and again whenever the kitchen or the language changes.
