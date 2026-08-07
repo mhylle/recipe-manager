@@ -124,12 +124,19 @@
   gap: 1.5rem;
 }
 
-.footer__links a {
+// Both the links and the report button, which is a <button> for accessibility
+// but must read as one of the links beside it. `font: inherit` on the button was
+// not enough: it inherits from the flex container, not from this rule, so it came
+// out at the base body size and colour — visibly larger than its neighbours.
+.footer__links a,
+.footer__links .footer__report {
+  font-family: inherit;
   font-size: 0.8125rem;
   color: var(--on-surface-variant);
 }
 
-.footer__links a:hover {
+.footer__links a:hover,
+.footer__links .footer__report:hover {
   color: var(--primary);
 }
 
@@ -272,16 +279,13 @@
 
 // A link, not a button, visually: it sits in the footer nav among the other
 // links and should not shout. Reachable from every page, which is the point.
+// Typography comes from the shared rule above, so it cannot drift from the
+// links again. This only strips the button chrome.
 .footer__report {
   padding: 0;
   border: none;
   background: none;
-  font: inherit;
-  color: inherit;
+  line-height: inherit;
   cursor: pointer;
   text-decoration: underline;
-
-  &:hover {
-    color: var(--primary);
-  }
 }
