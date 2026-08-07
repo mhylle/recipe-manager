@@ -1,39 +1,47 @@
-.backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 0.45);
-  z-index: 100;
-}
-
-.dialog {
-  position: fixed;
-  inset-block-start: 50%;
-  inset-inline-start: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 101;
-  inline-size: min(30rem, calc(100vw - 2rem));
-  max-block-size: calc(100vh - 2rem);
-  overflow-y: auto;
-  background: var(--surface-container);
+// Matches gemini-key-dialog.scss and login-dialog.scss so every modal in the
+// app reads as one family.
+//
+// A native <dialog> rather than a positioned div: showModal() brings the focus
+// trap, the Esc key and the top-layer stacking with it, none of which a div
+// gets for free. The first version was a div and had none of them.
+.xferdlg {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  // --surface-container does NOT exist in this app's tokens — only -low,
+  // -lowest and -high. Naming it left the panel with no background at all,
+  // which rendered as an almost invisible dialog over the page.
+  background: var(--surface-container-lowest);
   color: var(--on-surface);
-  border-radius: var(--radius-xl);
-  padding: 1.5rem;
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 0.3);
+  max-width: min(30rem, calc(100vw - 2rem));
+  box-shadow: 0 18px 48px rgba(45, 52, 51, 0.22);
+
+  &::backdrop {
+    background: rgba(45, 52, 51, 0.45);
+  }
 }
 
-.dialog h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.25rem;
+.xferdlg__body {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-card, 1.25rem);
 }
 
-.dialog__lede,
-.dialog__status {
-  margin: 0 0 1rem;
+.xferdlg__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+.xferdlg__intro,
+.xferdlg__status {
+  margin: 0.35rem 0 1.1rem;
   color: var(--on-surface-variant);
   font-size: 0.95rem;
 }
 
-.recipients {
+.xferdlg__recipients {
   border: none;
   padding: 0;
   margin: 0 0 1rem;
@@ -51,6 +59,7 @@
   padding: 0.75rem;
   border: 1px solid var(--outline-variant);
   border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
   cursor: pointer;
 }
 
@@ -59,8 +68,8 @@
   background: var(--surface-container-high);
 }
 
-// Focus has to be visible on the row, not just the radio: the radio is small
-// and the row is what a pointer or a Tab lands on visually.
+// Focus must be visible on the row, not only on the radio: the radio is small
+// and the row is what the eye tracks.
 .recipient:has(input:focus-visible) {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
@@ -85,9 +94,9 @@
   overflow-wrap: anywhere;
 }
 
-// The consequence of the action, stated before it is taken. Not styled as an
-// error — nothing has gone wrong — but it must not read as body copy either.
-.warning {
+// The consequence, stated before the action is taken. Not an error — nothing
+// has gone wrong — but it must not read as body copy either.
+.xferdlg__warning {
   margin: 0 0 1rem;
   padding: 0.75rem;
   border-radius: var(--radius-lg);
@@ -96,13 +105,16 @@
   font-size: 0.9rem;
 }
 
-.error {
+.xferdlg__error {
   margin: 0 0 1rem;
-  color: var(--error);
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  background: var(--error-container, #ffdad6);
+  color: var(--on-error-container, #410002);
   font-size: 0.9rem;
 }
 
-.dialog__actions {
+.xferdlg__actions {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;

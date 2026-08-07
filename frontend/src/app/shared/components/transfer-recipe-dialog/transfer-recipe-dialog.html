@@ -1,54 +1,59 @@
-<div class="backdrop" (click)="cancel()"></div>
+<dialog
+  #dialog
+  class="xferdlg"
+  (close)="cancel()"
+  [attr.aria-label]="'recipe.transfer.title' | t"
+>
+  <div class="xferdlg__body">
+    <h2 class="xferdlg__title">{{ 'recipe.transfer.title' | t }}</h2>
+    <p class="xferdlg__intro">{{ 'recipe.transfer.lede' | t: { name: recipe().name } }}</p>
 
-<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="transfer-title">
-  <h2 id="transfer-title">{{ 'recipe.transfer.title' | t }}</h2>
-  <p class="dialog__lede">{{ 'recipe.transfer.lede' | t: { name: recipe().name } }}</p>
+    @if (loading()) {
+      <p class="xferdlg__status" role="status">{{ 'common.loading' | t }}</p>
+    } @else if (candidates().length === 0) {
+      <p class="xferdlg__status">{{ 'recipe.transfer.noone' | t }}</p>
+    } @else {
+      <fieldset class="xferdlg__recipients">
+        <legend class="sr-only">{{ 'recipe.transfer.chooseLabel' | t }}</legend>
+        @for (member of candidates(); track member.userId) {
+          <label class="recipient" [attr.for]="'recipient-' + member.userId">
+            <input
+              type="radio"
+              name="recipient"
+              [id]="'recipient-' + member.userId"
+              [value]="member.userId"
+              [checked]="recipientControl.value === member.userId"
+              (change)="onSelect(member.userId)"
+            />
+            <span class="recipient__name">{{ member.displayName }}</span>
+            <span class="recipient__email">{{ member.email }}</span>
+          </label>
+        }
+      </fieldset>
 
-  @if (loading()) {
-    <p class="dialog__status">{{ 'common.loading' | t }}</p>
-  } @else if (candidates().length === 0) {
-    <p class="dialog__status">{{ 'recipe.transfer.noone' | t }}</p>
-  } @else {
-    <fieldset class="recipients">
-      <legend class="sr-only">{{ 'recipe.transfer.chooseLabel' | t }}</legend>
-      @for (member of candidates(); track member.userId) {
-        <label class="recipient" [attr.for]="'recipient-' + member.userId">
-          <input
-            type="radio"
-            name="recipient"
-            [id]="'recipient-' + member.userId"
-            [value]="member.userId"
-            [checked]="recipientControl.value === member.userId"
-            (change)="onSelect(member.userId)"
-          />
-          <span class="recipient__name">{{ member.displayName }}</span>
-          <span class="recipient__email">{{ member.email }}</span>
-        </label>
+      @if (chosen()) {
+        <p class="xferdlg__warning" role="status">
+          {{ 'recipe.transfer.warning' | t: { name: chosen()!.displayName } }}
+        </p>
       }
-    </fieldset>
-
-    @if (chosen()) {
-      <p class="warning" role="status">
-        {{ 'recipe.transfer.warning' | t: { name: chosen()!.displayName } }}
-      </p>
     }
-  }
 
-  @if (error()) {
-    <p class="error" role="alert">{{ error()! | t }}</p>
-  }
+    @if (error()) {
+      <p class="xferdlg__error" role="alert">{{ error()! | t }}</p>
+    }
 
-  <div class="dialog__actions">
-    <button type="button" class="btn btn--text" (click)="cancel()">
-      {{ 'common.actions.cancel' | t }}
-    </button>
-    <button
-      type="button"
-      class="btn btn--primary"
-      [disabled]="recipientControl.invalid || busy()"
-      (click)="confirm()"
-    >
-      {{ busy() ? ('recipe.transfer.working' | t) : ('recipe.transfer.confirm' | t) }}
-    </button>
+    <div class="xferdlg__actions">
+      <button type="button" class="btn btn--text" (click)="cancel()">
+        {{ 'common.actions.cancel' | t }}
+      </button>
+      <button
+        type="button"
+        class="btn btn--primary"
+        [disabled]="recipientControl.invalid || busy()"
+        (click)="confirm()"
+      >
+        {{ busy() ? ('recipe.transfer.working' | t) : ('recipe.transfer.confirm' | t) }}
+      </button>
+    </div>
   </div>
-</div>
+</dialog>

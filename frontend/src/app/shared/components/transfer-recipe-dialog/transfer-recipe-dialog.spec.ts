@@ -124,6 +124,43 @@ describe('TransferRecipeDialogComponent', () => {
     expect(component.candidates()).toEqual([]);
   });
 
+  it('renders as a real modal dialog element', () => {
+    // Not a positioned div. The native element is what supplies the focus trap,
+    // the Esc key and top-layer stacking — the first version was a div and had
+    // none of them, and its panel was invisible on top of that.
+    const dialog: HTMLDialogElement = fixture.nativeElement.querySelector('dialog');
+
+    expect(dialog).toBeTruthy();
+    expect(dialog.open).toBe(true);
+  });
+
+  it('reports a completed transfer once, not as a cancel as well', () => {
+    // Closing the element fires the dialog's own close event, which is also how
+    // Esc arrives. Without a guard a success emits `cancelled` straight after
+    // `transferred`, reporting one action as two.
+    const transferred: Recipe[] = [];
+    let cancels = 0;
+    component.transferred.subscribe((r) => transferred.push(r));
+    component.cancelled.subscribe(() => (cancels += 1));
+
+    component.onSelect('u-heidi');
+    component.confirm();
+    // What the browser does after close() — and what the template is wired to.
+    component.cancel();
+
+    expect(transferred).toHaveLength(1);
+    expect(cancels).toBe(0);
+  });
+
+  it('still reports a genuine cancel', () => {
+    let cancels = 0;
+    component.cancelled.subscribe(() => (cancels += 1));
+
+    component.cancel();
+
+    expect(cancels).toBe(1);
+  });
+
   it('does not ask the server for members when there is no kitchen', async () => {
     TestBed.resetTestingModule();
     await build(null);

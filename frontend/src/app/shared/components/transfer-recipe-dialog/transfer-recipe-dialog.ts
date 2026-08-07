@@ -2,10 +2,13 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
+  ElementRef,
   inject,
   input,
   output,
   signal,
+  viewChild,
 } from '@angular/core';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RecipeService } from '../../../features/recipe/recipe.service';
@@ -29,6 +32,9 @@ import type { Recipe } from '../../models/recipe.model';
  * The recipient list is the current kitchen's members, which is also what the
  * server enforces. Someone not in a kitchen with you cannot be chosen here and
  * would be refused there.
+ *
+ * A native <dialog> driven by showModal(), matching every other modal here:
+ * that is what supplies the focus trap, the Esc key and top-layer stacking.
  */
 @Component({
   selector: 'app-transfer-recipe-dialog',
@@ -41,6 +47,8 @@ export class TransferRecipeDialogComponent {
   private readonly recipes = inject(RecipeService);
   private readonly sharing = inject(PantrySharingService);
   private readonly context = inject(PantryContextService);
+
+  private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialog');
 
   readonly recipe = input.required<Recipe>();
 
@@ -64,7 +72,30 @@ export class TransferRecipeDialogComponent {
   /** The chosen person, for naming them in the confirmation line. */
   readonly chosen = signal<PantryMember | null>(null);
 
+  /**
+   * Set once the transfer has landed.
+   *
+   * Closing the element fires the dialog's own `close` event, which is also how
+   * Esc and the Cancel button arrive — so without this, a successful transfer
+   * would emit `cancelled` immediately after `transferred` and report one action
+   * as two.
+   */
+  private settled = false;
+
   constructor() {
+    effect(() => {
+      const dialog = this.dialogRef()?.nativeElement;
+      if (dialog && !dialog.open) {
+        // The attribute fallback keeps the dialog usable where showModal is
+        // missing; it loses the focus trap but not the content.
+        if (typeof dialog.showModal === 'function') {
+          dialog.showModal();
+        } else {
+          dialog.setAttribute('open', '');
+        }
+      }
+    });
+
     const pantryId = this.context.currentId();
     if (!pantryId) {
       this.loading.set(false);
@@ -98,6 +129,8 @@ export class TransferRecipeDialogComponent {
     this.recipes.transferAuthor(this.recipe().id, userId).subscribe({
       next: (updated) => {
         this.busy.set(false);
+        this.settled = true;
+        this.close();
         this.transferred.emit(updated);
       },
       error: () => {
@@ -110,6 +143,27 @@ export class TransferRecipeDialogComponent {
   }
 
   cancel(): void {
+    if (this.settled) {
+      return;
+    }
+    this.close();
     this.cancelled.emit();
+  }
+
+  /**
+   * Close the element itself.
+   *
+   * Needed because the parent removes this component with an @if: a <dialog>
+   * torn out of the DOM while still open leaves the top layer and the page's
+   * inertness behind it, which reads as a frozen page.
+   */
+  private close(): void {
+    const dialog = this.dialogRef()?.nativeElement;
+    if (!dialog?.open) return;
+    if (typeof dialog.close === 'function') {
+      dialog.close();
+    } else {
+      dialog.removeAttribute('open');
+    }
   }
 }
