@@ -116,3 +116,16 @@
   gap: 0.5rem;
   margin-top: 0.25rem;
 }
+
+// Deliberately reads as a caution rather than an error: nothing is wrong, but
+// the consequence is permanent and public, so it must not be skimmable.
+.report__warning {
+  margin: 0 0 0.9rem;
+  padding: 0.55rem 0.7rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--on-surface);
+  background: var(--surface-container, rgba(0, 0, 0, 0.05));
+}

@@ -99,6 +99,7 @@ export const da: Dictionary = {
   'report.thanksBody': 'Det er gemt.',
   'report.viewIssue': 'F\u00f8lg den p\u00e5 GitHub (#{{number}})',
   'report.savedNotMirrored': 'Gemt. Den kunne ikke l\u00e6gges p\u00e5 GitHub lige nu, men intet er tabt \u2014 den bliver taget herfra.',
+  'report.publicWarning': 'Det du skriver her l\u00e6gges op som et offentligt GitHub-issue sammen med dit navn. Undlad derfor ting, du ikke vil have st\u00e5r offentligt tilg\u00e6ngeligt.',
   'report.errRequired': 'Udfyld b\u00e5de den korte overskrift og beskrivelsen.',
   'report.errTooMany': 'Det er mange rapporter p\u00e5 en time. Vent et \u00f8jeblik, f\u00f8r du sender flere.',
   'report.errSignedOut': 'Din session er udl\u00f8bet. Log ind igen og send p\u00e5 ny.',

@@ -130,20 +130,22 @@ jobs:
           # sender's operator about a misbehaving application server.
           VAPID_SUBJECT: mailto:mhylle@yahoo.com
           # Mirrors in-app defect and improvement reports onto GitHub issues.
+          # NOT named GITHUB_* — GitHub reserves that prefix for secret names and
+          # rejects `gh secret set GITHUB_ISSUE_TOKEN` outright.
           # A fine-grained PAT with Issues: write on this repo — the workflow's
           # own GITHUB_TOKEN is useless here, being valid only during a run.
           #
           # Also NOT in the required-secrets check: reports are saved to the
           # database first and mirrored second, so an absent token costs the
           # mirror and never a report.
-          GITHUB_ISSUE_TOKEN: ${{ secrets.GITHUB_ISSUE_TOKEN }}
-          GITHUB_ISSUE_REPO: mhylle/recipe-manager
+          ISSUE_MIRROR_TOKEN: ${{ secrets.ISSUE_MIRROR_TOKEN }}
+          ISSUE_MIRROR_REPO: mhylle/recipe-manager
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           port: ${{ secrets.SERVER_PORT }}
-          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY,VAPID_SUBJECT,GITHUB_ISSUE_TOKEN,GITHUB_ISSUE_REPO
+          envs: BACKEND_IMAGE,FRONTEND_IMAGE,MCP_IMAGE,GH_TOKEN,GH_ACTOR,RECIPE_MANAGER_DB_PASSWORD,RECIPE_MANAGER_MCP_TOKEN,JWT_SECRET,RECIPE_MANAGER_SERVICE_TOKEN,RECIPE_MANAGER_SERVICE_USER,VAPID_PUBLIC_KEY,VAPID_PRIVATE_KEY,VAPID_SUBJECT,ISSUE_MIRROR_TOKEN,ISSUE_MIRROR_REPO
           script: |
             set -e
             echo "=== Deploying Recipe Manager ==="
@@ -166,10 +168,10 @@ jobs:
             # Not fatal, unlike the loop above. Absent VAPID keys degrade to
             # timers that ring only while the app is open, which is worth a loud
             # line in the log but not worth refusing to ship the rest of the app.
-            if [ -z "$GITHUB_ISSUE_TOKEN" ]; then
-              echo "WARNING: GITHUB_ISSUE_TOKEN is not set — reports will be saved but not mirrored to GitHub issues."
+            if [ -z "$ISSUE_MIRROR_TOKEN" ]; then
+              echo "WARNING: ISSUE_MIRROR_TOKEN is not set — reports will be saved but not mirrored to GitHub issues."
               echo "  Create a fine-grained PAT with Issues: write on mhylle/recipe-manager, then:"
-              echo "        gh secret set GITHUB_ISSUE_TOKEN --repo mhylle/recipe-manager"
+              echo "        gh secret set ISSUE_MIRROR_TOKEN --repo mhylle/recipe-manager"
             fi
 
             if [ -z "$VAPID_PUBLIC_KEY" ] || [ -z "$VAPID_PRIVATE_KEY" ]; then
@@ -209,8 +211,8 @@ jobs:
               -e VAPID_PUBLIC_KEY="${VAPID_PUBLIC_KEY}" \
               -e VAPID_PRIVATE_KEY="${VAPID_PRIVATE_KEY}" \
               -e VAPID_SUBJECT="${VAPID_SUBJECT}" \
-              -e GITHUB_ISSUE_TOKEN="${GITHUB_ISSUE_TOKEN}" \
-              -e GITHUB_ISSUE_REPO="${GITHUB_ISSUE_REPO}" \
+              -e ISSUE_MIRROR_TOKEN="${ISSUE_MIRROR_TOKEN}" \
+              -e ISSUE_MIRROR_REPO="${ISSUE_MIRROR_REPO}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
               --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \

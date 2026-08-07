@@ -123,6 +123,7 @@ export const en = {
   'report.thanksBody': 'That has been saved.',
   'report.viewIssue': 'Follow it on GitHub (#{{number}})',
   'report.savedNotMirrored': 'Saved. It could not be posted to GitHub just now, but nothing is lost \u2014 it will be picked up from here.',
+  'report.publicWarning': 'What you write here is posted to a public GitHub issue, together with your name. Please leave out anything you would not want to be publicly readable.',
   'report.errRequired': 'Fill in both the one-line summary and the description.',
   'report.errTooMany': 'That is a lot of reports in one hour. Give it a moment before sending more.',
   'report.errSignedOut': 'Your session has expired. Sign in again and resend.',

@@ -30,10 +30,17 @@ const TIMEOUT_MS = 10_000;
 export class GithubIssueService {
   private readonly logger = new Logger(GithubIssueService.name);
 
-  private readonly token = process.env.GITHUB_ISSUE_TOKEN?.trim() ?? '';
+  /**
+   * Named without a GITHUB_ prefix on purpose.
+   *
+   * GitHub reserves that prefix: `gh secret set GITHUB_ISSUE_TOKEN` is rejected
+   * with "Secret names must not start with GITHUB_", so the first version of this
+   * could never have been configured at all.
+   */
+  private readonly token = process.env.ISSUE_MIRROR_TOKEN?.trim() ?? '';
   /** owner/repo. Defaults to this app's own repository. */
   private readonly repo =
-    process.env.GITHUB_ISSUE_REPO?.trim() ?? 'mhylle/recipe-manager';
+    process.env.ISSUE_MIRROR_REPO?.trim() ?? 'mhylle/recipe-manager';
 
   get configured(): boolean {
     return this.token.length > 0 && this.repo.includes('/');
