@@ -19,6 +19,7 @@ import {
 } from '../../../shared/services/cooking-timer.service';
 import { TimerPushService } from '../../../shared/services/timer-push.service';
 import { GeminiKeyDialogComponent } from '../../../shared/components/gemini-key-dialog/gemini-key-dialog';
+import { TransferRecipeDialogComponent } from '../../../shared/components/transfer-recipe-dialog/transfer-recipe-dialog';
 
 /** Kept in step with RecipeImageService on the backend. */
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -42,6 +43,7 @@ import {
     EnumLabelPipe,
     LocaleNumberPipe,
     GeminiKeyDialogComponent,
+    TransferRecipeDialogComponent,
   ],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
@@ -60,6 +62,9 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   readonly push = inject(TimerPushService);
 
   readonly recipe = signal<Recipe | null>(null);
+
+  /** Whether the hand-over dialog is up. Author-only, gated by canEdit(). */
+  readonly transferOpen = signal(false);
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
   readonly enablingPhoneAlarms = signal(false);
@@ -301,6 +306,26 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   onKeyDialogDismissed(): void {
     this.keyDialogOpen.set(false);
+  }
+
+  openTransfer(): void {
+    this.transferOpen.set(true);
+  }
+
+  closeTransfer(): void {
+    this.transferOpen.set(false);
+  }
+
+  /**
+   * The hand-over landed: show the new byline, and drop the author-only actions.
+   *
+   * `canEdit` is derived from the recipe's `createdBy`, so replacing the signal
+   * is what makes Edit and Delete disappear — leaving buttons that now 403 would
+   * be a worse way to learn the transfer worked.
+   */
+  onTransferred(updated: Recipe): void {
+    this.recipe.set(updated);
+    this.transferOpen.set(false);
   }
 
   /** Handed the plaintext key by the dialog; used for this run and not kept. */

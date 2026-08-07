@@ -255,6 +255,13 @@
         <button
           type="button"
           class="btn btn--text btn--small"
+          (click)="openTransfer()"
+        >
+          {{ 'recipe.transfer.action' | t }}
+        </button>
+        <button
+          type="button"
+          class="btn btn--text btn--small"
           (click)="onDelete()"
           [attr.aria-label]="'common.actions.deleteNamed' | t: { name: recipe()!.name }"
         >
@@ -293,6 +300,14 @@
     <app-gemini-key-dialog
       (unlocked)="onKeyUnlocked($event)"
       (dismissed)="onKeyDialogDismissed()"
+    />
+  }
+
+  @if (transferOpen()) {
+    <app-transfer-recipe-dialog
+      [recipe]="recipe()!"
+      (transferred)="onTransferred($event)"
+      (cancelled)="closeTransfer()"
     />
   }
 } @else {

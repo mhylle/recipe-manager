@@ -114,6 +114,16 @@ export class RecipeService {
   }
 
   /**
+   * Hand a recipe to the person who actually cooked it.
+   *
+   * Its own call rather than a field on `update`, because it gives away control:
+   * once it lands, this user can no longer edit or delete the recipe.
+   */
+  transferAuthor(id: string, userId: string): Observable<Recipe> {
+    return this.http.post<Recipe>(`${this.baseUrl}/${id}/transfer`, { userId });
+  }
+
+  /**
    * Replace a recipe's hero image with an uploaded file.
    *
    * The path that needs no API key from anyone — which is what keeps the library

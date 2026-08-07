@@ -35,6 +35,29 @@ export class PantryAccessService {
    * so a household member with no pantry of their own still lands somewhere
    * sensible instead of getting an error.
    */
+  /**
+   * Whether two people cook together in at least one kitchen.
+   *
+   * The test for handing something to somebody — transferring a recipe, so far.
+   * Sharing a kitchen is the app's existing answer to "do these two know each
+   * other", and using it means no user directory has to be exposed to make the
+   * recipient pickable: you can only give a recipe to someone you already share
+   * a household with.
+   */
+  async shareAKitchen(userId: string, otherUserId: string): Promise<boolean> {
+    if (userId === otherUserId) {
+      return false;
+    }
+    const shared = await this.prisma.pantryMember.findFirst({
+      where: {
+        userId: otherUserId,
+        pantry: { members: { some: { userId } } },
+      },
+      select: { id: true },
+    });
+    return shared !== null;
+  }
+
   async resolve(user: LocalUser, requestedPantryId?: string): Promise<string> {
     if (requestedPantryId) {
       const membership = await this.prisma.pantryMember.findUnique({

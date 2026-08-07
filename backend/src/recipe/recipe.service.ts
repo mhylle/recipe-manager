@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { RecipeRepository } from './recipe.repository.js';
 import { CreateRecipeDto } from './dto/create-recipe.dto.js';
 import { UpdateRecipeDto } from './dto/update-recipe.dto.js';
@@ -15,6 +15,7 @@ import {
 import type { PageRequest, Paged } from '../shared/pagination.js';
 import { ANONYMOUS, UNRESTRICTED } from './recipe-visibility.js';
 import { RecipeVisibilityService } from './recipe-visibility.service.js';
+import { PantryAccessService } from '../pantry/pantry-access.service.js';
 
 // Re-exported: callers have always imported the filter shape from the service.
 export type { RecipeSearchFilters };
@@ -29,6 +30,7 @@ export class RecipeService {
     private readonly recipeImages: RecipeImageService,
     private readonly thumbnails: ThumbnailService,
     private readonly visibility: RecipeVisibilityService,
+    private readonly pantryAccess: PantryAccessService,
   ) {}
 
   async create(
@@ -200,6 +202,40 @@ export class RecipeService {
     locale: Locale = DEFAULT_LOCALE,
   ): Promise<Recipe> {
     return this.recipeRepository.findById(id, locale, UNRESTRICTED);
+  }
+
+  /**
+   * Hand a recipe to the person who actually cooked it.
+   *
+   * Attribution is not decoration: `createdById` is what every write is checked
+   * against, and it is one arm of the private-recipe visibility rule. So this
+   * gives away a permission, and afterwards the previous author can no longer
+   * edit or delete the recipe — the UI says so before asking.
+   *
+   * The recipient must share a kitchen with the caller. That is the app's
+   * existing answer to "do these two people know each other", and leaning on it
+   * means no user directory has to be exposed to make somebody pickable.
+   */
+  async transferAuthor(
+    id: string,
+    callerId: string,
+    recipientId: string,
+  ): Promise<Recipe> {
+    // Ownership first, deliberately. Checking the recipient first would let
+    // someone probing recipe ids learn who shares a kitchen with them from the
+    // difference between the two refusals.
+    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
+
+    if (!(await this.pantryAccess.shareAKitchen(callerId, recipientId))) {
+      throw new ForbiddenException(
+        'You can only hand a recipe to someone you share a kitchen with.',
+      );
+    }
+
+    this.logger.log(
+      `Recipe ${id} transferred from ${callerId} to ${recipientId}`,
+    );
+    return this.recipeRepository.reassignAuthor(id, recipientId);
   }
 
   private async audienceFor(viewerId: string | undefined) {

@@ -281,6 +281,18 @@ export const da: Dictionary = {
     'Kun medlemmer af dit køkken kan se den. Alle andre ser det fælles bibliotek uden den.',
   'recipe.form.privateNoKitchen':
     'Du har ikke et køkken endnu, så en privat opskrift vil kun være synlig for dig.',
+  'recipe.transfer.action': 'Skift forfatter',
+  'recipe.transfer.title': 'Giv opskriften videre',
+  'recipe.transfer.lede': 'Giv {{name}} til den, der faktisk lavede den.',
+  'recipe.transfer.chooseLabel': 'V00e6lg den nye forfatter',
+  'recipe.transfer.warning':
+    '{{name}} bliver forfatter. Du vil ikke l00e6ngere kunne redigere eller slette denne opskrift, og de kan give den tilbage.',
+  'recipe.transfer.confirm': 'Giv den videre',
+  'recipe.transfer.working': 'Giver videre2026',
+  'recipe.transfer.noone':
+    'Der er ikke andre i dette k00f8kken endnu. Del k00f8kkenet med dem f00f8rst, og giv s00e5 opskriften videre.',
+  'recipe.transfer.loadFailed': 'Kunne ikke hente personerne i dette k00f8kken.',
+  'recipe.transfer.failed': 'Det virkede ikke. Du kan kun give en opskrift til en, du deler k00f8kken med.',
   'recipe.list.private': 'Privat',
   'recipe.detail.private': 'Privat for dit køkken',
   'recipe.form.ingredients': 'Ingredienser',
