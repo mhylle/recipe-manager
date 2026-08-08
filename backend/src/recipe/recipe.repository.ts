@@ -53,6 +53,13 @@ const RECIPE_INCLUDE = {
     include: { translations: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   },
+  // Same reasoning as ingredients, and then some: callers receive the method as
+  // a positional array, so the order rows come back in IS the order the cook
+  // reads. Ordering here rather than sorting later keeps one source of truth.
+  steps: {
+    include: { translations: true },
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+  },
   translations: true,
   createdBy: { select: { id: true, displayName: true, email: true } },
   // `satisfies` rather than `as const`: a const assertion makes the orderBy array
@@ -67,6 +74,9 @@ const RECIPE_INCLUDE = {
  */
 type RecipeRow = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
 
+/** One step as read, with every language it has been written in. */
+type RecipeStepRow = RecipeRow['steps'][number];
+
 /**
  * Tags in their canonical form: lowercase, trimmed, de-duplicated, sorted.
  *
@@ -74,6 +84,77 @@ type RecipeRow = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
  * 'baking' would make the same facet behave differently on two recipes — which
  * is exactly the drift the normalisation migration had to clean up.
  */
+/**
+ * The method, flattened back into the two positional arrays callers expect.
+ *
+ * Steps are rows now, but nothing outside this file knows that yet: the API
+ * still answers with `instructions` and `instructionImages` in step order, so
+ * the frontend and the MCP server are untouched by the change underneath.
+ *
+ * Sorted here as well as in the query. The order is the method — a cook
+ * following step 4 before step 2 is not a cosmetic problem — and relying on the
+ * query alone would put that guarantee somewhere a future `include` could drop
+ * it silently.
+ *
+ * Fallback is per STEP, not per translation. A recipe half-translated into
+ * Danish reads in Danish where it can and in its source language where it
+ * cannot; before, one missing entry could only be a blank or a missing step.
+ */
+function methodOf(
+  result: { steps: RecipeStepRow[]; sourceLocale: string },
+  locale: Locale,
+): { instructions: string[]; instructionImages: string[] } {
+  const ordered = [...result.steps].sort((a, b) => a.sortOrder - b.sortOrder);
+  return {
+    instructions: ordered.map((step) => {
+      const wanted = step.translations.find((t) => t.locale === locale);
+      const source = step.translations.find(
+        (t) => t.locale === result.sourceLocale,
+      );
+      return wanted?.text ?? source?.text ?? '';
+    }),
+    // Empty string, not a gap: the array is read positionally, so a step with no
+    // photograph has to hold a place rather than shift every later one up.
+    instructionImages: ordered.map((step) => step.imageUrl ?? ''),
+  };
+}
+
+/**
+ * The step rows for a method, one per step of the SOURCE locale.
+ *
+ * The source locale decides how many steps there are, for the same reason the
+ * migration used it: it is the language the recipe was written in and the one
+ * reads fall back to, so it is the only count that can neither invent a step nor
+ * lose one. A translation with extra entries contributes text to the steps that
+ * exist and nothing more.
+ */
+function stepRowsFrom(
+  byLocale: RecipeTranslationInput[],
+  sourceLocale: string,
+  images: string[] | undefined,
+): {
+  sortOrder: number;
+  imageUrl: string | null;
+  translations: { create: { locale: string; text: string }[] };
+}[] {
+  const source = byLocale.find((t) => t.locale === sourceLocale);
+  const count = source?.instructions.length ?? 0;
+
+  return Array.from({ length: count }, (_, index) => ({
+    sortOrder: index,
+    // An empty string is how the old array said "no photograph here". Stored as
+    // one it would render an <img> pointing at the page itself.
+    imageUrl: images?.[index]?.trim() ? images[index] : null,
+    translations: {
+      create: byLocale
+        .map((t) => ({ locale: t.locale, text: t.instructions[index] }))
+        .filter((t): t is { locale: string; text: string } =>
+          Boolean(t.text?.trim()),
+        ),
+    },
+  }));
+}
+
 function canonicalTags(tags: string[]): string[] {
   return [
     ...new Set(
@@ -129,6 +210,9 @@ export class RecipeRepository {
             description: t.description,
             instructions: t.instructions,
           })),
+        },
+        steps: {
+          create: stepRowsFrom(byLocale, sourceLocale, data.instructionImages),
         },
         ingredients: {
           create: data.ingredients.map((ing, index) => ({
@@ -471,6 +555,62 @@ export class RecipeRepository {
         }
       }
 
+      // The method, as rows. Upserted by position rather than deleted and
+      // recreated: a variation points at a step id, so recreating every step on
+      // save would orphan every override the first time somebody fixed a typo.
+      // (Inserting a step in the MIDDLE still shifts what each position means —
+      // that is the reordering problem, and it belongs to the authoring UI.)
+      const stepEdits = textEdits.filter((t) => t.instructions.length > 0);
+      if (stepEdits.length > 0) {
+        const sourceEdit =
+          stepEdits.find((t) => t.locale === existing.sourceLocale) ??
+          stepEdits[0];
+        const count = sourceEdit.instructions.length;
+
+        for (let index = 0; index < count; index++) {
+          const step = await tx.recipeStep.upsert({
+            where: { recipeId_sortOrder: { recipeId: id, sortOrder: index } },
+            create: { recipeId: id, sortOrder: index },
+            // Nothing: the text is written below and the photograph is its own
+            // edit. An empty update keeps the row and, crucially, its id.
+            update: {},
+          });
+
+          for (const t of stepEdits) {
+            const text = t.instructions[index];
+            if (!text?.trim()) continue;
+            await tx.recipeStepTranslation.upsert({
+              where: { stepId_locale: { stepId: step.id, locale: t.locale } },
+              create: { stepId: step.id, locale: t.locale, text },
+              update: { text },
+            });
+          }
+        }
+
+        // A method that got shorter loses its tail. Cascade takes the
+        // translations with it.
+        await tx.recipeStep.deleteMany({
+          where: { recipeId: id, sortOrder: { gte: count } },
+        });
+      }
+
+      // Photographs arrive on their own, from the generator, with no text
+      // alongside — so this cannot live inside the branch above or a generated
+      // set would reach the deprecated array and nothing else.
+      if (data.instructionImages !== undefined) {
+        for (const [index, url] of data.instructionImages.entries()) {
+          // An empty entry means the generator failed for that step. Skipping it
+          // leaves the photograph that is already there; writing it through would
+          // erase a good image on a failed regeneration, which is a data-loss
+          // bug this project already has against the old array.
+          if (!url?.trim()) continue;
+          await tx.recipeStep.updateMany({
+            where: { recipeId: id, sortOrder: index },
+            data: { imageUrl: url },
+          });
+        }
+      }
+
       for (const t of textEdits) {
         await tx.recipeTranslation.upsert({
           where: { recipeId_locale: { recipeId: id, locale: t.locale } },
@@ -531,8 +671,7 @@ export class RecipeRepository {
       name: t?.name ?? '',
       description: t?.description ?? '',
       servings: result.servings,
-      instructions: t?.instructions ?? [],
-      instructionImages: result.instructionImages,
+      ...methodOf(result, locale),
       prepTime: result.prepTime,
       cookTime: result.cookTime,
       // Prisma's generated enums and ours are the same string unions declared in
