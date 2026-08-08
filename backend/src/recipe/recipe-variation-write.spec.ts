@@ -84,13 +84,16 @@ describe('RecipeRepository.replaceVariations', () => {
     ],
   };
 
-  it('clears what was there before writing the new set', async () => {
+  it('clears what the new set does not name, before writing it', async () => {
+    // A set that names no ids is entirely new, so this still clears everything —
+    // what changed is that a KEPT variation is now excluded by id rather than
+    // deleted and recreated. See recipe-variation-identity.spec.ts.
     const { tx, repository } = build();
 
     await repository.replaceVariations('r1', [tenGrams]);
 
     expect(tx.recipeVariation.deleteMany).toHaveBeenCalledWith({
-      where: { recipeId: 'r1' },
+      where: { recipeId: 'r1', id: { notIn: [] } },
     });
     expect(
       tx.recipeVariation.deleteMany.mock.invocationCallOrder[0],

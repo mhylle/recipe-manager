@@ -1,0 +1,333 @@
+<fieldset class="variations">
+  <legend>{{ 'recipe.variations.editor.legend' | t }}</legend>
+  <p class="variations__hint">{{ 'recipe.variations.editor.hint' | t }}</p>
+
+  @if (variations().length === 0) {
+    <p class="variations__empty">{{ 'recipe.variations.editor.empty' | t }}</p>
+  }
+
+  @for (v of variations(); track v.key) {
+    @let s = summary(v);
+    <article class="variation" [class.variation--open]="isExpanded(v.key)">
+      <header class="variation__header">
+        <button
+          type="button"
+          class="variation__toggle"
+          [attr.aria-expanded]="isExpanded(v.key)"
+          (click)="toggle(v.key)"
+        >
+          <span class="variation__name">
+            @if (nameOf(v)) {
+              {{ nameOf(v) }}
+            } @else {
+              {{ 'recipe.variations.editor.untitled' | t }}
+            }
+          </span>
+          <span class="variation__tally">
+            {{
+              'recipe.variations.editor.tally'
+                | t: { shared: s.shared, changed: s.changed, skipped: s.skipped, inserted: s.inserted }
+            }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="btn btn--small btn--danger"
+          (click)="removeVariation(v.key)"
+          [attr.aria-label]="'recipe.variations.editor.removeVariation' | t: { name: nameOf(v) }"
+        >
+          {{ 'common.actions.remove' | t }}
+        </button>
+      </header>
+
+      @if (isExpanded(v.key)) {
+        <div class="variation__body">
+          <div class="form-group">
+            <label [attr.for]="'variation-name-' + v.key">
+              {{ 'recipe.variations.editor.name' | t }}
+              <span aria-hidden="true">{{ 'common.requiredMarker' | t }}</span>
+            </label>
+            <input
+              [attr.id]="'variation-name-' + v.key"
+              type="text"
+              class="input"
+              [value]="nameOf(v)"
+              (input)="setName(v.key, $event)"
+              [attr.placeholder]="'recipe.variations.editor.namePlaceholder' | t"
+            />
+            @if (!hasAnyName(v)) {
+              <p class="error" role="alert">{{ 'recipe.variations.editor.nameRequired' | t }}</p>
+            } @else if (missingNameHere(v)) {
+              <p class="lang-hint" role="status">{{ 'recipe.variations.editor.nameMissingHere' | t }}</p>
+            }
+          </div>
+
+          <div class="form-group">
+            <label [attr.for]="'variation-note-' + v.key">{{ 'recipe.variations.editor.note' | t }}</label>
+            <textarea
+              [attr.id]="'variation-note-' + v.key"
+              class="input"
+              rows="2"
+              [value]="noteOf(v)"
+              (input)="setNote(v.key, $event)"
+              [attr.placeholder]="'recipe.variations.editor.notePlaceholder' | t"
+            ></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label [attr.for]="'variation-prep-' + v.key">{{ 'recipe.variations.editor.prepTime' | t }}</label>
+              <input
+                [attr.id]="'variation-prep-' + v.key"
+                type="number"
+                class="input"
+                min="0"
+                [value]="v.prepTime"
+                (input)="setPrepTime(v.key, $event)"
+                [attr.placeholder]="'recipe.variations.editor.inherits' | t"
+              />
+            </div>
+            <div class="form-group">
+              <label [attr.for]="'variation-cook-' + v.key">{{ 'recipe.variations.editor.cookTime' | t }}</label>
+              <input
+                [attr.id]="'variation-cook-' + v.key"
+                type="number"
+                class="input"
+                min="0"
+                [value]="v.cookTime"
+                (input)="setCookTime(v.key, $event)"
+                [attr.placeholder]="'recipe.variations.editor.inherits' | t"
+              />
+            </div>
+          </div>
+
+          <section class="panel">
+            <h4 class="panel__title">{{ 'recipe.variations.editor.ingredients' | t }}</h4>
+            <p class="panel__hint">{{ 'recipe.variations.editor.ingredientsHint' | t }}</p>
+
+            @for (ingredient of baseIngredients(); track ingredient.id) {
+              @let change = ingredientChange(v, ingredient.id);
+              <div class="row" [class.row--changed]="change">
+                @if (!change) {
+                  <p class="row__shared">
+                    {{
+                      'recipe.variations.editor.sharedIngredient'
+                        | t
+                          : {
+                              name: sharedIngredientName(ingredient),
+                              quantity: ingredient.quantity,
+                              unit: ingredient.unit | enumLabel: 'unit'
+                            }
+                    }}
+                  </p>
+                  <div class="row__actions">
+                    <button
+                      type="button"
+                      class="btn btn--small"
+                      (click)="changeIngredient(v.key, ingredient)"
+                      [attr.aria-label]="
+                        'recipe.variations.editor.changeIngredientLabel'
+                          | t: { name: sharedIngredientName(ingredient) }
+                      "
+                    >
+                      {{ 'recipe.variations.editor.change' | t }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn--small btn--danger"
+                      (click)="dropIngredient(v.key, ingredient.id)"
+                      [attr.aria-label]="
+                        'recipe.variations.editor.dropIngredientLabel'
+                          | t: { name: sharedIngredientName(ingredient) }
+                      "
+                    >
+                      {{ 'recipe.variations.editor.leaveOut' | t }}
+                    </button>
+                  </div>
+                } @else if (change.mode === 'remove') {
+                  <p class="row__dropped">
+                    {{
+                      'recipe.variations.editor.droppedIngredient'
+                        | t: { name: sharedIngredientName(ingredient) }
+                    }}
+                  </p>
+                  <button type="button" class="btn btn--small" (click)="shareIngredient(v.key, ingredient.id)">
+                    {{ 'recipe.variations.editor.putBack' | t }}
+                  </button>
+                } @else {
+                  <span class="row__name">{{ sharedIngredientName(ingredient) }}</span>
+                  <input
+                    type="number"
+                    class="input row__qty"
+                    min="0"
+                    [value]="change.quantity"
+                    (input)="setIngredientQuantity(v.key, ingredient.id, $event)"
+                    [attr.aria-label]="
+                      'recipe.variations.editor.quantityLabel' | t: { name: sharedIngredientName(ingredient) }
+                    "
+                  />
+                  <select
+                    class="input row__unit"
+                    [value]="change.unit"
+                    (change)="setIngredientUnit(v.key, ingredient.id, $event)"
+                    [attr.aria-label]="
+                      'recipe.variations.editor.unitLabel' | t: { name: sharedIngredientName(ingredient) }
+                    "
+                  >
+                    @for (unit of unitOptions; track unit) {
+                      <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+                    }
+                  </select>
+                  <button type="button" class="btn btn--small" (click)="shareIngredient(v.key, ingredient.id)">
+                    {{ 'recipe.variations.editor.revert' | t }}
+                  </button>
+                }
+              </div>
+            }
+
+            @for (added of v.addedIngredients; track added.key) {
+              <div class="row row--added">
+                <input
+                  type="text"
+                  class="input"
+                  [value]="addedName(added)"
+                  (input)="setAddedName(v.key, added.key, $event)"
+                  [attr.placeholder]="'recipe.variations.editor.addedNamePlaceholder' | t"
+                  [attr.aria-label]="'recipe.variations.editor.addedNameLabel' | t"
+                />
+                <input
+                  type="number"
+                  class="input row__qty"
+                  min="0"
+                  [value]="added.quantity"
+                  (input)="setAddedQuantity(v.key, added.key, $event)"
+                  [attr.aria-label]="'recipe.variations.editor.addedQuantityLabel' | t"
+                />
+                <select
+                  class="input row__unit"
+                  [value]="added.unit"
+                  (change)="setAddedUnit(v.key, added.key, $event)"
+                  [attr.aria-label]="'recipe.variations.editor.addedUnitLabel' | t"
+                >
+                  @for (unit of unitOptions; track unit) {
+                    <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+                  }
+                </select>
+                <select
+                  class="input"
+                  [value]="added.pantryCategory"
+                  (change)="setAddedCategory(v.key, added.key, $event)"
+                  [attr.aria-label]="'recipe.variations.editor.addedCategoryLabel' | t"
+                >
+                  @for (cat of categoryOptions; track cat) {
+                    <option [value]="cat">{{ cat | enumLabel: 'pantryCategory' }}</option>
+                  }
+                </select>
+                <button
+                  type="button"
+                  class="btn btn--small btn--danger"
+                  (click)="removeAddedIngredient(v.key, added.key)"
+                >
+                  {{ 'common.actions.remove' | t }}
+                </button>
+              </div>
+            }
+
+            <button type="button" class="btn btn--small btn--add" (click)="addIngredient(v.key)">
+              {{ 'recipe.variations.editor.addIngredient' | t }}
+            </button>
+          </section>
+
+          <section class="panel">
+            <h4 class="panel__title">{{ 'recipe.variations.editor.method' | t }}</h4>
+            <p class="panel__hint">{{ 'recipe.variations.editor.methodHint' | t }}</p>
+            <p class="panel__tally" role="status">
+              {{
+                'recipe.variations.editor.stepSummary'
+                  | t: { shared: s.shared, total: baseSteps().length, changed: s.changed, skipped: s.skipped }
+              }}
+            </p>
+
+            @for (position of gapPositions(); track position) {
+              <div class="gap">
+                <button type="button" class="btn btn--small btn--ghost" (click)="insertStep(v.key, position)">
+                  {{ 'recipe.variations.editor.insertHere' | t }}
+                </button>
+              </div>
+
+              @for (inserted of insertedAfter(v, position); track inserted.key) {
+                <div class="step step--inserted">
+                  <span class="step__badge">{{ 'recipe.variations.editor.insertedBadge' | t }}</span>
+                  <textarea
+                    class="input"
+                    rows="2"
+                    [value]="insertedStepText(inserted)"
+                    (input)="setInsertedStepText(v.key, inserted.key, $event)"
+                    [attr.placeholder]="'recipe.variations.editor.insertedPlaceholder' | t"
+                    [attr.aria-label]="'recipe.variations.editor.insertedLabel' | t"
+                  ></textarea>
+                  <button
+                    type="button"
+                    class="btn btn--small btn--danger"
+                    (click)="removeInsertedStep(v.key, inserted.key)"
+                  >
+                    {{ 'common.actions.remove' | t }}
+                  </button>
+                </div>
+              }
+
+              @if (position < baseSteps().length) {
+                @let step = baseSteps()[position];
+                @let change = stepChange(v, step.id);
+                <div class="step" [class.step--changed]="change">
+                  <span class="step__number" aria-hidden="true">{{ position + 1 }}</span>
+                  @if (!change) {
+                    <p class="step__shared">{{ sharedStepText(step.id) }}</p>
+                    <div class="step__actions">
+                      <button
+                        type="button"
+                        class="btn btn--small"
+                        (click)="overrideStep(v.key, step.id)"
+                        [attr.aria-label]="'recipe.variations.editor.changeStepLabel' | t: { number: position + 1 }"
+                      >
+                        {{ 'recipe.variations.editor.change' | t }}
+                      </button>
+                      <button
+                        type="button"
+                        class="btn btn--small btn--danger"
+                        (click)="skipStep(v.key, step.id)"
+                        [attr.aria-label]="'recipe.variations.editor.skipStepLabel' | t: { number: position + 1 }"
+                      >
+                        {{ 'recipe.variations.editor.skip' | t }}
+                      </button>
+                    </div>
+                  } @else if (change.mode === 'skip') {
+                    <p class="step__skipped">{{ sharedStepText(step.id) }}</p>
+                    <button type="button" class="btn btn--small" (click)="shareStep(v.key, step.id)">
+                      {{ 'recipe.variations.editor.putBack' | t }}
+                    </button>
+                  } @else {
+                    <textarea
+                      class="input"
+                      rows="2"
+                      [value]="stepText(v, step.id)"
+                      (input)="setStepText(v.key, step.id, $event)"
+                      [attr.aria-label]="'recipe.variations.editor.changedStepLabel' | t: { number: position + 1 }"
+                    ></textarea>
+                    <button type="button" class="btn btn--small" (click)="shareStep(v.key, step.id)">
+                      {{ 'recipe.variations.editor.revert' | t }}
+                    </button>
+                  }
+                </div>
+              }
+            }
+          </section>
+        </div>
+      }
+    </article>
+  }
+
+  <button type="button" class="btn btn--add" (click)="addVariation()">
+    {{ 'recipe.variations.editor.add' | t }}
+  </button>
+</fieldset>

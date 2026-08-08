@@ -3,6 +3,11 @@ import { api, buildResponse, localeProperty, SUPPORTED_LOCALES } from '../lib/ap
 const INGREDIENT_SCHEMA = {
   type: 'object',
   properties: {
+    id: {
+      type: 'string',
+      description:
+        'Which existing ingredient this row IS, from `recipes_get`. Omit to add a new one. Needed whenever an update changes the NUMBER of ingredients on a recipe that has variations: they point at ingredient ids, so without them the server refuses rather than silently dropping "this version uses 10 g of yeast".',
+    },
     name: { type: 'string' },
     quantity: { type: 'number' },
     unit: {

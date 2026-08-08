@@ -15,6 +15,7 @@ import {
 import type { PageRequest, Paged } from '../shared/pagination.js';
 import { ANONYMOUS, UNRESTRICTED } from './recipe-visibility.js';
 import type { RecipeVariationDto } from './dto/variation.dto.js';
+import type { RecipeVariationsAuthoring } from './variation-authoring.js';
 import { RecipeVisibilityService } from './recipe-visibility.service.js';
 import { PantryAccessService } from '../pantry/pantry-access.service.js';
 
@@ -198,6 +199,23 @@ export class RecipeService {
 
     await this.recipeRepository.replaceVariations(id, variations);
     return this.recipeRepository.findById(id, DEFAULT_LOCALE, UNRESTRICTED);
+  }
+
+  /**
+   * A recipe's variations as the authoring form needs them.
+   *
+   * A read, so it is gated on visibility rather than authorship — the same rule
+   * the recipe itself gets. Anyone who may read the recipe may read what its
+   * variations change; only the author may write them.
+   */
+  async findVariationsForAuthoringFor(
+    viewerId: string | undefined,
+    id: string,
+  ): Promise<RecipeVariationsAuthoring> {
+    return this.recipeRepository.findVariationsForAuthoring(
+      id,
+      await this.audienceFor(viewerId),
+    );
   }
 
   async findAllTranslationsFor(

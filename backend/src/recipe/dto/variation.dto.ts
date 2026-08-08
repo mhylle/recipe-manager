@@ -120,6 +120,18 @@ export class VariationStepDto {
 
 /** One way of cooking a recipe, expressed only as its differences. */
 export class RecipeVariationDto {
+  /**
+   * Which existing variation this IS. Absent adds one.
+   *
+   * A meal plan entry points at a variation id, and that FK is ON DELETE SET
+   * NULL — so a save that deleted and recreated the set would turn every dinner
+   * already planned as "10 g yeast — same day" back into the recipe as written,
+   * silently. Naming the ones being kept is what stops that.
+   */
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => VariationTextDto)

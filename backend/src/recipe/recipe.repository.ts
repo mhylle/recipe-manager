@@ -31,6 +31,11 @@ import {
   type BaseStep,
   type ResolvedVariation,
 } from './recipe-variation.js';
+import type {
+  AuthoringBaseIngredient,
+  AuthoringVariationIngredient,
+  RecipeVariationsAuthoring,
+} from './variation-authoring.js';
 
 /** Filters the recipe list accepts. Every one is applied in SQL. */
 export interface RecipeSearchFilters {
@@ -200,6 +205,54 @@ function resolveVariation(
       afterPosition: step.afterPosition,
     })),
   };
+}
+
+/**
+ * A variation's rows, in the shape both write paths need.
+ *
+ * Shared so that creating a variation and editing one cannot drift into storing
+ * it differently — which is how "it works when you add it and not when you edit
+ * it" bugs are made.
+ */
+function translationsOf(variation: RecipeVariationDto) {
+  return variation.texts.map((t) => ({
+    locale: t.locale,
+    name: t.name,
+    note: t.note,
+  }));
+}
+
+function ingredientsOf(variation: RecipeVariationDto) {
+  return (variation.ingredients ?? []).map((ing, order) => ({
+    // Null is meaningful: it is what distinguishes "add this" from "change
+    // that". Undefined would let Prisma omit the column.
+    ingredientId: ing.ingredientId ?? null,
+    removed: ing.removed ?? false,
+    quantity: ing.quantity ?? null,
+    unit: ing.unit ?? null,
+    pantryCategory: ing.pantryCategory ?? null,
+    sortOrder: ing.sortOrder ?? order,
+    translations: {
+      create: (ing.names ?? []).map((n) => ({
+        locale: n.locale,
+        name: n.name,
+      })),
+    },
+  }));
+}
+
+function stepsOf(variation: RecipeVariationDto) {
+  return (variation.steps ?? []).map((step) => ({
+    stepId: step.stepId ?? null,
+    removed: step.removed ?? false,
+    afterPosition: step.afterPosition ?? null,
+    translations: {
+      create: (step.texts ?? []).map((t) => ({
+        locale: t.locale,
+        text: t.text,
+      })),
+    },
+  }));
 }
 
 function canonicalTags(tags: string[]): string[] {
@@ -462,6 +515,80 @@ export class RecipeRepository {
     }));
   }
 
+  /**
+   * A recipe's variations as their author has to edit them.
+   *
+   * Same visibility rule as `findAllTranslations`, and for the same reason: this
+   * hands out a recipe's whole method in every language, so leaving it
+   * unfiltered would serve a private recipe to anyone who guessed the URL.
+   */
+  async findVariationsForAuthoring(
+    id: string,
+    audience: RecipeAudience,
+  ): Promise<RecipeVariationsAuthoring> {
+    const result = await this.prisma.recipe.findFirst({
+      where: { AND: [{ id }, visibilityWhere(audience)] },
+      include: RECIPE_INCLUDE,
+    });
+    if (!result) {
+      throw new NotFoundException(`recipes with id ${id} not found`);
+    }
+
+    return {
+      baseIngredients: result.ingredients.map((ing) => ({
+        id: ing.id,
+        quantity: ing.quantity,
+        unit: ing.unit as AuthoringBaseIngredient['unit'],
+        pantryCategory:
+          ing.pantryCategory as AuthoringBaseIngredient['pantryCategory'],
+        names: ing.translations.map((t) => ({
+          locale: t.locale,
+          name: t.name,
+        })),
+      })),
+      baseSteps: result.steps.map((step) => ({
+        id: step.id,
+        texts: step.translations.map((t) => ({
+          locale: t.locale,
+          text: t.text,
+        })),
+      })),
+      variations: result.variations.map((variation) => ({
+        id: variation.id,
+        sortOrder: variation.sortOrder,
+        prepTime: variation.prepTime,
+        cookTime: variation.cookTime,
+        texts: variation.translations.map((t) => ({
+          locale: t.locale,
+          name: t.name,
+          note: t.note,
+        })),
+        ingredients: variation.ingredients.map((ing) => ({
+          ingredientId: ing.ingredientId,
+          removed: ing.removed,
+          quantity: ing.quantity,
+          unit: ing.unit as AuthoringVariationIngredient['unit'],
+          pantryCategory:
+            ing.pantryCategory as AuthoringVariationIngredient['pantryCategory'],
+          sortOrder: ing.sortOrder,
+          names: ing.translations.map((t) => ({
+            locale: t.locale,
+            name: t.name,
+          })),
+        })),
+        steps: variation.steps.map((step) => ({
+          stepId: step.stepId,
+          removed: step.removed,
+          afterPosition: step.afterPosition,
+          texts: step.translations.map((t) => ({
+            locale: t.locale,
+            text: t.text,
+          })),
+        })),
+      })),
+    };
+  }
+
   async update(
     id: string,
     data: Partial<Recipe>,
@@ -525,8 +652,11 @@ export class RecipeRepository {
         await tx.recipe.update({ where: { id }, data: updateData });
       }
 
-      // Replacing the ingredient list drops its translations with it (cascade),
-      // so recreate a name per language for each new ingredient.
+      // Updated in place rather than deleted and recreated, for the same reason
+      // the method is: a variation points at an ingredient id, and that FK is
+      // ON DELETE CASCADE — so recreating the list took every "10 g of yeast"
+      // with it the first time somebody fixed a typo, leaving the variation
+      // looking intact and quietly cooking the base quantity.
       if (data.ingredients !== undefined) {
         const namesByLocale = new Map<string, string[]>();
         namesByLocale.set(
@@ -539,24 +669,71 @@ export class RecipeRepository {
           }
         }
 
-        await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
-        for (const [index, ing] of data.ingredients.entries()) {
-          const names = [...namesByLocale.entries()]
-            .map(([locale, list]) => ({ locale, name: list[index] }))
-            .filter((n): n is { locale: string; name: string } =>
-              Boolean(n.name),
-            );
-          await tx.recipeIngredient.create({
-            data: {
-              recipeId: id,
-              sortOrder: index,
-              quantity: ing.quantity,
-              unit: ing.unit,
-              pantryCategory: ing.pantryCategory,
-              translations: { create: names },
-            },
+        // A payload that names any id is addressing rows by id throughout; one
+        // that names none is an older client, and position still identifies a
+        // row for as long as the count holds.
+        const usesIds = data.ingredients.some((ing) => ing.id);
+        if (
+          !usesIds &&
+          data.ingredients.length !== existing.ingredients.length
+        ) {
+          const overrides = await tx.recipeVariationIngredient.count({
+            where: { ingredient: { recipeId: id } },
           });
+          if (overrides > 0) {
+            throw new BadRequestException(
+              'This recipe has variations that change its ingredients, so adding or removing one needs an id on each ingredient saying which existing row it is.',
+            );
+          }
         }
+
+        const kept: string[] = [];
+        for (const [index, ing] of data.ingredients.entries()) {
+          const namedId =
+            ing.id ??
+            (usesIds ? null : (existing.ingredients[index]?.id ?? null));
+          const row = namedId
+            ? await tx.recipeIngredient.update({
+                where: { id: namedId },
+                data: {
+                  sortOrder: index,
+                  quantity: ing.quantity,
+                  unit: ing.unit,
+                  pantryCategory: ing.pantryCategory,
+                },
+              })
+            : await tx.recipeIngredient.create({
+                data: {
+                  recipeId: id,
+                  sortOrder: index,
+                  quantity: ing.quantity,
+                  unit: ing.unit,
+                  pantryCategory: ing.pantryCategory,
+                },
+              });
+          kept.push(row.id);
+
+          for (const [locale, list] of namesByLocale) {
+            const name = list[index];
+            // Only the languages the edit actually carried. Writing a blank
+            // through would erase the Danish name because somebody corrected
+            // the English one — which is what the cascade used to do wholesale.
+            if (!name?.trim()) continue;
+            await tx.recipeIngredientTranslation.upsert({
+              where: {
+                ingredientId_locale: { ingredientId: row.id, locale },
+              },
+              create: { ingredientId: row.id, locale, name },
+              update: { name },
+            });
+          }
+        }
+
+        // Whatever the edit did not keep — by id, so an ingredient that MOVED
+        // is not mistaken for one that was dropped.
+        await tx.recipeIngredient.deleteMany({
+          where: { recipeId: id, id: { notIn: kept } },
+        });
       }
 
       const textEdits: RecipeTranslationInput[] = [
@@ -748,55 +925,90 @@ export class RecipeRepository {
     variations: RecipeVariationDto[],
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      await tx.recipeVariation.deleteMany({ where: { recipeId } });
+      const kept = variations
+        .map((v) => v.id)
+        .filter((id): id is string => Boolean(id));
+
+      // A named id must already belong to THIS recipe. Otherwise naming
+      // somebody else's variation would re-parent it on the update below —
+      // a write to a recipe the caller was never authorised for.
+      if (kept.length > 0) {
+        const owned = new Set(
+          (
+            await tx.recipeVariation.findMany({
+              where: { recipeId },
+              select: { id: true },
+            })
+          ).map((v) => v.id),
+        );
+        const stranger = kept.find((id) => !owned.has(id));
+        if (stranger) {
+          throw new BadRequestException(
+            `variation ${stranger} does not belong to this recipe`,
+          );
+        }
+      }
+
+      // Only the ones the author actually dropped. Deleting a KEPT variation
+      // and writing it again would give it a new id, and MealPlanEntry.variationId
+      // is ON DELETE SET NULL — so every dinner already planned as "10 g yeast —
+      // same day" would quietly go back to the recipe as written.
+      await tx.recipeVariation.deleteMany({
+        where: { recipeId, id: { notIn: kept } },
+      });
 
       for (const [index, variation] of variations.entries()) {
-        await tx.recipeVariation.create({
-          data: {
-            recipeId,
-            sortOrder: variation.sortOrder ?? index,
-            prepTime: variation.prepTime ?? null,
-            cookTime: variation.cookTime ?? null,
-            translations: {
-              create: variation.texts.map((t) => ({
-                locale: t.locale,
-                name: t.name,
-                note: t.note,
-              })),
+        const own = {
+          sortOrder: variation.sortOrder ?? index,
+          prepTime: variation.prepTime ?? null,
+          cookTime: variation.cookTime ?? null,
+        };
+
+        if (!variation.id) {
+          await tx.recipeVariation.create({
+            data: {
+              recipeId,
+              ...own,
+              translations: { create: translationsOf(variation) },
+              ingredients: { create: ingredientsOf(variation) },
+              steps: { create: stepsOf(variation) },
             },
-            ingredients: {
-              create: (variation.ingredients ?? []).map((ing, order) => ({
-                // Null is meaningful: it is what distinguishes "add this" from
-                // "change that". Undefined would let Prisma omit the column.
-                ingredientId: ing.ingredientId ?? null,
-                removed: ing.removed ?? false,
-                quantity: ing.quantity ?? null,
-                unit: ing.unit ?? null,
-                pantryCategory: ing.pantryCategory ?? null,
-                sortOrder: ing.sortOrder ?? order,
-                translations: {
-                  create: (ing.names ?? []).map((n) => ({
-                    locale: n.locale,
-                    name: n.name,
-                  })),
-                },
-              })),
-            },
-            steps: {
-              create: (variation.steps ?? []).map((step) => ({
-                stepId: step.stepId ?? null,
-                removed: step.removed ?? false,
-                afterPosition: step.afterPosition ?? null,
-                translations: {
-                  create: (step.texts ?? []).map((t) => ({
-                    locale: t.locale,
-                    text: t.text,
-                  })),
-                },
-              })),
-            },
-          },
+          });
+          continue;
+        }
+
+        const variationId = variation.id;
+        await tx.recipeVariation.update({
+          where: { id: variationId },
+          data: own,
         });
+
+        // The overrides themselves are rewritten wholesale. Nothing points at
+        // them, and deleting the row IS how an override is taken away — the
+        // identity that had to be preserved is the variation's, not theirs.
+        await tx.recipeVariationTranslation.deleteMany({
+          where: { variationId },
+        });
+        await tx.recipeVariationIngredient.deleteMany({
+          where: { variationId },
+        });
+        await tx.recipeVariationStep.deleteMany({ where: { variationId } });
+
+        for (const text of translationsOf(variation)) {
+          await tx.recipeVariationTranslation.create({
+            data: { variationId, ...text },
+          });
+        }
+        for (const ingredient of ingredientsOf(variation)) {
+          await tx.recipeVariationIngredient.create({
+            data: { variationId, ...ingredient },
+          });
+        }
+        for (const step of stepsOf(variation)) {
+          await tx.recipeVariationStep.create({
+            data: { variationId, ...step },
+          });
+        }
       }
     });
   }

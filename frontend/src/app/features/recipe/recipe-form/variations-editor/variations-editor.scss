@@ -1,0 +1,206 @@
+// Every token used here is declared in styles.scss — a `var(--missing-token)`
+// resolves to nothing and renders invisible, with no build error to catch it.
+
+.variations {
+  background: var(--surface-container-low);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.variations legend {
+  font-weight: 600;
+  color: var(--on-surface);
+  padding: 0 0.5rem;
+}
+
+.variations__hint,
+.variations__empty,
+.panel__hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
+}
+
+.variation {
+  background: var(--surface-container-lowest);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.variation__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.variation__toggle {
+  // Danish runs 30-40% longer than English, so the name and the tally stack
+  // rather than sharing one line that only fits in English.
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0;
+  text-align: start;
+  background: transparent;
+  border: none;
+  font-family: var(--font-body);
+  color: var(--on-surface);
+  cursor: pointer;
+}
+
+.variation__name {
+  font-weight: 600;
+}
+
+.variation__tally {
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.variation__body {
+  padding: 0.25rem 0.75rem 0.9rem;
+  border-top: 1px solid var(--outline-variant);
+}
+
+.panel {
+  margin-top: 1rem;
+}
+
+.panel__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--on-surface);
+  margin: 0 0 0.35rem;
+}
+
+.panel__tally {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+// A shared step is deliberately quiet and a changed one is not: the point the
+// whole panel is making is that most of the method belongs to the recipe.
+.step,
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius-sm);
+}
+
+.step__number {
+  align-self: flex-start;
+  min-inline-size: 1.5rem;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}
+
+.step__shared,
+.row__shared {
+  flex: 1;
+  min-inline-size: 12rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  line-height: 1.5;
+}
+
+.step__skipped,
+.row__dropped {
+  flex: 1;
+  min-inline-size: 12rem;
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  text-decoration: line-through;
+}
+
+.step--changed,
+.row--changed,
+.step--inserted,
+.row--added {
+  background: var(--surface-container-low);
+  border-inline-start: 3px solid var(--primary);
+}
+
+.step textarea,
+.step__actions,
+.row__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.step textarea {
+  flex: 1;
+  min-inline-size: 14rem;
+}
+
+.step__badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.row__name {
+  flex: 1;
+  min-inline-size: 8rem;
+  font-size: 0.875rem;
+}
+
+.row__qty {
+  inline-size: 5.5rem;
+}
+
+.row__unit {
+  inline-size: 7rem;
+}
+
+.gap {
+  // Present but unobtrusive: inserting a step is a real action, and offering it
+  // as loudly as the steps themselves would make the method hard to read.
+  padding: 0.1rem 0 0.1rem 1.5rem;
+  opacity: 0.55;
+  transition: opacity 0.15s ease;
+}
+
+.gap:hover,
+.gap:focus-within {
+  opacity: 1;
+}
+
+.btn--ghost {
+  background: transparent;
+  border: 1px dashed var(--outline-variant);
+  color: var(--on-surface-variant);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+}
+
+.error {
+  color: var(--error);
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.lang-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.75rem;
+  color: var(--on-surface-variant);
+}

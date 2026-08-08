@@ -14,6 +14,18 @@ import { PantryCategory } from '../enums/index.js';
 import { Difficulty } from '../enums/index.js';
 
 export class RecipeIngredientDto {
+  /**
+   * Which existing ingredient this row IS, on a save. Absent adds one.
+   *
+   * Needed for the same reason `stepIds` is: variations point at ingredient
+   * ids, that FK cascades on delete, and position stops identifying a row the
+   * moment one is inserted or dropped. Ignored on create, where nothing exists
+   * to point at yet.
+   */
+  @IsOptional()
+  @IsString()
+  id?: string;
+
   @IsString()
   name: string;
 

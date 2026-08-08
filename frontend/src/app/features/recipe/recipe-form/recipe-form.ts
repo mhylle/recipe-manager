@@ -4,6 +4,7 @@ import {
   computed,
   inject,
   signal,
+  viewChild,
   OnInit,
 } from '@angular/core';
 import { FormGroup, FormControl, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -15,7 +16,10 @@ import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 import { EnumLabelPipe, LOCALES, LocaleService, TranslatePipe } from '../../../shared/i18n';
 import type { Locale } from '../../../shared/i18n';
 import { RecipeTranslation } from '../../../shared/models/translation.model';
+import type { Recipe } from '../../../shared/models/recipe.model';
+import type { RecipeVariationsAuthoring } from '../../../shared/models/variation-authoring.model';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
+import { VariationsEditorComponent } from './variations-editor/variations-editor';
 
 /** The prose fields of the form, for one language. */
 interface LocalisedDraft {
@@ -35,7 +39,13 @@ const EMPTY_DRAFT: LocalisedDraft = {
 @Component({
   selector: 'app-recipe-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, EnumLabelPipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    TranslatePipe,
+    EnumLabelPipe,
+    VariationsEditorComponent,
+  ],
   templateUrl: './recipe-form.html',
   styleUrl: './recipe-form.scss',
 })
@@ -124,12 +134,25 @@ export class RecipeFormComponent implements OnInit {
         this.ingredientsArray.clear();
         recipe.ingredients.forEach((ing) => {
           this.ingredientsArray.push(
-            this.createIngredientGroup('', ing.quantity, ing.unit, ing.pantryCategory),
+            this.createIngredientGroup(
+              ing.id ?? null,
+              '',
+              ing.quantity,
+              ing.unit,
+              ing.pantryCategory,
+            ),
           );
         });
 
         this.recipeService.getTranslations(id).subscribe((translations) => {
           this.loadDrafts(translations);
+        });
+
+        // The differences themselves, in every language, keyed by the ids they
+        // point at — which is what editing needs and what the payload above,
+        // already resolved for a reader, cannot say.
+        this.recipeService.getVariationsForAuthoring(id).subscribe((authoring) => {
+          this.authoringVariations.set(authoring);
         });
       });
     } else {
@@ -167,6 +190,19 @@ export class RecipeFormComponent implements OnInit {
 
   /** True when the server refused the save and said why. */
   readonly saveBlocked = signal(false);
+
+  /** The recipe went in and its variations did not — a partial save, said out loud. */
+  readonly variationsBlocked = signal(false);
+
+  /** The variations as their author edits them. Null until they have loaded. */
+  readonly authoringVariations = signal<RecipeVariationsAuthoring | null>(null);
+
+  private readonly variationsEditor = viewChild(VariationsEditorComponent);
+
+  /** A variation nobody can tell apart in the switcher is not saveable. */
+  readonly variationsInvalid = computed(
+    () => this.variationsEditor()?.hasNamelessVariation() ?? false,
+  );
 
   /** The ids of the steps this form loaded, in order. Empty when creating. */
   private loadedStepIds: string[] = [];
@@ -233,7 +269,7 @@ export class RecipeFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.variationsInvalid()) {
       return;
     }
 
@@ -256,6 +292,9 @@ export class RecipeFormComponent implements OnInit {
       stepIds: this.stepIdsFor(splitLines(own.instructions)),
       isPrivate: value.isPrivate,
       ingredients: value.ingredients.map((ing, index) => ({
+        // Absent on a row the author just added, which is exactly what tells
+        // the server to create one rather than update something.
+        id: (ing['id'] as string | null) ?? undefined,
         name: own.ingredientNames[index] ?? '',
         quantity: Number(ing['quantity']),
         unit: ing['unit'] as Unit,
@@ -282,14 +321,55 @@ export class RecipeFormComponent implements OnInit {
     // stepIdsFor. Navigating away would lose the edit AND the reason.
     const failed = () => this.saveBlocked.set(true);
     if (this.isEditMode()) {
-      this.recipeService
-        .update(this.editId, payload, authoringLocale)
-        .subscribe({ next: done, error: failed });
+      this.recipeService.update(this.editId, payload, authoringLocale).subscribe({
+        next: (updated) => this.saveVariations(updated, done),
+        error: failed,
+      });
     } else {
       this.recipeService
         .create(payload, authoringLocale)
         .subscribe({ next: done, error: failed });
     }
+  }
+
+  /**
+   * The variations, once the recipe itself is in.
+   *
+   * Two requests, because they are two writes with different rules — and only
+   * ever the second one when the author actually opened the panel. A save that
+   * does not touch the variations is the safest round trip there is: the ciabatta
+   * cannot lose an override to a form that never sent one.
+   */
+  private saveVariations(updated: Recipe, done: () => void): void {
+    const editor = this.variationsEditor();
+    if (!editor?.touched()) {
+      done();
+      return;
+    }
+
+    // Anything pointing at a step or an ingredient the save just removed goes
+    // with it. The database has already cascaded those rows away; sending their
+    // ids would be a foreign key that no longer resolves.
+    const liveSteps = new Set((updated.steps ?? []).map((step) => step.id));
+    const liveIngredients = new Set(
+      (updated.ingredients ?? []).map((ing) => ing.id).filter(Boolean),
+    );
+    const variations = editor.toPayload().map((variation) => ({
+      ...variation,
+      steps: (variation.steps ?? []).filter(
+        (step) => !step.stepId || liveSteps.has(step.stepId),
+      ),
+      ingredients: (variation.ingredients ?? []).filter(
+        (ing) => !ing.ingredientId || liveIngredients.has(ing.ingredientId),
+      ),
+    }));
+
+    this.recipeService.replaceVariations(this.editId, variations).subscribe({
+      next: done,
+      // The recipe went in and this did not. Saying so beats navigating away as
+      // though both had.
+      error: () => this.variationsBlocked.set(true),
+    });
   }
 
   onNameInput(): void {
@@ -298,12 +378,18 @@ export class RecipeFormComponent implements OnInit {
   }
 
   private createIngredientGroup(
+    id: string | null = null,
     name = '',
     quantity = 0,
     unit: string = Unit.G,
     pantryCategory: string = PantryCategory.OTHER,
   ): FormGroup {
     return new FormGroup({
+      // Which existing ingredient this row is. Carried through the form so a
+      // save can say so: variations point at ingredient ids, and that link
+      // cascades on delete, so a save that recreated the list silently took
+      // every "10 g of yeast" with it.
+      id: new FormControl<string | null>(id),
       name: new FormControl(name, { nonNullable: true, validators: [Validators.required] }),
       quantity: new FormControl(quantity, { nonNullable: true, validators: [Validators.required, Validators.min(0)] }),
       unit: new FormControl(unit, { nonNullable: true, validators: [Validators.required] }),

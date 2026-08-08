@@ -4,6 +4,10 @@ import { EMPTY, Observable } from 'rxjs';
 import { expand, map, reduce } from 'rxjs/operators';
 import { Recipe } from '../../shared/models/recipe.model';
 import { RecipeTranslation } from '../../shared/models/translation.model';
+import type {
+  RecipeVariationsAuthoring,
+  VariationWrite,
+} from '../../shared/models/variation-authoring.model';
 import { bcp47Of, type Locale } from '../../shared/i18n';
 import { environment } from '../../../environments/environment';
 import { PantryContextService } from '../../shared/services/pantry-context.service';
@@ -86,6 +90,29 @@ export class RecipeService {
   /** Every language stored for a recipe — drives the per-language editing tabs. */
   getTranslations(id: string): Observable<RecipeTranslation[]> {
     return this.http.get<RecipeTranslation[]>(`${this.baseUrl}/${id}/translations`);
+  }
+
+  /**
+   * A recipe's variations as their author edits them.
+   *
+   * Not the same read as `getById`: that one resolves a variation into a
+   * finished recipe, which is what a cook wants and what an editor cannot use —
+   * it no longer says which steps the variation actually changes. This returns
+   * the differences themselves, in every language, keyed by the ids they name.
+   */
+  getVariationsForAuthoring(id: string): Observable<RecipeVariationsAuthoring> {
+    return this.http.get<RecipeVariationsAuthoring>(`${this.baseUrl}/${id}/variations`);
+  }
+
+  /**
+   * Save the whole set of variations.
+   *
+   * PUT, and the body is everything: a variation missing from it is one the
+   * author deleted. Each one carries its own id so a kept variation is updated
+   * rather than replaced — meal plan entries point at those ids.
+   */
+  replaceVariations(id: string, variations: VariationWrite[]): Observable<Recipe> {
+    return this.http.put<Recipe>(`${this.baseUrl}/${id}/variations`, { variations });
   }
 
   /**

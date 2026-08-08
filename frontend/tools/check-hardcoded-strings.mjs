@@ -74,11 +74,20 @@ for (const file of process.argv.slice(2)) {
   }
 
   // --- text nodes
-  let stripped = raw
-    .replace(/<!--[\s\S]*?-->/g, blank) // comments
+  //
+  // ORDER MATTERS, and not in the obvious way. Control-flow heads are blanked
+  // BEFORE tags, because a condition may contain a less-than — `@if (position <
+  // baseSteps().length)` — and the tag pattern would read that `<` as the start
+  // of a tag and blank everything up to the next `>`, taking real prose with it.
+  // That is a false NEGATIVE, which is worse than a noisy check: it reports
+  // clean on a template it never looked at.
+  let stripped = blankControlFlow(raw.replace(/<!--[\s\S]*?-->/g, blank));
+  stripped = stripped
+    // `@let x = expr;` is a declaration, not prose. Blanked whole, because the
+    // expression routinely mentions method names that read like English.
+    .replace(/@let\s+[A-Za-z_$][\w$]*\s*=[^;]*;/g, blank)
+    .replace(/\{\{[\s\S]*?\}\}/g, blank) // interpolations (already translated)
     .replace(/<[^>]*>/g, blank) // tags (may span lines)
-    .replace(/\{\{[\s\S]*?\}\}/g, blank); // interpolations (already translated)
-  stripped = blankControlFlow(stripped)
     .replace(/@(?:else|empty|default)\b/g, blank)
     .replace(/&[a-zA-Z]+;|&#\d+;/g, blank) // entities: &copy; &mdash;
     .replace(/[{}]/g, ' ');

@@ -11,6 +11,14 @@ import { PantryCategory } from '../enums/pantry-category.enum';
 import { Unit } from '../enums/unit.enum';
 
 export interface RecipeIngredient {
+  /**
+   * Which existing ingredient this row is. Absent on a new one.
+   *
+   * Sent on a save for the same reason `stepIds` is: variations point at
+   * ingredient ids and that link cascades on delete, so a save that could not
+   * say which row is which used to take every "10 g of yeast" with it.
+   */
+  id?: string;
   name: string;
   quantity: number;
   unit: Unit;

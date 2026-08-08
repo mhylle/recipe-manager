@@ -1,6 +1,7 @@
 import { RecipeRepository } from './recipe.repository';
 import { PrismaService } from '../prisma/prisma.service';
 import { UNRESTRICTED } from './recipe-visibility';
+import { Difficulty } from '../shared/enums/index.js';
 
 /**
  * Serving the method from step rows instead of two parallel arrays.
@@ -173,7 +174,7 @@ describe('RecipeRepository — writing steps', () => {
     instructionImages: ['/img/a.webp', '', '/img/c.webp'],
     prepTime: 5,
     cookTime: 10,
-    difficulty: 'easy' as const,
+    difficulty: Difficulty.EASY,
     tags: [],
     ingredients: [],
   };

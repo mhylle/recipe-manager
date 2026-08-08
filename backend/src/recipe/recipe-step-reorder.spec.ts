@@ -99,7 +99,7 @@ describe('RecipeRepository.update — steps keep their identity', () => {
         instructions: ['One', 'BRAND NEW', 'Two', 'Three'],
         stepIds: ['s0', null, 's1', 's2'],
       },
-      'en',
+      { locale: 'en' },
     );
 
     // s1 moves to position 2 and s2 to position 3 — they are not overwritten
@@ -130,7 +130,7 @@ describe('RecipeRepository.update — steps keep their identity', () => {
       repository.update(
         'r1',
         { instructions: ['One', 'Two', 'Three', 'Four'] },
-        'en',
+        { locale: 'en' },
       ),
     ).rejects.toThrow(BadRequestException);
   });
@@ -142,7 +142,7 @@ describe('RecipeRepository.update — steps keep their identity', () => {
       repository.update(
         'r1',
         { instructions: ['One', 'Two edited', 'Three'] },
-        'en',
+        { locale: 'en' },
       ),
     ).resolves.toBeDefined();
   });

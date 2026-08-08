@@ -31,6 +31,7 @@ import {
 import type { LocalUser } from '../shared/auth/user.service.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
 import { ReplaceVariationsDto } from './dto/variation.dto.js';
+import type { RecipeVariationsAuthoring } from './variation-authoring.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { OptionalSsoAuthGuard } from '../shared/auth/optional-sso-auth.guard.js';
@@ -147,6 +148,23 @@ export class RecipeController {
       id,
       body.variations,
     );
+  }
+
+  /**
+   * A recipe's variations as their author edits them: the differences
+   * themselves, in every language, keyed by the ids they point at.
+   *
+   * Deliberately not the same shape `GET :id` serves. That one resolves a
+   * variation into a finished recipe, which is what a cook wants and what an
+   * editor cannot use — it no longer says WHICH steps a variation changes.
+   */
+  @UseGuards(OptionalSsoAuthGuard)
+  @Get(':id/variations')
+  async findVariationsForAuthoring(
+    @Param('id') id: string,
+    @MaybeCurrentUser() user?: LocalUser,
+  ): Promise<RecipeVariationsAuthoring> {
+    return this.recipeService.findVariationsForAuthoringFor(user?.id, id);
   }
 
   /** Every stored language for a recipe — powers the per-language editing UI. */
