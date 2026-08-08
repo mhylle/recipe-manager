@@ -30,9 +30,15 @@ export class ShoppingListRepository {
     return this.toInterface(result);
   }
 
-  async findById(id: string): Promise<ShoppingList> {
-    const result = await this.prisma.shoppingList.findUnique({
-      where: { id },
+  /**
+   * Scoped: a list id from another household is a miss, not a read.
+   *
+   * This took a bare id and answered for any kitchen, so an id kept from a
+   * shared screen — or guessed — read and ticked somebody else's shopping.
+   */
+  async findById(pantryId: string, id: string): Promise<ShoppingList> {
+    const result = await this.prisma.shoppingList.findFirst({
+      where: { id, pantryId },
       include: { items: { orderBy: { sortOrder: 'asc' } } },
     });
     if (!result) {
@@ -41,8 +47,52 @@ export class ShoppingListRepository {
     return this.toInterface(result);
   }
 
-  async update(id: string, data: Partial<ShoppingList>): Promise<ShoppingList> {
-    await this.findById(id);
+  /**
+   * The kitchen's current list: the newest one nobody has put away.
+   *
+   * Ordered explicitly. The rows have no inherent order, and this decides which
+   * list the shop is done from — far too load-bearing to inherit from whatever
+   * the database happens to return first.
+   */
+  async findCurrent(pantryId: string): Promise<ShoppingList | null> {
+    const result = await this.prisma.shoppingList.findFirst({
+      where: { pantryId, archivedAt: null },
+      orderBy: { generatedDate: 'desc' },
+      include: { items: { orderBy: { sortOrder: 'asc' } } },
+    });
+    return result ? this.toInterface(result) : null;
+  }
+
+  /** Put a list away. Scoped, because it is a write. */
+  async archive(pantryId: string, id: string): Promise<ShoppingList> {
+    await this.findById(pantryId, id);
+    await this.prisma.shoppingList.update({
+      where: { id },
+      data: { archivedAt: new Date() },
+    });
+    return this.findById(pantryId, id);
+  }
+
+  /**
+   * Put away whatever the kitchen is currently shopping from.
+   *
+   * updateMany rather than read-then-write: two people generating at the same
+   * moment would both read the same current list and one archive would be lost,
+   * leaving a list that nothing shows and nothing can reach.
+   */
+  async archiveCurrent(pantryId: string): Promise<void> {
+    await this.prisma.shoppingList.updateMany({
+      where: { pantryId, archivedAt: null },
+      data: { archivedAt: new Date() },
+    });
+  }
+
+  async update(
+    pantryId: string,
+    id: string,
+    data: Partial<ShoppingList>,
+  ): Promise<ShoppingList> {
+    await this.findById(pantryId, id);
 
     if (data.items !== undefined) {
       await this.prisma.shoppingListItem.deleteMany({
@@ -60,26 +110,35 @@ export class ShoppingListRepository {
       });
     }
 
-    return this.findById(id);
+    return this.findById(pantryId, id);
   }
 
-  async toggleItemByIndex(id: string, index: number): Promise<ShoppingList> {
+  async toggleItemByIndex(
+    pantryId: string,
+    id: string,
+    index: number,
+  ): Promise<ShoppingList> {
+    // Resolve the list inside the kitchen FIRST — ticking somebody else's
+    // shopping is a write, and this is what stops it.
+    await this.findById(pantryId, id);
     const items = await this.prisma.shoppingListItem.findMany({
       where: { shoppingListId: id },
       orderBy: { sortOrder: 'asc' },
     });
     if (index < 0 || index >= items.length) {
-      return this.findById(id);
+      return this.findById(pantryId, id);
     }
     await this.prisma.shoppingListItem.update({
       where: { id: items[index].id },
       data: { checked: !items[index].checked },
     });
-    return this.findById(id);
+    return this.findById(pantryId, id);
   }
 
-  async findAll(): Promise<ShoppingList[]> {
+  async findAll(pantryId: string): Promise<ShoppingList[]> {
     const results = await this.prisma.shoppingList.findMany({
+      where: { pantryId },
+      orderBy: { generatedDate: 'desc' },
       include: { items: { orderBy: { sortOrder: 'asc' } } },
     });
     return results.map((r) => this.toInterface(r));

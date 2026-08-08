@@ -63,11 +63,21 @@ export class ShoppingListViewComponent {
   private readonly reload = reloadOnKitchenChange(() => this.loadList());
 
   private loadList(): void {
-    // If navigated with a list ID (e.g. from recipe detail), load it
+    // A list named in the URL wins: the meal-plan and recipe buttons link
+    // straight to the one they just made, and "whatever is current" would be a
+    // different answer the moment somebody else generates one.
     const listId = this.route.snapshot.queryParamMap.get('id');
     if (listId) {
       this.shoppingListService.getById(listId).subscribe((list) => {
         this.shoppingList.set(list);
+      });
+    } else {
+      // Otherwise the kitchen's saved list. Without this the page could only
+      // ever show a list it had just generated itself — the row was written and
+      // then unreachable, which from the shop is the same as gone.
+      this.shoppingListService.current().subscribe({
+        next: (list) => this.shoppingList.set(list),
+        error: () => this.shoppingList.set(null),
       });
     }
 
@@ -87,6 +97,27 @@ export class ShoppingListViewComponent {
         this.generating.set(false);
       },
       error: () => this.generating.set(false),
+    });
+  }
+
+  readonly archiving = signal(false);
+
+  /**
+   * Put the list away when the shopping is done.
+   *
+   * Archived rather than deleted: it is a record of a shop that happened, and
+   * the next generate starts a new one anyway.
+   */
+  archiveList(): void {
+    const list = this.shoppingList();
+    if (!list || this.archiving()) return;
+    this.archiving.set(true);
+    this.shoppingListService.archive(list.id).subscribe({
+      next: () => {
+        this.archiving.set(false);
+        this.shoppingList.set(null);
+      },
+      error: () => this.archiving.set(false),
     });
   }
 

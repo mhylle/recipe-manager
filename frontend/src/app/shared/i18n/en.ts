@@ -586,6 +586,7 @@ export const en = {
   'shoppingList.sendToBilkatogoLabel': 'Send unchecked items to BilkaToGo basket',
   'shoppingList.sending': 'Sending...',
   'shoppingList.generate': 'Generate from Meal Plan',
+  'shoppingList.archive': 'Done shopping',
   'shoppingList.generating': 'Generating...',
   'shoppingList.generatedOn': 'Generated: {{date}}',
   'shoppingList.itemLabel': '{{name}} - {{quantity}} {{unit}}',

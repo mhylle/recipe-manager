@@ -51,6 +51,22 @@ export class ShoppingListController {
     );
   }
 
+  /**
+   * The kitchen's current list.
+   *
+   * MUST stay above `@Get(':id')`: routes match in declaration order, so
+   * declared after it, `/current` arrives as an id and 404s.
+   */
+  @Get('current')
+  async current(
+    @CurrentUser() user: LocalUser,
+    @Query('pantryId') pantryId?: string,
+  ): Promise<ShoppingList | null> {
+    return this.shoppingListService.getCurrent(
+      await this.access.resolve(user, pantryId),
+    );
+  }
+
   @Get(':id')
   async findById(
     @CurrentUser() user: LocalUser,
@@ -58,6 +74,19 @@ export class ShoppingListController {
     @Query('pantryId') pantryId?: string,
   ): Promise<ShoppingList> {
     return this.shoppingListService.findById(
+      await this.access.resolve(user, pantryId),
+      id,
+    );
+  }
+
+  /** Put a list away once the shopping is done. */
+  @Patch(':id/archive')
+  async archive(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Query('pantryId') pantryId?: string,
+  ): Promise<ShoppingList> {
+    return this.shoppingListService.archive(
       await this.access.resolve(user, pantryId),
       id,
     );

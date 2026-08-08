@@ -16,6 +16,12 @@
           {{ (sendingToBilkatogo() ? 'shoppingList.sending' : 'shoppingList.sendToBilkatogo') | t }}
         </button>
       }
+      @if (shoppingList()) {
+        <button type="button" class="btn btn--ghost shopping-list__archive"
+          (click)="archiveList()" [disabled]="archiving()">
+          {{ 'shoppingList.archive' | t }}
+        </button>
+      }
       <button type="button" class="btn btn--primary" (click)="generateList()" [disabled]="generating()">
         {{ (generating() ? 'shoppingList.generating' : 'shoppingList.generate') | t }}
       </button>

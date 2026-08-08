@@ -451,9 +451,15 @@ model ShoppingList {
   generatedDate DateTime           @default(now())
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
+  /// Set when the list is done with. NULL is the current list — which is the
+  /// right meaning for every row that predates this column, since each was a
+  /// live list at the time and none of them was ever archived.
+  archivedAt    DateTime?
   items         ShoppingListItem[]
 
   @@index([pantryId])
+  /// The current-list lookup is "newest unarchived for this kitchen".
+  @@index([pantryId, archivedAt])
 }
 
 model ShoppingListItem {

@@ -79,6 +79,12 @@ export class ShoppingListService {
       }
     }
 
+    // The list being replaced goes to the archive first. Without this every
+    // generate leaves another unarchived list that nothing will show again, and
+    // "the current list" becomes whichever one happens to be newest rather than
+    // a decision anybody made.
+    await this.shoppingListRepository.archiveCurrent(pantryId);
+
     return this.shoppingListRepository.create(pantryId, {
       mealPlanId,
       generatedDate: new Date().toISOString(),
@@ -139,8 +145,23 @@ export class ShoppingListService {
     });
   }
 
+  /**
+   * The list this kitchen is shopping from, if there is one.
+   *
+   * Null rather than a 404: having made no list yet is an ordinary state for a
+   * page whose whole job is to offer making one.
+   */
+  async getCurrent(pantryId: string): Promise<ShoppingList | null> {
+    return this.shoppingListRepository.findCurrent(pantryId);
+  }
+
+  /** Put the list away when the shopping is done. */
+  async archive(pantryId: string, id: string): Promise<ShoppingList> {
+    return this.shoppingListRepository.archive(pantryId, id);
+  }
+
   async findById(pantryId: string, id: string): Promise<ShoppingList> {
-    return this.shoppingListRepository.findById(id);
+    return this.shoppingListRepository.findById(pantryId, id);
   }
 
   async toggleItem(
@@ -148,6 +169,10 @@ export class ShoppingListService {
     id: string,
     itemIndex: number,
   ): Promise<ShoppingList> {
-    return this.shoppingListRepository.toggleItemByIndex(id, itemIndex);
+    return this.shoppingListRepository.toggleItemByIndex(
+      pantryId,
+      id,
+      itemIndex,
+    );
   }
 }
