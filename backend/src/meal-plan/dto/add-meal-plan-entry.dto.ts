@@ -73,6 +73,17 @@ export class AddMealPlanEntryDto {
   servings: number;
 
   /**
+   * Which way to cook it. Absent is the recipe as written.
+   *
+   * Recorded when the meal is PLANNED, not resolved when the shopping list is
+   * made: the two happen days apart, and picking a variation at list time would
+   * be buying for a decision nobody made.
+   */
+  @IsOptional()
+  @IsString()
+  variationId?: string;
+
+  /**
    * Deal with what is already in the slot, in the same request.
    *
    * One call rather than the client sequencing a delete and an add: between two

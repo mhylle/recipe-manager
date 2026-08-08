@@ -28,6 +28,7 @@ export class MealPlanRepository {
             meal: entry.meal,
             servings: entry.servings,
             recipeId: entry.recipeId,
+            variationId: entry.variationId ?? null,
           })),
         },
       },
@@ -82,6 +83,7 @@ export class MealPlanRepository {
         meal: entry.meal,
         servings: entry.servings,
         recipeId: entry.recipeId,
+        variationId: entry.variationId ?? null,
         mealPlanId,
       },
     });
@@ -147,6 +149,7 @@ export class MealPlanRepository {
           meal: entry.meal,
           servings: entry.servings,
           recipeId: entry.recipeId,
+          variationId: entry.variationId ?? null,
           mealPlanId,
         },
       });
@@ -263,6 +266,7 @@ export class MealPlanRepository {
         meal: string;
         recipeId: string;
         servings: number;
+        variationId: string | null;
       }>;
     };
     return {
@@ -273,6 +277,7 @@ export class MealPlanRepository {
         meal: e.meal as MealPlanEntry['meal'],
         recipeId: e.recipeId,
         servings: e.servings,
+        variationId: e.variationId,
       })),
     };
   }

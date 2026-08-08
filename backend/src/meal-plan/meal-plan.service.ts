@@ -58,6 +58,9 @@ export class MealPlanService {
       meal: dto.meal,
       recipeId: dto.recipeId,
       servings: dto.servings,
+      // Captured now, while the cook is choosing. The shopping happens days
+      // later and must not have to guess which version was meant.
+      variationId: dto.variationId ?? null,
     };
 
     if (!dto.displace) {

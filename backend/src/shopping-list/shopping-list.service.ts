@@ -38,8 +38,13 @@ export class ShoppingListService {
 
     for (const entry of plan.entries) {
       try {
+        // The variation the entry was planned with, not the recipe as written.
+        // Without this the ciabatta's 10 g loaf is shopped for as the 1 g one:
+        // too little yeast, and no sugar at all, since the base has none.
         const recipe = await this.recipeService.findByIdUnrestricted(
           entry.recipeId,
+          undefined,
+          entry.variationId ?? undefined,
         );
         const scaleFactor = entry.servings / recipe.servings;
 

@@ -329,6 +329,7 @@ model Recipe {
   mealEntries       MealPlanEntry[]
   translations      RecipeTranslation[]
   steps             RecipeStep[]
+  variations        RecipeVariation[]
 
   // The recipe list filters on difficulty and the two times, and orders by
   // createdAt. These are the columns the WHERE and ORDER BY now touch.
@@ -379,8 +380,9 @@ model RecipeStep {
   sortOrder Int
   /// Was instructionImages[sortOrder]. Null where a recipe has fewer photographs
   /// than steps, which is the ordinary case rather than an error.
-  imageUrl     String?
-  translations RecipeStepTranslation[]
+  imageUrl      String?
+  translations  RecipeStepTranslation[]
+  variationUses RecipeVariationStep[]
 
   @@unique([recipeId, sortOrder])
   @@index([recipeId])
@@ -409,6 +411,7 @@ model RecipeIngredient {
   recipeId       String
   recipe         Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   translations   RecipeIngredientTranslation[]
+  variationUses  RecipeVariationIngredient[]
 
   // Serves both the join by recipeId and the ordered read, since a composite
   // index also answers lookups on its leading column. Declared here because it
@@ -478,6 +481,17 @@ model MealPlanEntry {
   servings   Int
   recipeId   String
   recipe     Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  /// Which version of the recipe is being cooked.
+  ///
+  /// NULL is the recipe as written, which is the only thing every row that
+  /// predates this column could have meant — no variations existed. It stays the
+  /// meaning for a recipe that has none.
+  ///
+  /// SetNull, not Cascade: deleting a variation must not delete the plan. The
+  /// meal falls back to the base recipe, which is a worse answer than the one
+  /// intended but a far better one than a missing dinner.
+  variationId String?
+  variation   RecipeVariation? @relation(fields: [variationId], references: [id], onDelete: SetNull)
   mealPlanId String
   mealPlan   MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
@@ -485,6 +499,124 @@ model MealPlanEntry {
   @@index([mealPlanId])
   // Also serves the cascade delete when a recipe is removed.
   @@index([recipeId])
+  @@index([variationId])
+}
+
+/// A named alternative way to cook a recipe.
+///
+/// Two reports asked for the same thing from opposite ends: a different METHOD
+/// (#77 — sear the salmon now, or marinate it overnight) and a different set of
+/// PARAMETERS (#78 — 1 g of yeast and sixteen hours, or 10 g and two). Both are
+/// "the same recipe, cooked another way, and here is why", so both are this.
+///
+/// It stores only the DIFFERENCES. The ciabatta's four options share fourteen
+/// identical steps; copying them per variation would mean editing "bake at 250°C
+/// for 18 minutes" in eight places, and the copies would drift the first time
+/// somebody edited seven of them.
+model RecipeVariation {
+  id        String @id @default(uuid())
+  recipeId  String
+  recipe    Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sortOrder Int    @default(0)
+  /// Null inherits the base recipe's time. The ciabatta's rise is the whole
+  /// point of choosing between its variations, so this is not decoration.
+  prepTime Int?
+  cookTime Int?
+
+  translations RecipeVariationTranslation[]
+  ingredients  RecipeVariationIngredient[]
+  steps        RecipeVariationStep[]
+  mealEntries  MealPlanEntry[]
+
+  @@index([recipeId, sortOrder])
+}
+
+model RecipeVariationTranslation {
+  id          String          @id @default(uuid())
+  variationId String
+  variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  locale      String
+  /// What to call it in the switcher: "1 g yeast — overnight".
+  name String
+  /// Why you would choose it. #77 asked for this explicitly, and it is the part
+  /// a second recipe could never carry.
+  note String
+
+  @@unique([variationId, locale])
+  @@index([locale])
+}
+
+/// How a variation changes the shopping.
+///
+/// Three cases, and the corpus needs all three: change what is already there
+/// (yeast 1 g becomes 10 g), add what is not (the ciabatta's sugar and the
+/// teriyaki's garlic are in no base list), and drop what a method does without.
+model RecipeVariationIngredient {
+  id          String          @id @default(uuid())
+  variationId String
+  variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  /// The base ingredient this changes. Null means it adds one.
+  ingredientId String?
+  ingredient   RecipeIngredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  /// True drops the base ingredient. Only meaningful with an ingredientId.
+  removed Boolean @default(false)
+  /// Null keeps the base value. An added ingredient must supply all three.
+  quantity       Float?
+  unit           Unit?
+  pantryCategory PantryCategory?
+  sortOrder      Int             @default(0)
+
+  translations RecipeVariationIngredientTranslation[]
+
+  @@index([variationId])
+  @@index([ingredientId])
+}
+
+model RecipeVariationIngredientTranslation {
+  id                    String                    @id @default(uuid())
+  variationIngredientId String
+  variationIngredient   RecipeVariationIngredient @relation(fields: [variationIngredientId], references: [id], onDelete: Cascade)
+  locale                String
+  name                  String
+
+  @@unique([variationIngredientId, locale])
+  @@index([locale])
+}
+
+/// How a variation changes the method.
+///
+/// Overriding one step by id is the whole reason steps became rows. "Stir the
+/// yeast, water and salt together" becomes "...and stir the sugar in too" for
+/// three of the ciabatta's four variations, and the other fourteen steps are
+/// untouched and unduplicated.
+model RecipeVariationStep {
+  id          String          @id @default(uuid())
+  variationId String
+  variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  /// The base step this replaces. Null means it inserts a new one.
+  stepId String?
+  step   RecipeStep? @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  /// True drops the base step — the marinade variation skips the quick sear.
+  removed Boolean @default(false)
+  /// Where an INSERTED step goes: after this many base steps. Ignored when
+  /// stepId is set. 0 puts it first, which is where a marinade belongs.
+  afterPosition Int?
+
+  translations RecipeVariationStepTranslation[]
+
+  @@index([variationId])
+  @@index([stepId])
+}
+
+model RecipeVariationStepTranslation {
+  id              String              @id @default(uuid())
+  variationStepId String
+  variationStep   RecipeVariationStep @relation(fields: [variationStepId], references: [id], onDelete: Cascade)
+  locale          String
+  text            String
+
+  @@unique([variationStepId, locale])
+  @@index([locale])
 }
 
 model ShoppingList {

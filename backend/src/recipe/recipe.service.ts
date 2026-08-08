@@ -169,11 +169,13 @@ export class RecipeService {
     viewerId: string | undefined,
     id: string,
     locale: Locale = DEFAULT_LOCALE,
+    variationId?: string,
   ): Promise<Recipe> {
     return this.recipeRepository.findById(
       id,
       locale,
       await this.audienceFor(viewerId),
+      variationId,
     );
   }
 
@@ -200,8 +202,14 @@ export class RecipeService {
   async findByIdUnrestricted(
     id: string,
     locale: Locale = DEFAULT_LOCALE,
+    variationId?: string,
   ): Promise<Recipe> {
-    return this.recipeRepository.findById(id, locale, UNRESTRICTED);
+    return this.recipeRepository.findById(
+      id,
+      locale,
+      UNRESTRICTED,
+      variationId,
+    );
   }
 
   /**

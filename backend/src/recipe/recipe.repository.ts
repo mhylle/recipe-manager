@@ -24,6 +24,12 @@ import {
   UNRESTRICTED,
   type RecipeAudience,
 } from './recipe-visibility.js';
+import {
+  applyVariation,
+  type BaseIngredient,
+  type BaseStep,
+  type ResolvedVariation,
+} from './recipe-variation.js';
 
 /** Filters the recipe list accepts. Every one is applied in SQL. */
 export interface RecipeSearchFilters {
@@ -60,6 +66,17 @@ const RECIPE_INCLUDE = {
     include: { translations: true },
     orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
   },
+  // A variation stores only differences, so it is small — and reading it with
+  // the recipe is what lets one query answer "cooked this way" without a second
+  // round trip per variation.
+  variations: {
+    include: {
+      translations: true,
+      ingredients: { include: { translations: true } },
+      steps: { include: { translations: true } },
+    },
+    orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+  },
   translations: true,
   createdBy: { select: { id: true, displayName: true, email: true } },
   // `satisfies` rather than `as const`: a const assertion makes the orderBy array
@@ -74,9 +91,6 @@ const RECIPE_INCLUDE = {
  */
 type RecipeRow = Prisma.RecipeGetPayload<{ include: typeof RECIPE_INCLUDE }>;
 
-/** One step as read, with every language it has been written in. */
-type RecipeStepRow = RecipeRow['steps'][number];
-
 /**
  * Tags in their canonical form: lowercase, trimmed, de-duplicated, sorted.
  *
@@ -84,41 +98,6 @@ type RecipeStepRow = RecipeRow['steps'][number];
  * 'baking' would make the same facet behave differently on two recipes — which
  * is exactly the drift the normalisation migration had to clean up.
  */
-/**
- * The method, flattened back into the two positional arrays callers expect.
- *
- * Steps are rows now, but nothing outside this file knows that yet: the API
- * still answers with `instructions` and `instructionImages` in step order, so
- * the frontend and the MCP server are untouched by the change underneath.
- *
- * Sorted here as well as in the query. The order is the method — a cook
- * following step 4 before step 2 is not a cosmetic problem — and relying on the
- * query alone would put that guarantee somewhere a future `include` could drop
- * it silently.
- *
- * Fallback is per STEP, not per translation. A recipe half-translated into
- * Danish reads in Danish where it can and in its source language where it
- * cannot; before, one missing entry could only be a blank or a missing step.
- */
-function methodOf(
-  result: { steps: RecipeStepRow[]; sourceLocale: string },
-  locale: Locale,
-): { instructions: string[]; instructionImages: string[] } {
-  const ordered = [...result.steps].sort((a, b) => a.sortOrder - b.sortOrder);
-  return {
-    instructions: ordered.map((step) => {
-      const wanted = step.translations.find((t) => t.locale === locale);
-      const source = step.translations.find(
-        (t) => t.locale === result.sourceLocale,
-      );
-      return wanted?.text ?? source?.text ?? '';
-    }),
-    // Empty string, not a gap: the array is read positionally, so a step with no
-    // photograph has to hold a place rather than shift every later one up.
-    instructionImages: ordered.map((step) => step.imageUrl ?? ''),
-  };
-}
-
 /**
  * The step rows for a method, one per step of the SOURCE locale.
  *
@@ -153,6 +132,73 @@ function stepRowsFrom(
         ),
     },
   }));
+}
+
+/** The recipe's own ingredients, before any variation touches them. */
+function baseIngredientsOf(
+  result: RecipeRow,
+  locale: Locale,
+): BaseIngredient[] {
+  return result.ingredients.map((ing) => ({
+    id: ing.id,
+    name:
+      pickTranslation(ing.translations, locale, result.sourceLocale)?.name ??
+      '',
+    quantity: ing.quantity,
+    unit: ing.unit as BaseIngredient['unit'],
+    pantryCategory: ing.pantryCategory as BaseIngredient['pantryCategory'],
+  }));
+}
+
+/** The recipe's own method, before any variation touches it. */
+function baseStepsOf(result: RecipeRow, locale: Locale): BaseStep[] {
+  return [...result.steps]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((step) => ({
+      id: step.id,
+      text:
+        step.translations.find((tr) => tr.locale === locale)?.text ??
+        step.translations.find((tr) => tr.locale === result.sourceLocale)
+          ?.text ??
+        '',
+      imageUrl: step.imageUrl,
+    }));
+}
+
+/** One variation, with its prose resolved to the reader's language. */
+function resolveVariation(
+  variation: RecipeRow['variations'][number],
+  locale: Locale,
+  sourceLocale: string,
+): ResolvedVariation {
+  const t = pickTranslation(variation.translations, locale, sourceLocale);
+  return {
+    id: variation.id,
+    name: t?.name ?? '',
+    note: t?.note ?? '',
+    prepTime: variation.prepTime,
+    cookTime: variation.cookTime,
+    ingredients: variation.ingredients.map((ing) => ({
+      ingredientId: ing.ingredientId,
+      removed: ing.removed,
+      name:
+        pickTranslation(ing.translations, locale, sourceLocale)?.name ?? null,
+      quantity: ing.quantity,
+      unit: ing.unit as ResolvedVariation['ingredients'][0]['unit'],
+      pantryCategory:
+        ing.pantryCategory as ResolvedVariation['ingredients'][0]['pantryCategory'],
+      sortOrder: ing.sortOrder,
+    })),
+    steps: variation.steps.map((step) => ({
+      stepId: step.stepId,
+      removed: step.removed,
+      text:
+        step.translations.find((tr) => tr.locale === locale)?.text ??
+        step.translations.find((tr) => tr.locale === sourceLocale)?.text ??
+        null,
+      afterPosition: step.afterPosition,
+    })),
+  };
 }
 
 function canonicalTags(tags: string[]): string[] {
@@ -339,6 +385,7 @@ export class RecipeRepository {
     id: string,
     locale: Locale = DEFAULT_LOCALE,
     audience: RecipeAudience,
+    variationId?: string,
   ): Promise<Recipe> {
     // findFirst, not findUnique: the visibility clause is part of the lookup so
     // a recipe the caller may not read is simply not found. Fetching it and
@@ -351,7 +398,7 @@ export class RecipeRepository {
     if (!result) {
       throw new NotFoundException(`recipes with id ${id} not found`);
     }
-    return this.toInterface(result, locale);
+    return this.toInterface(result, locale, variationId);
   }
 
   /** Every language stored for a recipe — the authoring view, not a reading view. */
@@ -662,18 +709,55 @@ export class RecipeRepository {
     return [...merged.values()];
   }
 
-  private toInterface(result: RecipeRow, locale: Locale): Recipe {
+  private toInterface(
+    result: RecipeRow,
+    locale: Locale,
+    variationId?: string,
+  ): Recipe {
     // The ONLY place translations are resolved. Everything downstream keeps
     // reading `recipe.name` and never learns that locales exist.
     const t = pickTranslation(result.translations, locale, result.sourceLocale);
+
+    // Resolved HERE, once, rather than by each caller. A page and a shopping
+    // list applying the same overrides separately is two chances to disagree
+    // about what "the 10 g version" contains, and only one of them is looking.
+    const chosen = variationId
+      ? result.variations.find((v) => v.id === variationId)
+      : undefined;
+    const varied = applyVariation(
+      {
+        ingredients: baseIngredientsOf(result, locale),
+        steps: baseStepsOf(result, locale),
+        prepTime: result.prepTime,
+        cookTime: result.cookTime,
+      },
+      chosen ? resolveVariation(chosen, locale, result.sourceLocale) : null,
+    );
+
     return {
       id: result.id,
       name: t?.name ?? '',
       description: t?.description ?? '',
       servings: result.servings,
-      ...methodOf(result, locale),
-      prepTime: result.prepTime,
-      cookTime: result.cookTime,
+      instructions: varied.steps.map((s) => s.text),
+      // Positional, and padded, exactly as before — an inserted step has no
+      // photograph and must hold its place rather than shift the rest.
+      instructionImages: varied.steps.map((s) => s.imageUrl ?? ''),
+      prepTime: varied.prepTime,
+      cookTime: varied.cookTime,
+      variations: result.variations.length
+        ? result.variations.map((v) => {
+            const vt = pickTranslation(
+              v.translations,
+              locale,
+              result.sourceLocale,
+            );
+            return { id: v.id, name: vt?.name ?? '', note: vt?.note ?? '' };
+          })
+        : undefined,
+      // Only when one was actually found: asking for a variation that has been
+      // deleted must not claim the payload is it.
+      variationId: chosen?.id,
       // Prisma's generated enums and ours are the same string unions declared in
       // two places; the cast asserts that, it does not paper over a mismatch.
       difficulty: result.difficulty as Recipe['difficulty'],
@@ -689,14 +773,11 @@ export class RecipeRepository {
       // Only ever reaches someone allowed to read the row at all.
       isPrivate: result.isPrivate,
       pantryId: result.pantryId,
-      ingredients: result.ingredients.map((ing) => ({
-        name:
-          pickTranslation(ing.translations, locale, result.sourceLocale)
-            ?.name ?? '',
+      ingredients: varied.ingredients.map((ing) => ({
+        name: ing.name,
         quantity: ing.quantity,
-        unit: ing.unit as Recipe['ingredients'][0]['unit'],
-        pantryCategory:
-          ing.pantryCategory as Recipe['ingredients'][0]['pantryCategory'],
+        unit: ing.unit,
+        pantryCategory: ing.pantryCategory,
       })),
     };
   }

@@ -114,10 +114,16 @@ export class RecipeController {
     @Param('id') id: string,
     @ReqLocale() locale: Locale,
     @MaybeCurrentUser() user?: LocalUser,
+    /**
+     * Which way to cook it. The whole payload comes back resolved to that
+     * variation, so no caller has to apply the overrides itself — and a reader
+     * and a shopping list cannot end up disagreeing about what it contains.
+     */
+    @Query('variation') variation?: string,
   ): Promise<Recipe> {
     // A recipe the caller may not read comes back 404, not 403 — see the
     // repository. Guessing an id should not confirm that it exists.
-    return this.recipeService.findByIdFor(user?.id, id, locale);
+    return this.recipeService.findByIdFor(user?.id, id, locale, variation);
   }
 
   /** Every stored language for a recipe — powers the per-language editing UI. */

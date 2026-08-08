@@ -44,6 +44,7 @@ describe('RecipeRepository — assembling the method from step rows', () => {
     updatedAt: new Date(),
     ingredients: [],
     steps,
+    variations: [],
     translations: [
       {
         id: 't-en',
@@ -181,6 +182,7 @@ describe('RecipeRepository — writing steps', () => {
     const create = jest.fn().mockResolvedValue({
       id: 'r1',
       steps: [],
+      variations: [],
       translations: [],
       ingredients: [],
       instructionImages: [],

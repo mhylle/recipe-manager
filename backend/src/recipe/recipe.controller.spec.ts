@@ -227,6 +227,8 @@ describe('RecipeController', () => {
         undefined,
         'recipe-uuid-1',
         'en',
+        // No variation asked for: the recipe as written.
+        undefined,
       );
       expect(result).toEqual(mockRecipe);
     });

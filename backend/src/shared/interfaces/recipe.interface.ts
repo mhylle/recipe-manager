@@ -9,6 +9,14 @@ export interface RecipeIngredient {
   pantryCategory: PantryCategory;
 }
 
+/** A variation as offered to a reader: enough to choose between them. */
+export interface RecipeVariationSummary {
+  id: string;
+  name: string;
+  /** Why you would cook it this way. */
+  note: string;
+}
+
 export interface Recipe {
   id: string;
   name: string;
@@ -30,4 +38,14 @@ export interface Recipe {
   isPrivate?: boolean;
   /** The kitchen a private recipe belongs to. Null once that kitchen is gone. */
   pantryId?: string | null;
+  /** The other ways this recipe can be cooked. Absent means there are none. */
+  variations?: RecipeVariationSummary[];
+  /**
+   * Which variation the rest of this payload has been resolved to.
+   *
+   * Absent means the recipe as written. Present means every field above already
+   * reflects that variation — callers apply nothing themselves, so a reader and
+   * a shopping list cannot disagree about what "the 10 g version" contains.
+   */
+  variationId?: string;
 }

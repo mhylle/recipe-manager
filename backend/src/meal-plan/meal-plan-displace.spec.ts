@@ -50,6 +50,8 @@ describe('MealPlanService.addEntry with displacement', () => {
         meal: MealType.DINNER,
         recipeId: 'r-new',
         servings: 4,
+        // No variation asked for: the recipe as written.
+        variationId: null,
       });
       expect(repository.addEntryDisplacing).not.toHaveBeenCalled();
     });

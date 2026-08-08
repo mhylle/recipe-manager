@@ -242,10 +242,12 @@ describe('RecipeService', () => {
 
       const result = await service.findByIdFor('u-martin', 'recipe-uuid-1');
 
-      expect(repository.findById).toHaveBeenCalledWith('recipe-uuid-1', 'en', {
-        userId: 'u-martin',
-        pantryIds: [],
-      });
+      expect(repository.findById).toHaveBeenCalledWith(
+        'recipe-uuid-1',
+        'en',
+        { userId: 'u-martin', pantryIds: [] },
+        undefined,
+      );
       expect(result).toEqual(mockRecipe);
     });
 

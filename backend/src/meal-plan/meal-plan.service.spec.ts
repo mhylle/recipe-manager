@@ -100,6 +100,8 @@ describe('MealPlanService', () => {
         meal: MealType.LUNCH,
         recipeId: 'r2',
         servings: 2,
+        // No variation asked for: the recipe as written.
+        variationId: null,
       });
       expect(result.entries).toHaveLength(1);
     });
