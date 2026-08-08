@@ -3,6 +3,8 @@ import { PantryCategory } from '../enums/index.js';
 import { Unit } from '../enums/index.js';
 
 export interface RecipeIngredient {
+  /** Absent on a payload being written; present on everything read back. */
+  id?: string;
   name: string;
   quantity: number;
   unit: Unit;
@@ -38,6 +40,14 @@ export interface Recipe {
   isPrivate?: boolean;
   /** The kitchen a private recipe belongs to. Null once that kitchen is gone. */
   pantryId?: string | null;
+  /**
+   * The method with its identities, for anything that needs to POINT at a step.
+   *
+   * `instructions` above stays the reading view. This is the authoring one: a
+   * variation overrides a step by id, and a client cannot send an id the API
+   * never showed it.
+   */
+  steps?: { id: string; text: string; imageUrl: string | null }[];
   /** The other ways this recipe can be cooked. Absent means there are none. */
   variations?: RecipeVariationSummary[];
   /**

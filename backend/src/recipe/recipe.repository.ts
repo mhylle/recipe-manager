@@ -812,6 +812,12 @@ export class RecipeRepository {
       description: t?.description ?? '',
       servings: result.servings,
       instructions: varied.steps.map((s) => s.text),
+      // The same steps, with the ids an override has to name.
+      steps: varied.steps.map((s) => ({
+        id: s.id,
+        text: s.text,
+        imageUrl: s.imageUrl,
+      })),
       // Positional, and padded, exactly as before — an inserted step has no
       // photograph and must hold its place rather than shift the rest.
       instructionImages: varied.steps.map((s) => s.imageUrl ?? ''),
@@ -846,6 +852,7 @@ export class RecipeRepository {
       isPrivate: result.isPrivate,
       pantryId: result.pantryId,
       ingredients: varied.ingredients.map((ing) => ({
+        id: ing.id,
         name: ing.name,
         quantity: ing.quantity,
         unit: ing.unit,
