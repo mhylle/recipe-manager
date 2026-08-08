@@ -23,12 +23,16 @@
       <section class="meal-day">
         <h2 class="meal-day__name">{{ day | enumLabel: 'dayOfWeek' }}</h2>
 
-        @for (planned of plannedFor(day); track planned.meal) {
+        @for (planned of plannedFor(day); track planned.entry._index) {
           <article class="meal-day__entry">
             <span class="meal-day__meal" [class]="'meal-day__meal--' + planned.meal">
               {{ planned.meal | enumLabel: 'mealType' }}
             </span>
-            <span class="meal-day__recipe">{{ getRecipeName(planned.entry.recipeId) }}</span>
+            @if (knowsRecipe(planned.entry.recipeId)) {
+              <a class="meal-day__recipe" [routerLink]="['/recipes', planned.entry.recipeId]">{{ getRecipeName(planned.entry.recipeId) }}</a>
+            } @else {
+              <span class="meal-day__recipe">{{ getRecipeName(planned.entry.recipeId) }}</span>
+            }
             <span class="meal-day__servings">
               {{ 'mealPlan.servingsShort' | t: { count: planned.entry.servings } }}
             </span>
@@ -45,16 +49,17 @@
           </article>
         }
 
-        @if (freeFor(day).length > 0) {
-          <div class="meal-day__add">
-            @for (meal of freeFor(day); track meal) {
-              <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
-                [attr.aria-label]="addRecipeLabel(day, meal)">
-                + {{ meal | enumLabel: 'mealType' }}
-              </button>
-            }
-          </div>
-        }
+        <!-- Every meal, not only the free ones: a slot that already holds a
+             dinner can still take a second, and the chip is the only way in
+             from a phone. -->
+        <div class="meal-day__add">
+          @for (meal of meals; track meal) {
+            <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
+              [attr.aria-label]="addLabel(day, meal)">
+              + {{ meal | enumLabel: 'mealType' }}
+            </button>
+          }
+        </div>
       </section>
     }
   </div>
@@ -79,17 +84,25 @@
             </th>
             @for (day of days; track day) {
               <td class="meal-grid__cell">
-                @if (getEntry(day, meal); as entry) {
+                @for (entry of entriesFor(day, meal); track entry._index) {
                   <div class="meal-grid__entry">
-                    <span class="meal-grid__recipe-name">{{ getRecipeName(entry.recipeId) }}</span>
+                    @if (knowsRecipe(entry.recipeId)) {
+                      <a class="meal-grid__recipe-name" [routerLink]="['/recipes', entry.recipeId]">{{ getRecipeName(entry.recipeId) }}</a>
+                    } @else {
+                      <span class="meal-grid__recipe-name">{{ getRecipeName(entry.recipeId) }}</span>
+                    }
                     <span class="meal-grid__servings">{{ 'mealPlan.servingsShort' | t: { count: entry.servings } }}</span>
                     <div class="meal-grid__entry-actions">
                       <button type="button" class="btn btn--small btn--ghost" (click)="confirmCooked(entry)" [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(entry.recipeId) }">{{ 'mealPlan.done' | t }}</button>
                       <button type="button" class="btn btn--small btn--text" (click)="removeEntry(entry)" [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(entry.recipeId) }">{{ 'common.actions.remove' | t }}</button>
                     </div>
                   </div>
-                } @else {
-                  <button type="button" class="meal-grid__add-btn" (click)="openPicker(day, meal)" [attr.aria-label]="addRecipeLabel(day, meal)">+</button>
+                } @empty {
+                  <button type="button" class="meal-grid__add-btn" (click)="openPicker(day, meal)" [attr.aria-label]="addLabel(day, meal)">+</button>
+                }
+                @if (entriesFor(day, meal).length) {
+                  <!-- The slot is occupied, not full. -->
+                  <button type="button" class="meal-grid__add-more" (click)="openPicker(day, meal)" [attr.aria-label]="addLabel(day, meal)">+</button>
                 }
               </td>
             }

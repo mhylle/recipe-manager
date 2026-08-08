@@ -504,6 +504,7 @@ export const da: Dictionary = {
   'mealPlan.done': 'Færdig',
   'mealPlan.markCooked': 'Markér som tilberedt: {{recipe}}',
   'mealPlan.addFor': 'Tilføj opskrift til {{day}} {{meal}}',
+  'mealPlan.addAnotherFor': 'Tilføj endnu en opskrift til {{day}} {{meal}}',
   'mealPlan.picker.dialogLabel': 'Vælg en opskrift',
   'mealPlan.picker.title': 'Vælg en opskrift',
   'mealPlan.picker.empty': 'Ingen opskrifter tilgængelige. Opret en opskrift først.',
