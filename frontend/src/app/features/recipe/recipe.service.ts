@@ -97,16 +97,25 @@ export class RecipeService {
     });
   }
 
+  /**
+   * Edit a recipe.
+   *
+   * Sends the current kitchen for the same reason `create` does. A recipe
+   * written before kitchens were recorded has none, and turning privacy on
+   * without naming one pins it to nothing — leaving it readable by its author
+   * alone rather than by the household (#65). The server only uses it in that
+   * case, and only after checking membership.
+   */
   update(
     id: string,
     recipe: RecipeWrite<Partial<Recipe>>,
     authoringLocale?: Locale,
   ): Observable<Recipe> {
-    return this.http.patch<Recipe>(
-      `${this.baseUrl}/${id}`,
-      recipe,
-      authoringHeader(authoringLocale),
-    );
+    const pantryId = this.pantryContext.currentId();
+    return this.http.patch<Recipe>(`${this.baseUrl}/${id}`, recipe, {
+      ...authoringHeader(authoringLocale),
+      ...(pantryId ? { params: { pantryId } } : {}),
+    });
   }
 
   delete(id: string): Observable<void> {

@@ -137,7 +137,15 @@ export class RecipeController {
     @Param('id') id: string,
     @Body() dto: UpdateRecipeRequestDto,
     @ReqLocale() locale: Locale,
+    @Query('pantryId') pantryId?: string,
   ): Promise<Recipe> {
+    // Resolved the same way create does, and needed for the same reason: a
+    // recipe being made private that belongs to no kitchen has to be pinned to
+    // one, or only its author will ever see it again.
+    const kitchenId = await this.pantryAccess
+      .resolve(user, pantryId)
+      .catch(() => null);
+
     return this.recipeService.update(
       id,
       user.id,
@@ -145,6 +153,7 @@ export class RecipeController {
       locale,
       dto.translations,
       dto.sourceLocale,
+      kitchenId,
     );
   }
 

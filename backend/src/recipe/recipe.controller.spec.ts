@@ -263,6 +263,9 @@ describe('RecipeController', () => {
         'en',
         undefined, // translations
         undefined, // sourceLocale
+        // The caller's kitchen. Only consulted when privacy is switched on for
+        // a recipe that belongs to none — see recipe-privacy-update.spec.ts.
+        'p-home',
       );
       expect(result.name).toBe('Blueberry Pancakes');
     });

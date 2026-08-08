@@ -66,7 +66,9 @@ describe('RecipeService', () => {
       findById: jest.fn(),
       // Ownership is checked before every write; the caller in these
       // tests is the recipe's author.
-      findOwner: jest.fn().mockResolvedValue({ createdById: 'u-martin' }),
+      findOwner: jest
+        .fn()
+        .mockResolvedValue({ createdById: 'u-martin', pantryId: null }),
       update: jest.fn(),
       delete: jest.fn(),
     };
@@ -341,7 +343,10 @@ describe('RecipeService', () => {
   });
   describe('regenerateImages', () => {
     it('forwards the CALLER\u2019s key, so one user cannot spend another\u2019s quota', async () => {
-      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findOwner.mockResolvedValue({
+        createdById: 'user-1',
+        pantryId: null,
+      });
       repository.findById.mockResolvedValue(mockRecipe);
 
       await service.regenerateImages(
@@ -365,7 +370,10 @@ describe('RecipeService', () => {
 
   describe('thumbnails', () => {
     it('makes one when a photograph is uploaded', async () => {
-      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findOwner.mockResolvedValue({
+        createdById: 'user-1',
+        pantryId: null,
+      });
       repository.update.mockResolvedValue(mockRecipe);
 
       await service.uploadImage('recipe-1', 'user-1', {
@@ -383,7 +391,10 @@ describe('RecipeService', () => {
     });
 
     it('makes one when an image is generated', async () => {
-      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findOwner.mockResolvedValue({
+        createdById: 'user-1',
+        pantryId: null,
+      });
       repository.findById.mockResolvedValue(mockRecipe);
       imageGeneration.generateHeroImage.mockResolvedValue(
         '/api/recipe-manager/images/recipes/hero.png',
@@ -401,7 +412,10 @@ describe('RecipeService', () => {
       // Null means "use the full image", which is what happened before
       // thumbnails existed — a failure degrades to slow, not to broken.
       thumbnails.generate.mockResolvedValue(null);
-      repository.findOwner.mockResolvedValue({ createdById: 'user-1' });
+      repository.findOwner.mockResolvedValue({
+        createdById: 'user-1',
+        pantryId: null,
+      });
       repository.update.mockResolvedValue(mockRecipe);
 
       await service.uploadImage('recipe-1', 'user-1', {
