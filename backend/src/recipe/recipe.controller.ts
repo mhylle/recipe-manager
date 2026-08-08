@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Put,
   Delete,
   Body,
   Param,
@@ -29,6 +30,7 @@ import {
 } from '../shared/auth/current-user.decorator.js';
 import type { LocalUser } from '../shared/auth/user.service.js';
 import type { RecipeTranslationInput } from './recipe.repository.js';
+import { ReplaceVariationsDto } from './dto/variation.dto.js';
 import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { OptionalSsoAuthGuard } from '../shared/auth/optional-sso-auth.guard.js';
@@ -124,6 +126,27 @@ export class RecipeController {
     // A recipe the caller may not read comes back 404, not 403 — see the
     // repository. Guessing an id should not confirm that it exists.
     return this.recipeService.findByIdFor(user?.id, id, locale, variation);
+  }
+
+  /**
+   * Replace a recipe's variations.
+   *
+   * PUT, not PATCH: the body is the whole set, so a variation the author
+   * removed actually goes. A merge would leave it alive with nothing pointing
+   * at it, and a meal plan could still be holding its id.
+   */
+  @UseGuards(SsoAuthGuard, ContributorGuard)
+  @Put(':id/variations')
+  async replaceVariations(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Body() body: ReplaceVariationsDto,
+  ): Promise<Recipe> {
+    return this.recipeService.replaceVariationsFor(
+      user.id,
+      id,
+      body.variations,
+    );
   }
 
   /** Every stored language for a recipe — powers the per-language editing UI. */

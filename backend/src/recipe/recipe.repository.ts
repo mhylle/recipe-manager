@@ -24,6 +24,7 @@ import {
   UNRESTRICTED,
   type RecipeAudience,
 } from './recipe-visibility.js';
+import type { RecipeVariationDto } from './dto/variation.dto.js';
 import {
   applyVariation,
   type BaseIngredient,
@@ -690,6 +691,77 @@ export class RecipeRepository {
   }
 
   /** Combine the flat payload with any extra languages into one entry per locale. */
+  /**
+   * Replace a recipe's variations with the set given.
+   *
+   * Replace rather than merge: a save carries the whole set, so a variation the
+   * author deleted actually disappears. Merging would leave removed ones alive
+   * with nothing pointing at them from the UI — and a meal plan could still be
+   * holding their ids, which is how a dinner ends up cooked a way nobody can
+   * see any more.
+   *
+   * One transaction, because between the delete and the writes a recipe has no
+   * variations at all, and a reader arriving then would be told the ciabatta has
+   * only one way to make it.
+   */
+  async replaceVariations(
+    recipeId: string,
+    variations: RecipeVariationDto[],
+  ): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.recipeVariation.deleteMany({ where: { recipeId } });
+
+      for (const [index, variation] of variations.entries()) {
+        await tx.recipeVariation.create({
+          data: {
+            recipeId,
+            sortOrder: variation.sortOrder ?? index,
+            prepTime: variation.prepTime ?? null,
+            cookTime: variation.cookTime ?? null,
+            translations: {
+              create: variation.texts.map((t) => ({
+                locale: t.locale,
+                name: t.name,
+                note: t.note,
+              })),
+            },
+            ingredients: {
+              create: (variation.ingredients ?? []).map((ing, order) => ({
+                // Null is meaningful: it is what distinguishes "add this" from
+                // "change that". Undefined would let Prisma omit the column.
+                ingredientId: ing.ingredientId ?? null,
+                removed: ing.removed ?? false,
+                quantity: ing.quantity ?? null,
+                unit: ing.unit ?? null,
+                pantryCategory: ing.pantryCategory ?? null,
+                sortOrder: ing.sortOrder ?? order,
+                translations: {
+                  create: (ing.names ?? []).map((n) => ({
+                    locale: n.locale,
+                    name: n.name,
+                  })),
+                },
+              })),
+            },
+            steps: {
+              create: (variation.steps ?? []).map((step) => ({
+                stepId: step.stepId ?? null,
+                removed: step.removed ?? false,
+                afterPosition: step.afterPosition ?? null,
+                translations: {
+                  create: (step.texts ?? []).map((t) => ({
+                    locale: t.locale,
+                    text: t.text,
+                  })),
+                },
+              })),
+            },
+          },
+        });
+      }
+    });
+  }
+
   private mergeTranslations(
     data: Omit<Recipe, 'id'>,
     sourceLocale: string,

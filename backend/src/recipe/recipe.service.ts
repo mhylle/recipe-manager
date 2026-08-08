@@ -14,6 +14,7 @@ import {
 } from './recipe.repository.js';
 import type { PageRequest, Paged } from '../shared/pagination.js';
 import { ANONYMOUS, UNRESTRICTED } from './recipe-visibility.js';
+import type { RecipeVariationDto } from './dto/variation.dto.js';
 import { RecipeVisibilityService } from './recipe-visibility.service.js';
 import { PantryAccessService } from '../pantry/pantry-access.service.js';
 
@@ -177,6 +178,26 @@ export class RecipeService {
       await this.audienceFor(viewerId),
       variationId,
     );
+  }
+
+  /**
+   * Replace a recipe's variations.
+   *
+   * Gated on authorship like every other write to a recipe: a variation changes
+   * what people cook and buy from it, so it is not a lesser edit.
+   */
+  async replaceVariationsFor(
+    userId: string,
+    id: string,
+    variations: RecipeVariationDto[],
+  ): Promise<Recipe> {
+    // The same authorship check as every other write to a recipe: a variation
+    // changes what people cook and buy from it, so it is not a lesser edit.
+    const owner = await this.recipeRepository.findOwner(id);
+    assertCanModify(owner, userId);
+
+    await this.recipeRepository.replaceVariations(id, variations);
+    return this.recipeRepository.findById(id, DEFAULT_LOCALE, UNRESTRICTED);
   }
 
   async findAllTranslationsFor(
