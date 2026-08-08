@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { MealPlanRepository } from './meal-plan.repository.js';
 import {
   MealPlan,
@@ -35,6 +39,14 @@ export class MealPlanService {
     return this.mealPlanRepository.findAll(pantryId);
   }
 
+  /**
+   * Plan a recipe into a slot.
+   *
+   * A slot may hold more than one meal, so adding alongside is the default.
+   * `dto.displace` is how a caller says "and deal with what is already there" —
+   * either removing that entry or moving it somewhere else — and both happen in
+   * the same repository call so a half-applied change cannot lose a meal.
+   */
   async addEntry(
     pantryId: string,
     mealPlanId: string,
@@ -46,7 +58,31 @@ export class MealPlanService {
       recipeId: dto.recipeId,
       servings: dto.servings,
     };
-    return this.mealPlanRepository.addEntry(pantryId, mealPlanId, entry);
+
+    if (!dto.displace) {
+      return this.mealPlanRepository.addEntry(pantryId, mealPlanId, entry);
+    }
+
+    const to = dto.displace.to;
+    if (to && to.day === dto.day && to.meal === dto.meal) {
+      // Moving the displaced meal into the slot being planned would either undo
+      // the displacement or double-book it, depending on write order — and the
+      // caller cannot have meant either.
+      throw new BadRequestException(
+        'Move the existing meal to a different slot — that is the one being planned.',
+      );
+    }
+
+    return this.mealPlanRepository.addEntryDisplacing(
+      pantryId,
+      mealPlanId,
+      entry,
+      {
+        index: dto.displace.index,
+        expectRecipeId: dto.displace.expectRecipeId,
+        to,
+      },
+    );
   }
 
   async removeEntry(

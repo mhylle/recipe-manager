@@ -98,6 +98,11 @@
           {{ (addingToList() ? 'recipe.detail.adding' : 'recipe.detail.addToShoppingList') | t }}
         </button>
       }
+      @if (authService.isAuthenticated()) {
+        <button type="button" class="btn btn--ghost btn--small" (click)="openPlan()">
+          {{ 'plan.action' | t }}
+        </button>
+      }
       @if (canEdit()) {
         <a [routerLink]="['/recipes', recipe()!.id, 'edit']" class="btn btn--ghost btn--small">
           {{ 'common.actions.edit' | t }}
@@ -145,6 +150,10 @@
         </button>
       }
     </div>
+
+    @if (planned()) {
+      <p class="recipe-view__planned" role="status">{{ 'plan.added' | t }}</p>
+    }
 
     @if (recipe()!.createdBy) {
       <p class="recipe-view__byline">
@@ -300,6 +309,14 @@
     <app-gemini-key-dialog
       (unlocked)="onKeyUnlocked($event)"
       (dismissed)="onKeyDialogDismissed()"
+    />
+  }
+
+  @if (planOpen()) {
+    <app-plan-recipe-dialog
+      [recipe]="recipe()!"
+      (planned)="onPlanned()"
+      (cancelled)="closePlan()"
     />
   }
 

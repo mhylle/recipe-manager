@@ -1,9 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   MealPlan,
   MealPlanEntry,
 } from '../shared/interfaces/meal-plan.interface.js';
+import type { DayOfWeek, MealType } from '../shared/enums/index.js';
 
 @Injectable()
 export class MealPlanRepository {
@@ -80,6 +85,73 @@ export class MealPlanRepository {
         mealPlanId,
       },
     });
+    return this.findById(pantryId, mealPlanId);
+  }
+
+  /**
+   * Add an entry while removing or moving one that is already there.
+   *
+   * Both halves run in one transaction. Sequenced as two requests instead, a
+   * failure after the delete leaves the plan short a meal the cook never asked
+   * to lose — and there is no undo for that in the UI.
+   *
+   * The index is resolved inside the transaction and checked against the recipe
+   * the caller expected to find. Indices are positional, so a household member
+   * editing the plan at the same time shifts them; without the check a stale
+   * index deletes whatever moved into that position instead.
+   */
+  async addEntryDisplacing(
+    pantryId: string,
+    mealPlanId: string,
+    entry: MealPlanEntry,
+    displace: {
+      index: number;
+      expectRecipeId: string;
+      to?: { day: DayOfWeek; meal: MealType };
+    },
+  ): Promise<MealPlan> {
+    // Same pantry guard as addEntry: a plan id from another household must not
+    // be writable, and it is checked before the transaction does any work.
+    await this.findById(pantryId, mealPlanId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const entries = await tx.mealPlanEntry.findMany({
+        where: { mealPlanId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      const existing = entries[displace.index];
+      if (!existing) {
+        throw new NotFoundException(
+          `Entry at index ${displace.index} not found`,
+        );
+      }
+      if (existing.recipeId !== displace.expectRecipeId) {
+        throw new ConflictException(
+          'That meal has changed since you loaded the plan. Reload and try again.',
+        );
+      }
+
+      if (displace.to) {
+        await tx.mealPlanEntry.update({
+          where: { id: existing.id },
+          data: { day: displace.to.day, meal: displace.to.meal },
+        });
+      } else {
+        await tx.mealPlanEntry.delete({ where: { id: existing.id } });
+      }
+
+      await tx.mealPlanEntry.create({
+        data: {
+          day: entry.day,
+          meal: entry.meal,
+          servings: entry.servings,
+          recipeId: entry.recipeId,
+          mealPlanId,
+        },
+      });
+    });
+
     return this.findById(pantryId, mealPlanId);
   }
 

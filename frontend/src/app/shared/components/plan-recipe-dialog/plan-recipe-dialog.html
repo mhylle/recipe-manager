@@ -1,0 +1,126 @@
+<dialog
+  #dialog
+  class="plandlg"
+  (close)="cancel()"
+  [attr.aria-label]="'plan.title' | t"
+>
+  <div class="plandlg__body">
+    <h2 class="plandlg__title">{{ 'plan.title' | t }}</h2>
+
+    @if (loading()) {
+      <p class="plandlg__status" role="status">{{ 'common.loading' | t }}</p>
+    } @else if (error() && !plan()) {
+      <p class="plandlg__error" role="alert">{{ error()! | t }}</p>
+    } @else {
+      @if (error()) {
+        <p class="plandlg__error" role="alert">{{ error()! | t }}</p>
+      }
+
+      @switch (step()) {
+        @case ('slot') {
+          <p class="plandlg__intro">
+            {{ 'plan.lede' | t: { name: recipe().name } }}
+          </p>
+          <p class="plandlg__week">{{ 'plan.weekOf' | t: { date: weekOf() } }}</p>
+
+          @for (day of days; track day) {
+            <section class="plandlg__day">
+              <h3 class="plandlg__day-name">{{ day | enumLabel: 'dayOfWeek' }}</h3>
+              <div class="plandlg__slots">
+                @for (meal of meals; track meal) {
+                  <button
+                    type="button"
+                    class="slot"
+                    [class.slot--taken]="isTaken(day, meal)"
+                    [disabled]="busy()"
+                    (click)="chooseSlot(day, meal)"
+                  >
+                    <span class="slot__meal">{{ meal | enumLabel: 'mealType' }}</span>
+                    @if (firstIn(day, meal); as occupant) {
+                      <span class="slot__taken">{{ occupant.name }}</span>
+                      @if (extraIn(day, meal); as extra) {
+                        <span class="slot__more">{{ 'plan.andMore' | t: { count: extra } }}</span>
+                      }
+                    } @else {
+                      <span class="slot__free">{{ 'plan.free' | t }}</span>
+                    }
+                  </button>
+                }
+              </div>
+            </section>
+          }
+        }
+
+        @case ('conflict') {
+          <p class="plandlg__intro">
+            {{
+              'plan.conflict'
+                | t
+                  : {
+                      day: (target()!.day | enumLabel: 'dayOfWeek'),
+                      meal: (target()!.meal | enumLabel: 'mealType'),
+                      existing: conflict()!.name
+                    }
+            }}
+          </p>
+          <p class="plandlg__note">{{ 'plan.conflictNote' | t }}</p>
+
+          <div class="plandlg__choices">
+            <button type="button" class="btn btn--primary" [disabled]="busy()" (click)="addAlongside()">
+              {{ 'plan.addAlongside' | t }}
+            </button>
+            <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="replace()">
+              {{ 'plan.replace' | t: { existing: conflict()!.name } }}
+            </button>
+            <button type="button" class="btn btn--ghost" [disabled]="busy()" (click)="startMove()">
+              {{ 'plan.move' | t: { existing: conflict()!.name } }}
+            </button>
+          </div>
+        }
+
+        @case ('moveTarget') {
+          <p class="plandlg__intro">
+            {{ 'plan.moveWhere' | t: { existing: conflict()!.name } }}
+          </p>
+
+          @for (day of days; track day) {
+            <section class="plandlg__day">
+              <h3 class="plandlg__day-name">{{ day | enumLabel: 'dayOfWeek' }}</h3>
+              <div class="plandlg__slots">
+                @for (meal of meals; track meal) {
+                  <button
+                    type="button"
+                    class="slot"
+                    [class.slot--taken]="isTaken(day, meal)"
+                    [disabled]="busy() || isTarget(day, meal)"
+                    (click)="chooseMoveTarget(day, meal)"
+                  >
+                    <span class="slot__meal">{{ meal | enumLabel: 'mealType' }}</span>
+                    @if (isTarget(day, meal)) {
+                      <span class="slot__free">{{ 'plan.thisSlot' | t }}</span>
+                    } @else if (firstIn(day, meal); as occupant) {
+                      <span class="slot__taken">{{ occupant.name }}</span>
+                    } @else {
+                      <span class="slot__free">{{ 'plan.free' | t }}</span>
+                    }
+                  </button>
+                }
+              </div>
+            </section>
+          }
+        }
+      }
+    }
+
+    <div class="plandlg__actions">
+      @if (step() !== 'slot') {
+        <button type="button" class="btn btn--text" [disabled]="busy()" (click)="back()">
+          {{ 'plan.back' | t }}
+        </button>
+      }
+      <button type="button" class="btn btn--text" (click)="cancel()">
+        {{ 'common.actions.cancel' | t }}
+      </button>
+    </div>
+  </div>
+</dialog>

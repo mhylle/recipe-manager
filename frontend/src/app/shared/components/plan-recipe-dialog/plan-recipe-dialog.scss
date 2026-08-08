@@ -1,0 +1,147 @@
+// Same modal family as gemini-key-dialog and transfer-recipe-dialog: a native
+// <dialog>, so the focus trap, Esc and top-layer stacking come for free.
+.plandlg {
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-lowest);
+  color: var(--on-surface);
+  max-width: min(34rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  box-shadow: 0 18px 48px rgba(45, 52, 51, 0.22);
+
+  &::backdrop {
+    background: rgba(45, 52, 51, 0.45);
+  }
+}
+
+.plandlg__body {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-card, 1.25rem);
+  // The week is 28 slots; on a phone that scrolls rather than compressing each
+  // one until the recipe names are unreadable.
+  overflow-y: auto;
+  max-height: calc(100vh - 2rem);
+}
+
+.plandlg__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+.plandlg__intro,
+.plandlg__status,
+.plandlg__note {
+  margin: 0.35rem 0 1rem;
+  color: var(--on-surface-variant);
+  font-size: 0.95rem;
+}
+
+.plandlg__week {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  color: var(--on-surface-variant);
+}
+
+.plandlg__error {
+  margin: 0 0 1rem;
+  padding: 0.75rem;
+  border-radius: var(--radius-lg);
+  background: var(--error-container, #ffdad6);
+  color: var(--on-error-container, #410002);
+  font-size: 0.9rem;
+}
+
+.plandlg__day {
+  margin-bottom: 0.85rem;
+}
+
+.plandlg__day-name {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--on-surface-variant);
+}
+
+.plandlg__slots {
+  display: grid;
+  // Four meals, but Danish meal names are long — let them wrap to two rows
+  // rather than squeezing the recipe name out of view.
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: 0.4rem;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  // 44px minimum: this is tapped on a phone in a kitchen.
+  min-block-size: 2.75rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: var(--surface-container-low);
+  color: var(--on-surface);
+  text-align: start;
+  cursor: pointer;
+  font: inherit;
+}
+
+.slot:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+.slot:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.slot:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.slot--taken {
+  background: var(--surface-container-high);
+}
+
+.slot__meal {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--on-surface-variant);
+}
+
+.slot__taken {
+  font-size: 0.85rem;
+  font-weight: 600;
+  // A long recipe name must not stretch the grid column.
+  overflow-wrap: anywhere;
+}
+
+.slot__free,
+.slot__more {
+  font-size: 0.8rem;
+  color: var(--on-surface-variant);
+}
+
+.plandlg__choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.plandlg__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  // Stays reachable while the slot list scrolls above it.
+  padding-top: 0.5rem;
+}
