@@ -39,3 +39,8 @@ backend/public/
 # this the manifest ships referencing ten icons that 404, and the browser
 # silently declines to offer installation.
 !frontend/public/icons/*.png
+
+# Data pulled from production for migration rehearsals. Never commit: the repo
+# is public and the library contains private recipes.
+recipe-corpus.json
+*-corpus.json

@@ -285,6 +285,8 @@ model PantryMember {
 model Recipe {
   id                String             @id @default(uuid())
   servings          Int
+  /// DEPRECATED — superseded by RecipeStep.imageUrl. Copied, not dropped; see
+  /// the note on RecipeTranslation.instructions.
   instructionImages String[]
   prepTime          Int
   cookTime          Int
@@ -326,6 +328,7 @@ model Recipe {
   ingredients       RecipeIngredient[]
   mealEntries       MealPlanEntry[]
   translations      RecipeTranslation[]
+  steps             RecipeStep[]
 
   // The recipe list filters on difficulty and the two times, and orders by
   // createdAt. These are the columns the WHERE and ORDER BY now touch.
@@ -341,15 +344,56 @@ model Recipe {
 // All localised recipe prose lives here, including the source locale — there is no
 // second copy on Recipe to drift out of sync.
 model RecipeTranslation {
-  id           String   @id @default(uuid())
-  locale       String
-  name         String
-  description  String
+  id          String @id @default(uuid())
+  locale      String
+  name        String
+  description String
+  /// DEPRECATED — superseded by RecipeStep/RecipeStepTranslation, which give a
+  /// step an id so a variation can override one.
+  ///
+  /// Copied, not dropped, and no longer read or written. Dropping it in the same
+  /// migration that copies it would leave no way back if the copy were wrong,
+  /// and this project has destroyed Danish recipe text once already. It goes
+  /// once the new tables are verified on production.
   instructions String[]
   recipeId     String
-  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@unique([recipeId, locale])
+  @@index([locale])
+}
+
+/// One step of a method, with an identity.
+///
+/// Was `RecipeTranslation.instructions[]` — an array per locale — with
+/// `Recipe.instructionImages[]` coupled to it BY POSITION, across two tables.
+/// Nothing could refer to "this step", so a variation could only patch by index,
+/// and index addressing has already cost this project two bugs.
+///
+/// The step itself is locale-independent: its position and its photograph are
+/// the same in every language. Only the text translates.
+model RecipeStep {
+  id        String  @id @default(uuid())
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sortOrder Int
+  /// Was instructionImages[sortOrder]. Null where a recipe has fewer photographs
+  /// than steps, which is the ordinary case rather than an error.
+  imageUrl     String?
+  translations RecipeStepTranslation[]
+
+  @@unique([recipeId, sortOrder])
+  @@index([recipeId])
+}
+
+model RecipeStepTranslation {
+  id     String     @id @default(uuid())
+  stepId String
+  step   RecipeStep @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  locale String
+  text   String
+
+  @@unique([stepId, locale])
   @@index([locale])
 }
 
