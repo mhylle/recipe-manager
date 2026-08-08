@@ -6,6 +6,26 @@ import { DayOfWeek } from '../../shared/enums/day-of-week.enum';
 import { MealType } from '../../shared/enums/meal-type.enum';
 import { environment } from '../../../environments/environment';
 
+/** A slot in the week: which day, which meal. */
+export interface MealSlot {
+  day: DayOfWeek;
+  meal: MealType;
+}
+
+/** What to do with an entry already occupying the chosen slot. */
+export interface DisplaceRequest {
+  index: number;
+  expectRecipeId: string;
+  /** Absent removes the displaced entry; present moves it there instead. */
+  to?: MealSlot;
+}
+
+export interface AddEntryRequest extends MealSlot {
+  recipeId: string;
+  servings: number;
+  displace?: DisplaceRequest;
+}
+
 @Injectable({ providedIn: 'root' })
 export class MealPlanService {
   private readonly http = inject(HttpClient);
@@ -15,7 +35,20 @@ export class MealPlanService {
     return this.http.get<MealPlan>(`${this.baseUrl}/week?date=${weekStartDate}`);
   }
 
-  addEntry(planId: string, entry: { day: DayOfWeek; meal: MealType; recipeId: string; servings: number }): Observable<MealPlan> {
+  /**
+   * Plan a recipe into a slot.
+   *
+   * A slot may hold more than one meal, so this adds alongside anything already
+   * there unless `displace` says otherwise. Both halves of a displacement are
+   * one request: sequencing a delete and an add from here would risk losing a
+   * meal if the second call failed.
+   *
+   * `displace.expectRecipeId` is what the caller believes sits at that index.
+   * Indices are positional, so a housemate editing the plan shifts them — the
+   * server compares before deleting and refuses on a mismatch rather than
+   * throwing away whatever moved into that position.
+   */
+  addEntry(planId: string, entry: AddEntryRequest): Observable<MealPlan> {
     return this.http.post<MealPlan>(`${this.baseUrl}/${planId}/entries`, entry);
   }
 

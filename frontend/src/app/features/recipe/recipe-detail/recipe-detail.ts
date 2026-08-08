@@ -20,6 +20,7 @@ import {
 import { TimerPushService } from '../../../shared/services/timer-push.service';
 import { GeminiKeyDialogComponent } from '../../../shared/components/gemini-key-dialog/gemini-key-dialog';
 import { TransferRecipeDialogComponent } from '../../../shared/components/transfer-recipe-dialog/transfer-recipe-dialog';
+import { PlanRecipeDialogComponent } from '../../../shared/components/plan-recipe-dialog/plan-recipe-dialog';
 
 /** Kept in step with RecipeImageService on the backend. */
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -44,6 +45,7 @@ import {
     LocaleNumberPipe,
     GeminiKeyDialogComponent,
     TransferRecipeDialogComponent,
+    PlanRecipeDialogComponent,
   ],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
@@ -65,6 +67,11 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   /** Whether the hand-over dialog is up. Author-only, gated by canEdit(). */
   readonly transferOpen = signal(false);
+
+  /** Whether the meal-plan picker is up. Open to anyone with a kitchen. */
+  readonly planOpen = signal(false);
+  /** Confirmation after planning, so the action is not silent. */
+  readonly planned = signal(false);
   readonly regenerating = signal(false);
   readonly addingToList = signal(false);
   readonly enablingPhoneAlarms = signal(false);
@@ -306,6 +313,25 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   onKeyDialogDismissed(): void {
     this.keyDialogOpen.set(false);
+  }
+
+  openPlan(): void {
+    this.planned.set(false);
+    this.planOpen.set(true);
+  }
+
+  closePlan(): void {
+    this.planOpen.set(false);
+  }
+
+  /**
+   * Planned. Confirmed in place rather than navigating to the meal plan: the
+   * cook is reading this recipe, and taking the page away from them to prove
+   * the click worked is a poor trade.
+   */
+  onPlanned(): void {
+    this.planOpen.set(false);
+    this.planned.set(true);
   }
 
   openTransfer(): void {
