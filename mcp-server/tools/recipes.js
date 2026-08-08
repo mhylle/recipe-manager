@@ -48,16 +48,27 @@ export const tools = [
   {
     name: 'recipes_get',
     description:
-      'Fetch one recipe in full — ingredients with quantities, and the numbered method. Use this before answering questions about how to cook something; `recipes_list` returns the same shape but is wasteful for a single dish.',
+      'Fetch one recipe in full — ingredients with quantities, and the numbered method. Use this before answering questions about how to cook something; `recipes_list` returns the same shape but is wasteful for a single dish. A recipe may carry `variations`: other ways to cook it, each with a name and the reason it exists. Pass `variationId` to get the recipe AS that variation — ingredients, method and times all resolved to it, so nothing has to apply the differences itself.',
     inputSchema: {
       type: 'object',
       properties: {
         id: { type: 'string', description: 'Recipe id.' },
+        variationId: {
+          type: 'string',
+          description:
+            "Which way to cook it, from this recipe's `variations`. Omit for the recipe as written.",
+        },
         ...localeProperty,
       },
       required: ['id'],
     },
-    handler: ({ id, locale }) => api.get(`/recipes/${id}`, { locale }),
+    handler: ({ id, variationId, locale }) =>
+      api.get(
+        variationId
+          ? `/recipes/${id}?variation=${encodeURIComponent(variationId)}`
+          : `/recipes/${id}`,
+        { locale },
+      ),
   },
 
   {
@@ -86,6 +97,11 @@ export const tools = [
         cookTime: { type: 'number', description: 'Minutes of cooking. Use 0 for no-bake dishes.' },
         difficulty: { type: 'string', enum: ['easy', 'medium', 'hard'] },
         tags: { type: 'array', items: { type: 'string' } },
+        // A recipe may come back with `variations` — other ways to cook it,
+        // each with a name and the reason it exists. Ask for one with
+        // `variationId` and the whole recipe resolves to it: ingredients,
+        // steps and times all reflect that choice, so nothing here has to
+        // apply differences itself.
         instructions: {
           type: 'array',
           items: { type: 'string' },

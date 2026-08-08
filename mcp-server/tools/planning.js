@@ -38,6 +38,11 @@ export const tools = [
         day: { type: 'string', enum: DAYS },
         meal: { type: 'string', enum: MEALS },
         servings: { type: 'number', description: 'How many people this sitting is for.' },
+        variationId: {
+          type: 'string',
+          description:
+            'Which way to cook it, from the recipe\'s `variations`. Omit for the recipe as written. Recorded now, because the shopping list is generated days later and cannot ask — plan the ciabatta\'s 10 g option and the list must contain 10 g of yeast and its sugar.',
+        },
         ...localeProperty,
       },
       required: ['mealPlanId', 'recipeId', 'day', 'meal', 'servings'],
