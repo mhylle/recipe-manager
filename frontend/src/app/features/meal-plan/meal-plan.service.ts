@@ -23,6 +23,13 @@ export interface DisplaceRequest {
 export interface AddEntryRequest extends MealSlot {
   recipeId: string;
   servings: number;
+  /**
+   * Which way to cook it. Absent is the recipe as written.
+   *
+   * Recorded when the meal is planned, because that is when the cook is
+   * actually choosing — the shopping happens days later and cannot ask.
+   */
+  variationId?: string;
   displace?: DisplaceRequest;
 }
 

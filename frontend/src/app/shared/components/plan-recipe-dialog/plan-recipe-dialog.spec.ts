@@ -256,3 +256,62 @@ describe('PlanRecipeDialogComponent', () => {
     });
   });
 });
+
+/**
+ * V5 — planning the version you were actually looking at.
+ *
+ * The variation is not asked for again here. The reader chose it on the recipe
+ * page they opened this from, and asking twice is asking somebody to remember
+ * their own answer.
+ */
+describe('PlanRecipeDialogComponent — planning a variation', () => {
+  it('sends the variation it was given, and nothing when there is none', async () => {
+    const { TestBed } = await import('@angular/core/testing');
+    const { PlanRecipeDialogComponent } = await import('./plan-recipe-dialog');
+    const { MealPlanService } = await import('../../../features/meal-plan/meal-plan.service');
+    const { RecipeService } = await import('../../../features/recipe/recipe.service');
+    const { of } = await import('rxjs');
+
+    const plan = { id: 'plan-1', weekStartDate: '2026-08-03', entries: [] };
+    const addEntry = vi.fn().mockReturnValue(of(plan));
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      imports: [PlanRecipeDialogComponent],
+      providers: [
+        {
+          provide: MealPlanService,
+          useValue: { getByWeek: vi.fn().mockReturnValue(of(plan)), addEntry },
+        },
+        { provide: RecipeService, useValue: { getAll: vi.fn().mockReturnValue(of([])) } },
+      ],
+    });
+
+    const fixture = TestBed.createComponent(PlanRecipeDialogComponent);
+    fixture.componentRef.setInput('recipe', {
+      id: 'r-ciabatta',
+      name: 'No-Knead Ciabatta',
+      servings: 1,
+      ingredients: [],
+      instructions: [],
+      prepTime: 740,
+      cookTime: 18,
+      difficulty: 'easy',
+      tags: [],
+      description: '',
+    });
+    fixture.componentRef.setInput('variationId', 'v-10g');
+    fixture.detectChanges();
+
+    fixture.componentInstance.chooseSlot(
+      // Monday dinner, which is empty, so it commits straight away.
+      'monday' as never,
+      'dinner' as never,
+    );
+
+    expect(addEntry).toHaveBeenCalledWith(
+      'plan-1',
+      expect.objectContaining({ recipeId: 'r-ciabatta', variationId: 'v-10g' }),
+    );
+  });
+});

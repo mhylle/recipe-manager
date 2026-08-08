@@ -60,6 +60,13 @@ export class PlanRecipeDialogComponent {
     viewChild<ElementRef<HTMLDialogElement>>('dialog');
 
   readonly recipe = input.required<Recipe>();
+  /**
+   * The variation the reader was looking at, planned along with the meal.
+   *
+   * Passed in rather than asked for again: they chose it on the page they came
+   * from, and asking twice is asking them to remember their own answer.
+   */
+  readonly variationId = input<string | null>(null);
 
   readonly planned = output<MealPlan>();
   readonly cancelled = output<void>();
@@ -216,11 +223,13 @@ export class PlanRecipeDialogComponent {
       return;
     }
 
+    const variationId = this.variationId();
     const request: AddEntryRequest = {
       day: target.day,
       meal: target.meal,
       recipeId: recipe.id,
       servings: recipe.servings,
+      ...(variationId ? { variationId } : {}),
       ...(displace ? { displace } : {}),
     };
 
