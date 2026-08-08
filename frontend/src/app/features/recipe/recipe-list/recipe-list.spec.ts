@@ -215,4 +215,57 @@ describe('RecipeListComponent', () => {
       expect(component.visibleCount()).toBe(12);
     });
   });
+
+  describe('filtering by tag', () => {
+    /** A tag list wide enough to tell "matches" from "over-matches". */
+    const tagged = [
+      { ...mockRecipes[0], id: 'r-personal', tags: ['personal', 'quick'] },
+      { ...mockRecipes[0], id: 'r-pepper', tags: ['pepper'] },
+      { ...mockRecipes[0], id: 'r-italian', tags: ['italian', 'dinner'] },
+    ];
+
+    const idsFor = (tags: string) => {
+      mockRecipeService.getAll.mockReturnValue(of(tagged));
+      component.loadItems({ tags } as never);
+      fixture.detectChanges();
+      return component.items().map((r) => r.id);
+    };
+
+    it('finds a tag from part of it', () => {
+      // #59: typing "per" should reach "personal" without spelling it out.
+      expect(idsFor('per')).toContain('r-personal');
+    });
+
+    it('matches anywhere in the tag, not only the start', () => {
+      // "per" is inside "pepper" too, and a substring match is what was asked
+      // for — so this documents the breadth rather than pretending it is exact.
+      expect(idsFor('per')).toEqual(
+        expect.arrayContaining(['r-personal', 'r-pepper']),
+      );
+    });
+
+    it('still excludes recipes with no matching tag', () => {
+      // The distractor: a filter that matched everything would satisfy both
+      // tests above and quietly stop filtering at all.
+      expect(idsFor('per')).not.toContain('r-italian');
+    });
+
+    it('keeps an exact tag working', () => {
+      expect(idsFor('italian')).toEqual(['r-italian']);
+    });
+
+    it('is case-insensitive', () => {
+      expect(idsFor('PERSONAL')).toContain('r-personal');
+    });
+
+    it('requires every comma-separated term to match something', () => {
+      // ALL terms, not any: narrowing is the point of adding a second one.
+      expect(idsFor('ital,din')).toEqual(['r-italian']);
+      expect(idsFor('ital,quick')).toEqual([]);
+    });
+
+    it('ignores a blank filter rather than matching nothing', () => {
+      expect(idsFor('  ')).toHaveLength(3);
+    });
+  });
 });

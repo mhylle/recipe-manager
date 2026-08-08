@@ -170,7 +170,16 @@ export class RecipeListComponent {
       if (filters?.tags) {
         const tags = filters.tags.split(',').map((t) => t.trim().toLowerCase()).filter((t) => t.length > 0);
         if (tags.length > 0) {
-          filtered = filtered.filter((r) => tags.every((tag) => r.tags.some((t) => t.toLowerCase() === tag)));
+          // Substring, not equality: typing "per" should reach "personal"
+          // without having to spell the whole tag (#59). It matches anywhere in
+          // the tag rather than only the start, which is broader — "per" also
+          // finds "pepper" — but that is what searching a short tag list wants.
+          //
+          // Still EVERY term, not any: adding a second word is how someone
+          // narrows a result set, and switching to `some` would widen it.
+          filtered = filtered.filter((r) =>
+            tags.every((tag) => r.tags.some((t) => t.toLowerCase().includes(tag))),
+          );
         }
       }
       if (filters?.cuisines?.length) {
