@@ -1,6 +1,6 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { of, throwError } from 'rxjs';
 import { MealPlanGridComponent } from './meal-plan-grid';
 import { MealPlanService } from '../meal-plan.service';
@@ -428,6 +428,131 @@ describe('MealPlanGridComponent — moving a meal to another day', () => {
     expect(host().textContent).toContain('The plan changed while you were looking at it');
     // And it reloaded, so the reader is not acting on what they can no longer see.
     expect(mealPlans.getByWeek).toHaveBeenCalledTimes(2);
+  });
+});
+
+/**
+ * #73 — a view mode where the photographs are the point.
+ *
+ * A 7x4 table cannot carry images: at a hundred pixels a column a thumbnail is
+ * a smudge. So the visual mode is a different layout rather than the same table
+ * with pictures in it — a day per column, one card per meal — and it replaces
+ * both the table and the phone list while it is on, so there is one layout to
+ * get right at every width instead of three.
+ */
+describe('MealPlanGridComponent — the visual view', () => {
+  let fixture: ComponentFixture<MealPlanGridComponent>;
+
+  const plan = {
+    id: 'plan-1',
+    weekStartDate: '2026-03-16',
+    entries: [
+      { day: DayOfWeek.MONDAY, meal: MealType.DINNER, recipeId: 'r1', servings: 4 },
+      { day: DayOfWeek.MONDAY, meal: MealType.DINNER, recipeId: 'r2', servings: 6 },
+      { day: DayOfWeek.TUESDAY, meal: MealType.LUNCH, recipeId: 'r3', servings: 2 },
+    ],
+  };
+
+  const withImages = [
+    { ...recipe('r1', 'Pancakes'), imageUrl: '/full/r1.png', thumbnailUrl: '/thumb/r1.webp' },
+    // No thumbnail yet: the conversion is pending or failed, and the card must
+    // still show something rather than a hole.
+    { ...recipe('r2', 'Lasagne'), imageUrl: '/full/r2.png' },
+    // No image at all.
+    recipe('r3', 'Soup'),
+  ];
+
+  const host = (): HTMLElement => fixture.nativeElement as HTMLElement;
+
+  beforeEach(async () => {
+    localStorage.clear();
+    await TestBed.configureTestingModule({
+      imports: [MealPlanGridComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: MealPlanService,
+          useValue: {
+            getByWeek: vi.fn().mockReturnValue(of(plan)),
+            addEntry: vi.fn().mockReturnValue(of(plan)),
+            removeEntry: vi.fn().mockReturnValue(of(plan)),
+            confirmCooked: vi.fn().mockReturnValue(of(undefined)),
+            moveEntry: vi.fn().mockReturnValue(of(plan)),
+          },
+        },
+        { provide: RecipeService, useValue: { getAll: vi.fn().mockReturnValue(of(withImages)) } },
+        { provide: ShoppingListService, useValue: { generate: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MealPlanGridComponent);
+    fixture.detectChanges();
+  });
+
+  // The view mode is a stored preference, so a test that changes it leaks into
+  // every later one — which is exactly how the #70 specs started rendering a
+  // board they never asked for.
+  afterEach(() => localStorage.clear());
+
+  const showVisual = () => {
+    (host().querySelector('.meal-plan__view-visual') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  };
+
+  it('starts compact, so nobody has their week rearranged by an upgrade', () => {
+    expect(host().querySelector('.meal-grid')).toBeTruthy();
+    expect(host().querySelector('.meal-board')).toBeNull();
+  });
+
+  it('replaces the table with a board of days', () => {
+    showVisual();
+
+    expect(host().querySelector('.meal-grid')).toBeNull();
+    expect(host().querySelectorAll('.meal-board__day').length).toBe(7);
+  });
+
+  it('prefers the thumbnail and falls back to the full image', () => {
+    showVisual();
+
+    const sources = Array.from(host().querySelectorAll<HTMLImageElement>('.meal-card__image')).map(
+      (img) => img.getAttribute('src'),
+    );
+    // 60 KB against 2 MB where one exists; the original where it does not.
+    expect(sources).toEqual(['/thumb/r1.webp', '/full/r2.png']);
+  });
+
+  it('shows a monogram rather than an empty frame when there is no picture', () => {
+    showVisual();
+
+    const soup = Array.from(host().querySelectorAll<HTMLElement>('.meal-card')).find((el) =>
+      el.textContent?.includes('Soup'),
+    );
+    expect(soup?.querySelector('img')).toBeNull();
+    expect(soup?.querySelector('.meal-card__monogram')?.textContent?.trim()).toBe('S');
+  });
+
+  it('lazy-loads every card image', () => {
+    // Seven days of dinners is seven requests the reader has not scrolled to.
+    showVisual();
+
+    const images = Array.from(host().querySelectorAll<HTMLImageElement>('.meal-card__image'));
+    expect(images.every((img) => img.getAttribute('loading') === 'lazy')).toBe(true);
+  });
+
+  it('still shows every meal in a slot that holds several', () => {
+    // #69 is a property of the plan, not of one layout.
+    showVisual();
+
+    const monday = host().querySelector('.meal-board__day') as HTMLElement;
+    const names = Array.from(monday.querySelectorAll<HTMLElement>('.meal-card__name')).map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(names).toEqual(['Pancakes', 'Lasagne']);
+  });
+
+  it('remembers the choice', () => {
+    showVisual();
+    expect(localStorage.getItem('recipe-manager.mealPlanViewMode')).toBe('visual');
   });
 });
 

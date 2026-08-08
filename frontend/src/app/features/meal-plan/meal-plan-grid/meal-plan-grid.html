@@ -8,6 +8,17 @@
       @if (currentWeek()) {
         <span class="meal-plan__week-label">{{ 'mealPlan.weekOf' | t: { date: currentWeek() } }}</span>
       }
+      <div class="meal-plan__views" role="group" [attr.aria-label]="'mealPlan.view.label' | t">
+        @for (mode of viewModes; track mode.value) {
+          <button type="button" class="meal-plan__view-btn"
+            [class]="'meal-plan__view-' + mode.value"
+            [class.meal-plan__view-btn--on]="viewMode() === mode.value"
+            [attr.aria-pressed]="viewMode() === mode.value"
+            (click)="setViewMode(mode.value)">
+            {{ mode.labelKey | t }}
+          </button>
+        }
+      </div>
       @if (hasPlannedMeals()) {
         <button type="button" class="btn btn--primary meal-plan__shopping-btn"
           (click)="makeShoppingList()" [disabled]="buildingList()">
@@ -37,6 +48,83 @@
 
   @if (!kitchenAvailable()) {
     <p class="meal-plan__locked" role="status">{{ 'mealPlan.signIn' | t }}</p>
+  } @else if (viewMode() === 'visual') {
+
+  <!-- Visual: a day per column, one card per meal, the photograph leading.
+       This replaces BOTH compact layouts rather than adding a third — one
+       layout that works from a phone to a desktop is one layout to keep right,
+       and the same helpers drive it, so it cannot disagree with them. -->
+  <div class="meal-board">
+    @for (day of days; track day) {
+      <section class="meal-board__day">
+        <h2 class="meal-board__name">{{ day | enumLabel: 'dayOfWeek' }}</h2>
+
+        @for (planned of plannedFor(day); track planned.entry._index) {
+          <article class="meal-card">
+            <div class="meal-card__frame">
+              @if (recipeImage(planned.entry.recipeId); as image) {
+                <!-- The thumbnail is around 60 KB against the original's 2 MB,
+                     and the frame reserves its ratio, so deferring the fetch
+                     costs no layout shift. Twenty-eight of these at full size
+                     would be tens of megabytes for one page. -->
+                <img class="meal-card__image" [src]="image"
+                  [alt]="getRecipeName(planned.entry.recipeId)" loading="lazy" decoding="async" />
+              } @else {
+                <span class="meal-card__monogram" aria-hidden="true">{{ recipeInitial(planned.entry.recipeId) }}</span>
+              }
+              <span class="meal-card__meal" [class]="'meal-day__meal--' + planned.meal">
+                {{ planned.meal | enumLabel: 'mealType' }}
+              </span>
+            </div>
+
+            <div class="meal-card__body">
+              @if (knowsRecipe(planned.entry.recipeId)) {
+                <a class="meal-card__name" [routerLink]="['/recipes', planned.entry.recipeId]">{{ getRecipeName(planned.entry.recipeId) }}</a>
+              } @else {
+                <span class="meal-card__name">{{ getRecipeName(planned.entry.recipeId) }}</span>
+              }
+              <span class="meal-card__servings">
+                {{ 'mealPlan.servingsShort' | t: { count: planned.entry.servings } }}
+              </span>
+              <div class="meal-card__actions">
+                <button type="button" class="btn btn--small btn--ghost" (click)="confirmCooked(planned.entry)"
+                  [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(planned.entry.recipeId) }">
+                  {{ 'mealPlan.done' | t }}
+                </button>
+                <button type="button" class="btn btn--small btn--text" (click)="startMove(planned.entry)"
+                  [attr.aria-label]="'mealPlan.moveNamed' | t: { name: getRecipeName(planned.entry.recipeId) }">
+                  {{ 'mealPlan.move' | t }}
+                </button>
+                <button type="button" class="btn btn--small btn--text" (click)="removeEntry(planned.entry)"
+                  [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(planned.entry.recipeId) }">
+                  {{ 'common.actions.remove' | t }}
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+
+        <div class="meal-board__add">
+          @for (meal of meals; track meal) {
+            @if (moving()) {
+              @if (!isMoveOrigin(day, meal)) {
+                <button type="button" class="meal-day__add-chip meal-day__move-target"
+                  (click)="moveTo(day, meal)" [attr.aria-label]="moveLabel(day, meal)">
+                  {{ meal | enumLabel: 'mealType' }}
+                </button>
+              }
+            } @else {
+              <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
+                [attr.aria-label]="addLabel(day, meal)">
+                + {{ meal | enumLabel: 'mealType' }}
+              </button>
+            }
+          }
+        </div>
+      </section>
+    }
+  </div>
+
   } @else {
 
   <!-- Phone layout: a day at a time. The 7x4 grid below is unreadable at

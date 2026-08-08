@@ -15,6 +15,12 @@ import {
 import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
 import { Router, RouterLink } from '@angular/router';
 import { ShoppingListService } from '../../shopping-list/shopping-list.service';
+import {
+  MEAL_PLAN_VIEW_MODES,
+  readStoredMealPlanViewMode,
+  writeStoredMealPlanViewMode,
+  type MealPlanViewMode,
+} from '../meal-plan-view-mode';
 
 /** A planned meal plus the position the API addresses it by. */
 export type PlannedEntry = MealPlanEntry & { _index: number };
@@ -57,6 +63,31 @@ export class MealPlanGridComponent {
 
   readonly buildingList = signal(false);
   readonly listFailed = signal(false);
+
+  readonly viewModes = MEAL_PLAN_VIEW_MODES;
+  readonly viewMode = signal<MealPlanViewMode>(readStoredMealPlanViewMode());
+
+  setViewMode(mode: MealPlanViewMode): void {
+    this.viewMode.set(mode);
+    writeStoredMealPlanViewMode(mode);
+  }
+
+  /**
+   * The picture for a planned meal, smallest useful copy first.
+   *
+   * The thumbnail is around 60 KB against the original's 2 MB. Null means the
+   * conversion has not run or failed, and the full image still works — a card
+   * with a hole in it would be a worse answer than a slow one.
+   */
+  recipeImage(recipeId: string): string | null {
+    const r = this.recipes().get(recipeId);
+    return r?.thumbnailUrl ?? r?.imageUrl ?? null;
+  }
+
+  /** Stands in for a photograph that does not exist. */
+  recipeInitial(recipeId: string): string {
+    return this.getRecipeName(recipeId).trim().charAt(0).toUpperCase();
+  }
 
   /** The meal being moved, while the reader picks where it goes. */
   readonly moving = signal<PlannedEntry | null>(null);
