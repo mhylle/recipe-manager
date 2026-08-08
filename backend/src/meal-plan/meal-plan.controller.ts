@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Delete,
+  Patch,
   Body,
   Param,
   Query,
@@ -12,6 +13,7 @@ import {
 import { MealPlanService } from './meal-plan.service.js';
 import { DeductionService } from './deduction/deduction.service.js';
 import { AddMealPlanEntryDto } from './dto/add-meal-plan-entry.dto.js';
+import { MoveMealPlanEntryDto } from './dto/move-meal-plan-entry.dto.js';
 import type { MealPlan } from '../shared/interfaces/meal-plan.interface.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { CurrentUser } from '../shared/auth/current-user.decorator.js';
@@ -62,6 +64,26 @@ export class MealPlanController {
     return this.mealPlanService.addEntry(
       await this.access.resolve(user, pantryId),
       id,
+      dto,
+    );
+  }
+
+  /**
+   * Move a planned meal to another slot. PATCH on the slot rather than a POST
+   * that recreates it: the entry keeps its identity and its position.
+   */
+  @Patch(':id/entries/:index/slot')
+  async moveEntry(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Param('index', ParseIntPipe) index: number,
+    @Body() dto: MoveMealPlanEntryDto,
+    @Query('pantryId') pantryId?: string,
+  ): Promise<MealPlan> {
+    return this.mealPlanService.moveEntry(
+      await this.access.resolve(user, pantryId),
+      id,
+      index,
       dto,
     );
   }

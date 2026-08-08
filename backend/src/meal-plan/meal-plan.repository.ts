@@ -155,6 +155,54 @@ export class MealPlanRepository {
     return this.findById(pantryId, mealPlanId);
   }
 
+  /**
+   * Move a planned meal to another slot.
+   *
+   * Its own operation rather than a displacement: "cook it on Wednesday
+   * instead" deletes nothing, and routing it through addEntryDisplacing would
+   * recreate the row for no reason.
+   *
+   * The row is UPDATED, so the entry keeps its position in the plan. Every other
+   * route addresses entries positionally, and a move that renumbered them would
+   * silently change what a delete already in flight points at.
+   *
+   * Same stale-index guard as displacement, and for the same reason: positions
+   * shift as a household edits the plan, so the caller says which recipe it
+   * believed was there and the server checks inside the transaction.
+   */
+  async moveEntryByIndex(
+    pantryId: string,
+    mealPlanId: string,
+    index: number,
+    to: { day: DayOfWeek; meal: MealType; expectRecipeId: string },
+  ): Promise<MealPlan> {
+    await this.findById(pantryId, mealPlanId);
+
+    await this.prisma.$transaction(async (tx) => {
+      const entries = await tx.mealPlanEntry.findMany({
+        where: { mealPlanId },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      const existing = entries[index];
+      if (!existing) {
+        throw new NotFoundException(`Entry at index ${index} not found`);
+      }
+      if (existing.recipeId !== to.expectRecipeId) {
+        throw new ConflictException(
+          'That meal has changed since you loaded the plan. Reload and try again.',
+        );
+      }
+
+      await tx.mealPlanEntry.update({
+        where: { id: existing.id },
+        data: { day: to.day, meal: to.meal },
+      });
+    });
+
+    return this.findById(pantryId, mealPlanId);
+  }
+
   async removeEntryByIndex(
     pantryId: string,
     mealPlanId: string,

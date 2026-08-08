@@ -9,6 +9,7 @@ import {
   MealPlanEntry,
 } from '../shared/interfaces/meal-plan.interface.js';
 import { AddMealPlanEntryDto } from './dto/add-meal-plan-entry.dto.js';
+import { MoveMealPlanEntryDto } from './dto/move-meal-plan-entry.dto.js';
 
 @Injectable()
 export class MealPlanService {
@@ -81,6 +82,31 @@ export class MealPlanService {
         index: dto.displace.index,
         expectRecipeId: dto.displace.expectRecipeId,
         to,
+      },
+    );
+  }
+
+  /**
+   * Move a planned meal to another slot.
+   *
+   * Thin on purpose: the ordering, the position check and the recipe check all
+   * have to happen inside one transaction, so they live in the repository rather
+   * than being sequenced from here.
+   */
+  async moveEntry(
+    pantryId: string,
+    mealPlanId: string,
+    entryIndex: number,
+    to: MoveMealPlanEntryDto,
+  ): Promise<MealPlan> {
+    return this.mealPlanRepository.moveEntryByIndex(
+      pantryId,
+      mealPlanId,
+      entryIndex,
+      {
+        day: to.day,
+        meal: to.meal,
+        expectRecipeId: to.expectRecipeId,
       },
     );
   }

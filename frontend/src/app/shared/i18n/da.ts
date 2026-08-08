@@ -506,6 +506,14 @@ export const da: Dictionary = {
   'mealPlan.addFor': 'Tilføj opskrift til {{day}} {{meal}}',
   'mealPlan.addAnotherFor': 'Tilføj endnu en opskrift til {{day}} {{meal}}',
   'mealPlan.makeShoppingList': 'Lav indkøbsliste',
+  'mealPlan.move': 'Flyt',
+  'mealPlan.moveNamed': 'Flyt {{name}} til et andet måltid',
+  'mealPlan.movingRecipe': 'Flytter {{recipe}} — vælg hvor den skal hen',
+  'mealPlan.moveHere': 'Flyt hertil',
+  'mealPlan.moveHereFor': 'Flyt {{recipe}} til {{day}} {{meal}}',
+  'mealPlan.moveStale':
+    'Madplanen blev ændret, mens du kiggede på den, så intet blev flyttet. Den er hentet igen.',
+  'mealPlan.moveFailed': 'Måltidet kunne ikke flyttes. Prøv igen om et øjeblik.',
   'mealPlan.shoppingListFailed':
     'Indkøbslisten kunne ikke oprettes. Prøv igen om et øjeblik.',
   'mealPlan.picker.dialogLabel': 'Vælg en opskrift',

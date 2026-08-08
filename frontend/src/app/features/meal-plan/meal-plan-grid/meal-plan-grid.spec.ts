@@ -182,11 +182,17 @@ describe('MealPlanGridComponent — a slot holding more than one meal', () => {
     );
   });
 
+  /** By its label, not its position — the action bar grows over time. */
+  const actionIn = (card: HTMLElement, label: string): HTMLButtonElement => {
+    const button = card.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+    expect(button, `no "${label}" button`).toBeTruthy();
+    return button as HTMLButtonElement;
+  };
+
   it('removes the meal whose button was pressed, by its position in the plan', () => {
     const lasagne = cardFor('Lasagne', '.meal-grid__entry');
-    const remove = lasagne.querySelectorAll('button')[1] as HTMLButtonElement;
 
-    remove.click();
+    actionIn(lasagne, 'Remove Lasagne').click();
 
     // 2, not 1: Lasagne is the second meal in the slot but the third entry in
     // the plan, and the API addresses entries by their position in the plan.
@@ -195,18 +201,16 @@ describe('MealPlanGridComponent — a slot holding more than one meal', () => {
 
   it('marks cooked the meal whose button was pressed, by its position in the plan', () => {
     const lasagne = cardFor('Lasagne', '.meal-grid__entry');
-    const done = lasagne.querySelectorAll('button')[0] as HTMLButtonElement;
 
-    done.click();
+    actionIn(lasagne, 'Mark as cooked: Lasagne').click();
 
     expect(mealPlanService.confirmCooked).toHaveBeenCalledWith('plan-1', 2);
   });
 
   it('removes the right meal from the phone layout too', () => {
     const lasagne = cardFor('Lasagne', '.meal-day__entry');
-    const remove = lasagne.querySelectorAll('button')[1] as HTMLButtonElement;
 
-    remove.click();
+    actionIn(lasagne, 'Remove Lasagne').click();
 
     expect(mealPlanService.removeEntry).toHaveBeenCalledWith('plan-1', 2);
   });
@@ -297,6 +301,133 @@ describe('MealPlanGridComponent — making the shopping list', () => {
     expect((fixture.nativeElement as HTMLElement).textContent).toContain(
       'The shopping list could not be created',
     );
+  });
+});
+
+/**
+ * #71 — cook it on Wednesday instead.
+ *
+ * Choosing the destination is a second click, so the grid enters a mode: the
+ * meal being moved is named, and every slot but its own becomes a target.
+ */
+describe('MealPlanGridComponent — moving a meal to another day', () => {
+  let fixture: ComponentFixture<MealPlanGridComponent>;
+  let mealPlans: {
+    getByWeek: ReturnType<typeof vi.fn>;
+    addEntry: ReturnType<typeof vi.fn>;
+    removeEntry: ReturnType<typeof vi.fn>;
+    confirmCooked: ReturnType<typeof vi.fn>;
+    moveEntry: ReturnType<typeof vi.fn>;
+  };
+
+  const plan = {
+    id: 'plan-1',
+    weekStartDate: '2026-03-16',
+    entries: [
+      { day: DayOfWeek.MONDAY, meal: MealType.DINNER, recipeId: 'r1', servings: 4 },
+      { day: DayOfWeek.TUESDAY, meal: MealType.LUNCH, recipeId: 'r3', servings: 2 },
+      { day: DayOfWeek.MONDAY, meal: MealType.DINNER, recipeId: 'r2', servings: 6 },
+    ],
+  };
+
+  const host = (): HTMLElement => fixture.nativeElement as HTMLElement;
+
+  /** Start moving the named meal, from the desktop grid. */
+  const startMoving = (name: string) => {
+    const card = Array.from(host().querySelectorAll<HTMLElement>('.meal-grid__entry')).find(
+      (el) => el.textContent?.includes(name),
+    );
+    (card?.querySelector('.meal-grid__move-btn') as HTMLButtonElement).click();
+    fixture.detectChanges();
+  };
+
+  const targets = (): HTMLButtonElement[] =>
+    Array.from(host().querySelectorAll<HTMLButtonElement>('.meal-grid__move-target'));
+
+  const build = async (moveEntry: ReturnType<typeof vi.fn>) => {
+    mealPlans = {
+      getByWeek: vi.fn().mockReturnValue(of(plan)),
+      addEntry: vi.fn().mockReturnValue(of(plan)),
+      removeEntry: vi.fn().mockReturnValue(of(plan)),
+      confirmCooked: vi.fn().mockReturnValue(of(undefined)),
+      moveEntry,
+    };
+
+    await TestBed.configureTestingModule({
+      imports: [MealPlanGridComponent],
+      providers: [
+        provideRouter([]),
+        { provide: MealPlanService, useValue: mealPlans },
+        {
+          provide: RecipeService,
+          useValue: {
+            getAll: vi
+              .fn()
+              .mockReturnValue(
+                of([recipe('r1', 'Pancakes'), recipe('r2', 'Lasagne'), recipe('r3', 'Soup')]),
+              ),
+          },
+        },
+        { provide: ShoppingListService, useValue: { generate: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MealPlanGridComponent);
+    fixture.detectChanges();
+  };
+
+  it('moves the meal by its position in the plan, naming what it expects to find', async () => {
+    await build(vi.fn().mockReturnValue(of(plan)));
+
+    startMoving('Lasagne');
+    const wednesdayLunch = targets().find(
+      (b) => b.getAttribute('aria-label') === 'Move Lasagne to Wednesday Lunch',
+    );
+    wednesdayLunch?.click();
+
+    // Index 2, not 1: second in its slot, third in the plan. And the recipe it
+    // expects to find there, so a shifted index is refused rather than moving
+    // whatever took its place.
+    expect(mealPlans.moveEntry).toHaveBeenCalledWith('plan-1', 2, {
+      day: DayOfWeek.WEDNESDAY,
+      meal: MealType.LUNCH,
+      expectRecipeId: 'r2',
+    });
+  });
+
+  it('offers no target in the slot the meal is already in', async () => {
+    await build(vi.fn().mockReturnValue(of(plan)));
+
+    startMoving('Lasagne');
+
+    const labels = targets().map((b) => b.getAttribute('aria-label'));
+    expect(labels).not.toContain('Move Lasagne to Monday Dinner');
+    expect(labels.length).toBe(27); // 28 slots less its own
+  });
+
+  it('leaves move mode alone when cancelled', async () => {
+    await build(vi.fn());
+
+    startMoving('Lasagne');
+    (host().querySelector('.meal-plan__move-cancel') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(targets().length).toBe(0);
+    expect(mealPlans.moveEntry).not.toHaveBeenCalled();
+  });
+
+  it('says so when the plan moved under it', async () => {
+    await build(
+      vi.fn().mockReturnValue(throwError(() => ({ status: 409 }))),
+    );
+
+    startMoving('Lasagne');
+    targets()[0].click();
+    fixture.detectChanges();
+
+    expect(host().textContent).toContain('The plan changed while you were looking at it');
+    // And it reloaded, so the reader is not acting on what they can no longer see.
+    expect(mealPlans.getByWeek).toHaveBeenCalledTimes(2);
   });
 });
 

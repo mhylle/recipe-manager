@@ -52,6 +52,25 @@ export class MealPlanService {
     return this.http.post<MealPlan>(`${this.baseUrl}/${planId}/entries`, entry);
   }
 
+  /**
+   * Move a planned meal to another slot.
+   *
+   * `expectRecipeId` is required, not optional: this addresses an existing entry
+   * by position, and positions shift as a household edits the plan. The server
+   * compares before moving anything and answers 409 rather than moving whatever
+   * has taken that position.
+   */
+  moveEntry(
+    planId: string,
+    entryIndex: number,
+    to: MealSlot & { expectRecipeId: string },
+  ): Observable<MealPlan> {
+    return this.http.patch<MealPlan>(
+      `${this.baseUrl}/${planId}/entries/${entryIndex}/slot`,
+      to,
+    );
+  }
+
   removeEntry(planId: string, entryIndex: number): Observable<MealPlan> {
     return this.http.delete<MealPlan>(`${this.baseUrl}/${planId}/entries/${entryIndex}`);
   }

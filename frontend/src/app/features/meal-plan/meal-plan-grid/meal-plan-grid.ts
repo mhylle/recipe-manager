@@ -58,6 +58,10 @@ export class MealPlanGridComponent {
   readonly buildingList = signal(false);
   readonly listFailed = signal(false);
 
+  /** The meal being moved, while the reader picks where it goes. */
+  readonly moving = signal<PlannedEntry | null>(null);
+  readonly moveError = signal<'mealPlan.moveStale' | 'mealPlan.moveFailed' | null>(null);
+
   /** Nothing planned is nothing to shop for, so the button stays away. */
   readonly hasPlannedMeals = computed(() => (this.plan()?.entries.length ?? 0) > 0);
 
@@ -188,6 +192,69 @@ export class MealPlanGridComponent {
         this.listFailed.set(true);
       },
     });
+  }
+
+  /** Start moving a meal. Nothing is written until a destination is chosen. */
+  startMove(entry: PlannedEntry): void {
+    this.moveError.set(null);
+    this.moving.set(entry);
+  }
+
+  cancelMove(): void {
+    this.moving.set(null);
+  }
+
+  /** The slot a meal is already in is not somewhere to move it. */
+  isMoveOrigin(day: DayOfWeek, meal: MealType): boolean {
+    const m = this.moving();
+    return m !== null && m.day === day && m.meal === meal;
+  }
+
+  moveLabel(day: DayOfWeek, meal: MealType): string {
+    const m = this.moving();
+    return this.locale.translate('mealPlan.moveHereFor', {
+      recipe: m ? this.getRecipeName(m.recipeId) : '',
+      day: this.locale.translate(`enum.dayOfWeek.${day}`),
+      meal: this.locale.translate(`enum.mealType.${meal}`),
+    });
+  }
+
+  /** What the banner says while a destination is being chosen. */
+  movingLabel(): string {
+    const m = this.moving();
+    return this.locale.translate('mealPlan.movingRecipe', {
+      recipe: m ? this.getRecipeName(m.recipeId) : '',
+    });
+  }
+
+  moveTo(day: DayOfWeek, meal: MealType): void {
+    const p = this.plan();
+    const entry = this.moving();
+    if (!p || !entry || this.isMoveOrigin(day, meal)) return;
+
+    this.mealPlanService
+      .moveEntry(p.id, entry._index, {
+        day,
+        meal,
+        // What we believe sits at that position. The server refuses rather than
+        // moving whatever a housemate's edit has shifted into it.
+        expectRecipeId: entry.recipeId,
+      })
+      .subscribe({
+        next: (updated) => {
+          this.moving.set(null);
+          this.plan.set(updated);
+        },
+        error: (err: { status?: number }) => {
+          this.moving.set(null);
+          this.moveError.set(
+            err.status === 409 ? 'mealPlan.moveStale' : 'mealPlan.moveFailed',
+          );
+          // On 409 what is on screen is already wrong; reload rather than let
+          // the next click act on positions that have moved.
+          if (err.status === 409) this.loadPlan();
+        },
+      });
   }
 
   openPicker(day: DayOfWeek, meal: MealType): void {

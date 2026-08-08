@@ -38,6 +38,21 @@
   white-space: nowrap;
 }
 
+/* While a meal is being moved, what the next click will do. */
+.meal-plan__moving {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  color: var(--on-surface);
+  background: var(--primary-container);
+  border-radius: var(--radius-md);
+}
+
 .meal-plan__list-error {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;
@@ -199,6 +214,37 @@ a.meal-day__recipe {
   border-color: var(--primary);
   color: var(--primary);
   background: rgba(62, 106, 0, 0.03);
+}
+
+/*
+ * A destination while a meal is being moved. Solid rather than dashed: during a
+ * move these are the only live controls in the grid, so they should read as the
+ * thing to press.
+ */
+.meal-grid__move-target {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.25rem;
+  font: inherit;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  color: var(--primary);
+  background: var(--primary-container);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+}
+
+.meal-day__move-target {
+  color: var(--primary);
+  border-style: solid;
+  border-color: var(--primary);
 }
 
 /*

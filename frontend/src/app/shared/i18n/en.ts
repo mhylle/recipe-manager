@@ -531,6 +531,14 @@ export const en = {
   'mealPlan.addFor': 'Add recipe for {{day}} {{meal}}',
   'mealPlan.addAnotherFor': 'Add another recipe for {{day}} {{meal}}',
   'mealPlan.makeShoppingList': 'Make shopping list',
+  'mealPlan.move': 'Move',
+  'mealPlan.moveNamed': 'Move {{name}} to another slot',
+  'mealPlan.movingRecipe': 'Moving {{recipe}} — choose where it goes',
+  'mealPlan.moveHere': 'Move here',
+  'mealPlan.moveHereFor': 'Move {{recipe}} to {{day}} {{meal}}',
+  'mealPlan.moveStale':
+    'The plan changed while you were looking at it, so nothing was moved. It has been reloaded.',
+  'mealPlan.moveFailed': 'That meal could not be moved. Try again in a moment.',
   'mealPlan.shoppingListFailed':
     'The shopping list could not be created. Try again in a moment.',
   'mealPlan.picker.dialogLabel': 'Select a recipe',

@@ -21,6 +21,20 @@
     <p class="meal-plan__list-error" role="alert">{{ 'mealPlan.shoppingListFailed' | t }}</p>
   }
 
+  <!-- Choosing where a meal goes is a second click, so the grid says what it is
+       waiting for rather than leaving every slot mysteriously clickable. -->
+  @if (moving()) {
+    <div class="meal-plan__moving" role="status">
+      <span>{{ movingLabel() }}</span>
+      <button type="button" class="btn btn--small btn--text meal-plan__move-cancel"
+        (click)="cancelMove()">{{ 'common.actions.cancel' | t }}</button>
+    </div>
+  }
+
+  @if (moveError(); as failure) {
+    <p class="meal-plan__list-error" role="alert">{{ failure | t }}</p>
+  }
+
   @if (!kitchenAvailable()) {
     <p class="meal-plan__locked" role="status">{{ 'mealPlan.signIn' | t }}</p>
   } @else {
@@ -51,6 +65,10 @@
                 [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(planned.entry.recipeId) }">
                 {{ 'mealPlan.done' | t }}
               </button>
+              <button type="button" class="btn btn--small btn--text meal-day__move-btn" (click)="startMove(planned.entry)"
+                [attr.aria-label]="'mealPlan.moveNamed' | t: { name: getRecipeName(planned.entry.recipeId) }">
+                {{ 'mealPlan.move' | t }}
+              </button>
               <button type="button" class="btn btn--small btn--text" (click)="removeEntry(planned.entry)"
                 [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(planned.entry.recipeId) }">
                 {{ 'common.actions.remove' | t }}
@@ -61,13 +79,23 @@
 
         <!-- Every meal, not only the free ones: a slot that already holds a
              dinner can still take a second, and the chip is the only way in
-             from a phone. -->
+             from a phone. While a meal is being moved the same chips become
+             where it goes. -->
         <div class="meal-day__add">
           @for (meal of meals; track meal) {
-            <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
-              [attr.aria-label]="addLabel(day, meal)">
-              + {{ meal | enumLabel: 'mealType' }}
-            </button>
+            @if (moving()) {
+              @if (!isMoveOrigin(day, meal)) {
+                <button type="button" class="meal-day__add-chip meal-day__move-target"
+                  (click)="moveTo(day, meal)" [attr.aria-label]="moveLabel(day, meal)">
+                  {{ meal | enumLabel: 'mealType' }}
+                </button>
+              }
+            } @else {
+              <button type="button" class="meal-day__add-chip" (click)="openPicker(day, meal)"
+                [attr.aria-label]="addLabel(day, meal)">
+                + {{ meal | enumLabel: 'mealType' }}
+              </button>
+            }
           }
         </div>
       </section>
@@ -104,15 +132,20 @@
                     <span class="meal-grid__servings">{{ 'mealPlan.servingsShort' | t: { count: entry.servings } }}</span>
                     <div class="meal-grid__entry-actions">
                       <button type="button" class="btn btn--small btn--ghost" (click)="confirmCooked(entry)" [attr.aria-label]="'mealPlan.markCooked' | t: { recipe: getRecipeName(entry.recipeId) }">{{ 'mealPlan.done' | t }}</button>
+                      <button type="button" class="btn btn--small btn--text meal-grid__move-btn" (click)="startMove(entry)" [attr.aria-label]="'mealPlan.moveNamed' | t: { name: getRecipeName(entry.recipeId) }">{{ 'mealPlan.move' | t }}</button>
                       <button type="button" class="btn btn--small btn--text" (click)="removeEntry(entry)" [attr.aria-label]="'common.actions.removeNamed' | t: { name: getRecipeName(entry.recipeId) }">{{ 'common.actions.remove' | t }}</button>
                     </div>
                   </div>
-                } @empty {
-                  <button type="button" class="meal-grid__add-btn" (click)="openPicker(day, meal)" [attr.aria-label]="addLabel(day, meal)">+</button>
                 }
-                @if (entriesFor(day, meal).length) {
+                @if (moving()) {
+                  @if (!isMoveOrigin(day, meal)) {
+                    <button type="button" class="meal-grid__move-target" (click)="moveTo(day, meal)" [attr.aria-label]="moveLabel(day, meal)">{{ 'mealPlan.moveHere' | t }}</button>
+                  }
+                } @else if (entriesFor(day, meal).length) {
                   <!-- The slot is occupied, not full. -->
                   <button type="button" class="meal-grid__add-more" (click)="openPicker(day, meal)" [attr.aria-label]="addLabel(day, meal)">+</button>
+                } @else {
+                  <button type="button" class="meal-grid__add-btn" (click)="openPicker(day, meal)" [attr.aria-label]="addLabel(day, meal)">+</button>
                 }
               </td>
             }
