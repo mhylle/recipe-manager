@@ -170,6 +170,32 @@
       </div>
     }
 
+    <!-- The other ways to cook this. Absent for a recipe with only one way,
+         which is most of them, so it costs nothing where it is not wanted. -->
+    @if (recipe()!.variations?.length) {
+      <section class="recipe-variations" [attr.aria-label]="'recipe.variations.label' | t">
+        <div class="recipe-variations__choices" role="group" [attr.aria-label]="'recipe.variations.label' | t">
+          <button type="button" class="recipe-variations__choice"
+            [class.recipe-variations__choice--on]="chosenVariation() === null"
+            [attr.aria-pressed]="chosenVariation() === null"
+            (click)="chooseVariation(null)">
+            {{ 'recipe.variations.asWritten' | t }}
+          </button>
+          @for (variation of recipe()!.variations; track variation.id) {
+            <button type="button" class="recipe-variations__choice"
+              [class.recipe-variations__choice--on]="chosenVariation() === variation.id"
+              [attr.aria-pressed]="chosenVariation() === variation.id"
+              (click)="chooseVariation(variation.id)">
+              {{ variation.name }}
+            </button>
+          }
+        </div>
+        @if (variationNote()) {
+          <p class="recipe-variations__note">{{ variationNote() }}</p>
+        }
+      </section>
+    }
+
     <!-- Two Column Layout: Ingredients + Instructions -->
     <div class="recipe-view__body">
       <!-- Ingredients Panel -->

@@ -374,6 +374,8 @@ export const da: Dictionary = {
   'pantry.create.errFailed': 'K\u00f8kkenet kunne ikke oprettes. Pr\u00f8v igen om et \u00f8jeblik.',
   'pantry.state.noPantry': 'Du har ikke et køkken endnu.',
   'pantry.switcher.label': 'Køkken',
+  'recipe.variations.label': 'Måder at lave den på',
+  'recipe.variations.asWritten': 'Som skrevet',
   'recipe.detail.scaleLabel': 'Skalér opskrift',
   'recipe.detail.scaleServings': 'Portioner',
   'recipe.detail.scaleNote': 'Mængderne er skaleret. Teksten i fremgangsmåden viser stadig de oprindelige mængder.',

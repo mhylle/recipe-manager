@@ -64,6 +64,7 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   readonly push = inject(TimerPushService);
 
   readonly recipe = signal<Recipe | null>(null);
+  readonly chosenVariation = signal<string | null>(null);
 
   /** Whether the hand-over dialog is up. Author-only, gated by canEdit(). */
   readonly transferOpen = signal(false);
@@ -222,11 +223,30 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
   private loadRecipe(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.recipeService.getById(id).subscribe((recipe) => {
+      this.recipeService.getById(id, this.chosenVariation() ?? undefined).subscribe((recipe) => {
         this.recipe.set(recipe);
       });
     }
   }
+
+  /**
+   * Which way to cook it. Null is the recipe as written.
+   *
+   * Re-fetched rather than filtered here: the server owns what a variation
+   * means, so the page cannot drift from the shopping list's idea of it.
+   */
+  chooseVariation(variationId: string | null): void {
+    this.chosenVariation.set(variationId);
+    this.loadRecipe();
+  }
+
+  /** The note explaining why this variation exists — #77 asked for it by name. */
+  readonly variationNote = computed(() => {
+    const r = this.recipe();
+    const chosen = this.chosenVariation();
+    if (!r || !chosen) return '';
+    return r.variations?.find((v) => v.id === chosen)?.note ?? '';
+  });
 
   onDelete(): void {
     const currentRecipe = this.recipe();

@@ -603,3 +603,51 @@
   font-size: 0.9rem;
   color: var(--on-surface-variant);
 }
+
+/* ============================================================
+   Ways to cook this — the variation switcher.
+
+   Sized for Danish, which runs 30-40% longer: the choices wrap
+   rather than being clipped or forced onto one scrolling line.
+   ============================================================ */
+.recipe-variations {
+  margin: 0 0 1.5rem;
+}
+
+.recipe-variations__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.recipe-variations__choice {
+  padding: 0.4rem 0.9rem;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--on-surface-variant);
+  background: var(--surface-container-low);
+  border: 1px solid transparent;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--on-surface);
+  }
+}
+
+.recipe-variations__choice--on {
+  color: var(--primary);
+  background: var(--primary-container);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+/* The reason this variation exists — #77 asked for the why, not just the what. */
+.recipe-variations__note {
+  margin: 0.6rem 0 0;
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--outline-variant);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--on-surface-variant);
+}

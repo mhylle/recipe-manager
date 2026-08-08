@@ -71,8 +71,16 @@ export class RecipeService {
       .pipe(map((response) => normalisePage(response, offset)));
   }
 
-  getById(id: string): Observable<Recipe> {
-    return this.http.get<Recipe>(`${this.baseUrl}/${id}`);
+  /**
+   * One recipe, optionally as one of its variations.
+   *
+   * The variation is resolved on the SERVER: ingredients, steps and times all
+   * come back already reflecting it, so this page and the shopping list cannot
+   * disagree about what "the 10 g version" contains.
+   */
+  getById(id: string, variationId?: string): Observable<Recipe> {
+    const params = variationId ? `?variation=${encodeURIComponent(variationId)}` : '';
+    return this.http.get<Recipe>(`${this.baseUrl}/${id}${params}`);
   }
 
   /** Every language stored for a recipe — drives the per-language editing tabs. */

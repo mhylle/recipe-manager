@@ -401,6 +401,8 @@ export const en = {
   'pantry.create.errFailed': 'The kitchen could not be created. Try again in a moment.',
   'pantry.state.noPantry': 'You do not have a kitchen yet.',
   'pantry.switcher.label': 'Kitchen',
+  'recipe.variations.label': 'Ways to cook this',
+  'recipe.variations.asWritten': 'As written',
   'recipe.detail.scaleLabel': 'Scale recipe',
   'recipe.detail.scaleServings': 'Servings',
   'recipe.detail.scaleNote': 'Ingredient amounts are scaled. Step text still shows the original quantities.',
