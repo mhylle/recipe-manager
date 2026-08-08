@@ -530,6 +530,9 @@ export const en = {
   'mealPlan.markCooked': 'Mark as cooked: {{recipe}}',
   'mealPlan.addFor': 'Add recipe for {{day}} {{meal}}',
   'mealPlan.addAnotherFor': 'Add another recipe for {{day}} {{meal}}',
+  'mealPlan.makeShoppingList': 'Make shopping list',
+  'mealPlan.shoppingListFailed':
+    'The shopping list could not be created. Try again in a moment.',
   'mealPlan.picker.dialogLabel': 'Select a recipe',
   'mealPlan.picker.title': 'Select a Recipe',
   'mealPlan.picker.empty': 'No recipes available. Create some recipes first.',

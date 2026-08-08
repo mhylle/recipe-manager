@@ -32,6 +32,21 @@
   border-radius: var(--radius-full);
 }
 
+/* Danish "Lav indkøbsliste" is wider than the English; the header wraps rather
+   than the label being clipped. */
+.meal-plan__shopping-btn {
+  white-space: nowrap;
+}
+
+.meal-plan__list-error {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--error);
+  background: var(--error-container);
+  border-radius: var(--radius-md);
+}
+
 .grid-container {
   overflow-x: auto;
 }

@@ -1,10 +1,11 @@
 import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { of } from 'rxjs';
+import { of, throwError } from 'rxjs';
 import { MealPlanGridComponent } from './meal-plan-grid';
 import { MealPlanService } from '../meal-plan.service';
 import { RecipeService } from '../../recipe/recipe.service';
+import { ShoppingListService } from '../../shopping-list/shopping-list.service';
 import { DayOfWeek } from '../../../shared/enums/day-of-week.enum';
 import { MealType } from '../../../shared/enums/meal-type.enum';
 
@@ -208,6 +209,94 @@ describe('MealPlanGridComponent — a slot holding more than one meal', () => {
     remove.click();
 
     expect(mealPlanService.removeEntry).toHaveBeenCalledWith('plan-1', 2);
+  });
+});
+
+/**
+ * #72 — the shopping list starts here.
+ *
+ * You decide you need to shop while looking at the week, not while looking at an
+ * empty shopping list, which is where the only button used to be.
+ */
+describe('MealPlanGridComponent — making the shopping list', () => {
+  let fixture: ComponentFixture<MealPlanGridComponent>;
+  let shoppingList: { generate: ReturnType<typeof vi.fn> };
+  let navigate: ReturnType<typeof vi.spyOn>;
+
+  const planWith = (entries: unknown[]) => ({
+    id: 'plan-1',
+    weekStartDate: '2026-03-16',
+    entries,
+  });
+
+  const build = async (plan: unknown, generate: ReturnType<typeof vi.fn>) => {
+    shoppingList = { generate };
+    await TestBed.configureTestingModule({
+      imports: [MealPlanGridComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: MealPlanService,
+          useValue: {
+            getByWeek: vi.fn().mockReturnValue(of(plan)),
+            addEntry: vi.fn().mockReturnValue(of(plan)),
+            removeEntry: vi.fn().mockReturnValue(of(plan)),
+            confirmCooked: vi.fn().mockReturnValue(of(undefined)),
+          },
+        },
+        {
+          provide: RecipeService,
+          useValue: { getAll: vi.fn().mockReturnValue(of([recipe('r1', 'Pancakes')])) },
+        },
+        { provide: ShoppingListService, useValue: shoppingList },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(MealPlanGridComponent);
+    navigate = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    fixture.detectChanges();
+  };
+
+  const button = (): HTMLButtonElement | null =>
+    (fixture.nativeElement as HTMLElement).querySelector('.meal-plan__shopping-btn');
+
+  const planned = [
+    { day: DayOfWeek.MONDAY, meal: MealType.DINNER, recipeId: 'r1', servings: 4 },
+  ];
+
+  it('builds the list from this week and opens it', async () => {
+    await build(
+      planWith(planned),
+      vi.fn().mockReturnValue(of({ id: 'list-9', items: [] })),
+    );
+
+    button()?.click();
+
+    expect(shoppingList.generate).toHaveBeenCalledWith('plan-1');
+    // The created list, not whatever the shopping page would load on its own.
+    expect(navigate).toHaveBeenCalledWith(['/shopping-list'], {
+      queryParams: { id: 'list-9' },
+    });
+  });
+
+  it('offers nothing to shop for when nothing is planned', async () => {
+    await build(planWith([]), vi.fn());
+    expect(button()).toBeNull();
+  });
+
+  it('says so when the list cannot be built, and stays put', async () => {
+    await build(
+      planWith(planned),
+      vi.fn().mockReturnValue(throwError(() => new Error('nope'))),
+    );
+
+    button()?.click();
+    fixture.detectChanges();
+
+    expect(navigate).not.toHaveBeenCalled();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain(
+      'The shopping list could not be created',
+    );
   });
 });
 

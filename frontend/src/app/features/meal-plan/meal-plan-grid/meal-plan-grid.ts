@@ -13,7 +13,8 @@ import {
   TranslatePipe,
 } from '../../../shared/i18n';
 import { reloadOnKitchenChange } from '../../../shared/services/reload-on-kitchen-change';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { ShoppingListService } from '../../shopping-list/shopping-list.service';
 
 /** A planned meal plus the position the API addresses it by. */
 export type PlannedEntry = MealPlanEntry & { _index: number };
@@ -33,6 +34,8 @@ const slotKey = (day: DayOfWeek, meal: MealType): string => `${day}|${meal}`;
 export class MealPlanGridComponent {
   private readonly mealPlanService = inject(MealPlanService);
   private readonly recipeService = inject(RecipeService);
+  private readonly shoppingListService = inject(ShoppingListService);
+  private readonly router = inject(Router);
   private readonly locale = inject(LocaleService);
 
   readonly days = Object.values(DayOfWeek);
@@ -51,6 +54,12 @@ export class MealPlanGridComponent {
     const p = this.plan();
     return p ? p.weekStartDate : '';
   });
+
+  readonly buildingList = signal(false);
+  readonly listFailed = signal(false);
+
+  /** Nothing planned is nothing to shop for, so the button stays away. */
+  readonly hasPlannedMeals = computed(() => (this.plan()?.entries.length ?? 0) > 0);
 
   // Re-fetches on every language switch; recipe names are localised server-side.
   private readonly reload = reloadOnKitchenChange(() => this.loadPlan());
@@ -144,6 +153,41 @@ export class MealPlanGridComponent {
     return this.meals.flatMap((meal) =>
       this.entriesFor(day, meal).map((entry) => ({ meal, entry })),
     );
+  }
+
+  /**
+   * Which label the button carries. A method rather than a ternary in the
+   * template so the return type is the literal union the `t` pipe is typed
+   * against — a typo'd key fails to compile instead of rendering as itself.
+   */
+  shoppingButtonKey(): 'shoppingList.generating' | 'mealPlan.makeShoppingList' {
+    return this.buildingList() ? 'shoppingList.generating' : 'mealPlan.makeShoppingList';
+  }
+
+  /**
+   * Build this week's shopping list and open it.
+   *
+   * You decide you need to shop while looking at the week; until now the only
+   * button for it was on the shopping list page, which is the one place you go
+   * *after* having decided.
+   */
+  makeShoppingList(): void {
+    const p = this.plan();
+    if (!p || this.buildingList()) return;
+    this.buildingList.set(true);
+    this.listFailed.set(false);
+    this.shoppingListService.generate(p.id).subscribe({
+      next: (list) => {
+        this.buildingList.set(false);
+        // The list just created, not whatever the shopping page would load on
+        // its own — otherwise pressing this can show you last week's.
+        this.router.navigate(['/shopping-list'], { queryParams: { id: list.id } });
+      },
+      error: () => {
+        this.buildingList.set(false);
+        this.listFailed.set(true);
+      },
+    });
   }
 
   openPicker(day: DayOfWeek, meal: MealType): void {

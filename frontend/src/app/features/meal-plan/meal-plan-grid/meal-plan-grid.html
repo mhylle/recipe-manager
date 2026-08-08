@@ -8,8 +8,18 @@
       @if (currentWeek()) {
         <span class="meal-plan__week-label">{{ 'mealPlan.weekOf' | t: { date: currentWeek() } }}</span>
       }
+      @if (hasPlannedMeals()) {
+        <button type="button" class="btn btn--primary meal-plan__shopping-btn"
+          (click)="makeShoppingList()" [disabled]="buildingList()">
+          {{ shoppingButtonKey() | t }}
+        </button>
+      }
     </div>
   </div>
+
+  @if (listFailed()) {
+    <p class="meal-plan__list-error" role="alert">{{ 'mealPlan.shoppingListFailed' | t }}</p>
+  }
 
   @if (!kitchenAvailable()) {
     <p class="meal-plan__locked" role="status">{{ 'mealPlan.signIn' | t }}</p>
