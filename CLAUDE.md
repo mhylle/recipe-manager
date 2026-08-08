@@ -1,5 +1,9 @@
 # Project Rules
 
+Keep this file **under 200 lines**. It is the rules, not the reasons — put the
+incident, the reasoning and the architecture decision in tasktracker and leave one
+actionable line here. If a section is retelling a story, it belongs there instead.
+
 ## Zero Errors/Warnings Policy
 There is no such thing as "preexisting" errors or warnings. Every phase must be completed with **zero errors and zero warnings**. Never skip or dismiss any error/warning by attributing it to prior state — fix everything.
 
@@ -9,73 +13,45 @@ If a fix genuinely does not belong in the current change — a repo-wide reforma
 
 ## Backlog lives in tasktracker, not GitHub
 
-**tasktracker is the backlog. GitHub issues are an inbox.** Issues are where people
-outside the project report things; they are reports, not agreed work. The owner
-triages which ones become tasks — do not start implementing a GitHub issue on the
-assumption that filing it meant approval, and do not file internal findings as
-GitHub issues.
+**tasktracker is the backlog. GitHub issues are an inbox** — reports from outside
+the project, not agreed work. The owner triages which become tasks; filing one is
+not approval to implement it, and internal findings do not go there.
 
-Anything actually worked on gets a tasktracker task, set active while you work it
-so the time is recorded, and closed with a note saying what shipped and where.
-Findings you hit on the way but do not fix belong in tasktracker too, as defects
-or learnings — a comment in a PR body is not a backlog.
+Anything worked on gets a tasktracker task, set active while you work it so time
+is recorded, closed with a note on what shipped and where. Findings you hit but do
+not fix go there too, as defects or learnings.
 
-## Prove the bug before fixing it, and prove the fix on real data
+## Verify against reality, not reasoning
 
-Every non-trivial defect this project has had was cheaper to find by reproducing
-it than by reasoning about it, and several were the opposite of the initial
-diagnosis.
-
-- **Reproduce first, against something real.** The pantry-sharing bug looked like
-  a backend lookup failure; a local run of the real backend against a real
-  Postgres showed the API returning 201 correctly, which is what redirected the
-  search to the frontend where the bug actually was.
-- **Then verify on production with a query you can show.** `pantryId: 0, NULL: 49`
-  is what turned "private recipes seem broken" into a known scope in seconds.
-  That number was available before the bug was reported.
-- **Shell in CI is testable — extract it.** Pulling the deploy script out of the
-  workflow YAML and running just the section under test caught two things reading
-  could not: that removing one tag of a multi-tagged image merely untags it, and
-  whether the construct survives `set -e`. Do that instead of deploying to find out.
+- **Reproduce a bug before fixing it.** Twice this project's obvious diagnosis was
+  the wrong layer entirely.
+- **Confirm the fix on production data with a query you can show.** One `curl`
+  turned "private recipes seem broken" into a counted scope.
+- **CI shell is testable** — extract the script from the workflow YAML and run the
+  section under test rather than deploying to find out.
 
 ## Test the transition, not just the endpoints
 
-Both ends can be correct while the path between them is broken, and that is where
-this project's regressions have lived.
+- "Create with X" + "the rule handles X" does **not** cover "change an existing
+  thing to X". That gap is where the regressions have been.
+- Calling a component method says nothing about whether the template can reach it.
+  For a form, dispatch a real `submit` event.
+- Assert on the argument the collaborator **reads**, not the one you passed —
+  otherwise the test agrees with the bug. Derive it from the collaborator's
+  contract, not from the call you just wrote.
 
-- Testing "create it with X" and "the rule handles X" does **not** cover "change an
-  existing thing to X". The private-recipes regression sat exactly there.
-- A test that calls a component method proves the method works and says nothing
-  about whether the template can reach it. For a form, dispatch a real `submit`
-  event; the kitchen-sharing form never submitted for as long as it existed and
-  every test passed.
-- When asserting against a mock, assert on the argument the real collaborator
-  **reads**. Asserting on what you just passed makes the test agree with the bug.
-- A test written in the same breath as the fix inherits the fix's assumptions.
-  Derive the assertion from the collaborator's contract, not from the call you
-  just wrote.
+## Silent failure modes need a mechanical check
 
-## Failure modes with no error need a check, not vigilance
-
-When something can break with no compile error, no warning and no failing test,
-add a mechanical check and prove it fails on the real bug.
-
-- `npm run check` in `frontend/` runs the i18n sweep and `check-form-submit.mjs`
-  (rejects an `(ngSubmit)` form with no `[formGroup]` and no FormsModule — see
-  the note above). Both were written after a silent failure got to production.
-- Undefined CSS custom properties are the same shape: `var(--does-not-exist)`
-  resolves to nothing, so a dialog renders invisible. Check a token exists in
-  `styles.scss` before using it; there is no bare `--surface-container`, only
-  `-low`, `-lowest` and `-high`.
+No compile error, no warning, no failing test means add a check and prove it fails
+on the real bug. Existing ones: `npm run check` (i18n sweep + `(ngSubmit)` needs
+`[formGroup]` or FormsModule). Same shape: `var(--missing-token)` resolves to
+nothing and renders invisible — confirm a token exists in `styles.scss` first.
 
 ## Read the API before calling it
 
-Two near-misses this session came from assuming a contract instead of reading it:
-a GitHub Action input that does not exist (`ignore-versions-included-in-tags`),
-and an endpoint assumed to reject duplicates that actually answers 201 by design.
-For anything destructive or outward-facing, read the definition first — `gh api
-repos/OWNER/REPO/contents/action.yml`, the DTO, the source. Never establish an
-ordering assumption from a default when the operation deletes: sort explicitly.
+Read the DTO, source, or `action.yml` rather than assuming an input or status code,
+especially for anything destructive or outward-facing. Never take an ordering from
+a default when the operation deletes — sort explicitly.
 
 ## Architecture
 - **Backend**: NestJS 11 + Prisma 7 + PostgreSQL
@@ -100,6 +76,7 @@ cd frontend
 npm start                  # Dev server (port 4200, proxy to backend)
 npm run build              # Production build
 npm test                   # Vitest tests
+npm run check              # i18n sweep + (ngSubmit) form-owner check
 
 # Docker (local dev)
 docker compose up -d       # Start all services with local postgres
@@ -115,21 +92,9 @@ docker compose down        # Stop all services
   no separate recipe-manager postgres. `recipe_manager_db` and
   `recipe_manager_user` live inside it.
 
-### Adding a column is a decision about existing rows
-
-`ADD COLUMN` gives every existing row NULL. If any read path branches on that
-column, NULL is now a behaviour — and usually not one anyone chose. Write the
-backfill in the same migration, or write down why NULL is correct for rows that
-already exist. `Recipe.pantryId` shipped without one and silently narrowed every
-private recipe in the library to its author alone (#65).
-
-## Frontend checks
-```bash
-cd frontend
-npm run check              # i18n sweep + (ngSubmit) form-owner check
-npm run check:i18n         # no hardcoded user-facing English in templates
-npm run check:forms        # every (ngSubmit) form has a directive that can raise it
-```
+- **`ADD COLUMN` is a decision about existing rows.** They all get NULL, so if any
+  read branches on that column, NULL is now a behaviour. Backfill in the same
+  migration, or record why NULL is right for rows that already exist.
 
 ## Deploys and images
 - Push to `main` builds three images, deploys over SSH, and verifies before
