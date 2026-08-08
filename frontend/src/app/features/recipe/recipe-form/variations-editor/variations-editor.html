@@ -160,22 +160,27 @@
                     type="number"
                     class="input row__qty"
                     min="0"
-                    [value]="change.quantity"
+                    [value]="quantityOf(change, ingredient)"
                     (input)="setIngredientQuantity(v.key, ingredient.id, $event)"
                     [attr.aria-label]="
                       'recipe.variations.editor.quantityLabel' | t: { name: sharedIngredientName(ingredient) }
                     "
                   />
+                  <!-- `selected` on the option, not `value` on the select: the
+                       options are rendered in the same pass, so a value binding
+                       lands before they exist and the box silently shows the
+                       first unit in the list instead of the real one. -->
                   <select
                     class="input row__unit"
-                    [value]="change.unit"
                     (change)="setIngredientUnit(v.key, ingredient.id, $event)"
                     [attr.aria-label]="
                       'recipe.variations.editor.unitLabel' | t: { name: sharedIngredientName(ingredient) }
                     "
                   >
                     @for (unit of unitOptions; track unit) {
-                      <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+                      <option [value]="unit" [selected]="unit === unitOf(change, ingredient)">
+                        {{ unit | enumLabel: 'unit' }}
+                      </option>
                     }
                   </select>
                   <button type="button" class="btn btn--small" (click)="shareIngredient(v.key, ingredient.id)">
@@ -205,22 +210,24 @@
                 />
                 <select
                   class="input row__unit"
-                  [value]="added.unit"
                   (change)="setAddedUnit(v.key, added.key, $event)"
                   [attr.aria-label]="'recipe.variations.editor.addedUnitLabel' | t"
                 >
                   @for (unit of unitOptions; track unit) {
-                    <option [value]="unit">{{ unit | enumLabel: 'unit' }}</option>
+                    <option [value]="unit" [selected]="unit === added.unit">
+                      {{ unit | enumLabel: 'unit' }}
+                    </option>
                   }
                 </select>
                 <select
                   class="input"
-                  [value]="added.pantryCategory"
                   (change)="setAddedCategory(v.key, added.key, $event)"
                   [attr.aria-label]="'recipe.variations.editor.addedCategoryLabel' | t"
                 >
                   @for (cat of categoryOptions; track cat) {
-                    <option [value]="cat">{{ cat | enumLabel: 'pantryCategory' }}</option>
+                    <option [value]="cat" [selected]="cat === added.pantryCategory">
+                      {{ cat | enumLabel: 'pantryCategory' }}
+                    </option>
                   }
                 </select>
                 <button

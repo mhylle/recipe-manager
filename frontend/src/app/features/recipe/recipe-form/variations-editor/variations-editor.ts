@@ -341,6 +341,23 @@ export class VariationsEditorComponent {
     return nameFor(ingredient.names, this.editingLocale());
   }
 
+  /**
+   * What to SHOW for a change that stores nothing for this field.
+   *
+   * Null means "keep the recipe's own", so the recipe's own is what belongs on
+   * screen. Left null the box falls back to the first unit in the list, which is
+   * right for grams by accident and wrong for millilitres, tablespoons and
+   * everything else — and an author correcting what they see writes down the
+   * wrong thing. Stored as null still, so the payload stays a difference.
+   */
+  unitOf(change: IngredientChangeDraft, ingredient: AuthoringBaseIngredient): Unit {
+    return change.unit ?? ingredient.unit;
+  }
+
+  quantityOf(change: IngredientChangeDraft, ingredient: AuthoringBaseIngredient): number {
+    return change.quantity ?? ingredient.quantity;
+  }
+
   changeIngredient(key: string, ingredient: AuthoringBaseIngredient): void {
     this.patch(key, (v) => ({
       ...v,

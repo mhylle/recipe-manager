@@ -389,6 +389,87 @@ describe('VariationsEditorComponent', () => {
     });
   });
 
+  describe('the dropdowns tell the truth', () => {
+    const rowAt = (index: number): HTMLElement =>
+      fixture.nativeElement.querySelectorAll('.row')[index] as HTMLElement;
+
+    const unitBoxAt = (index: number): HTMLSelectElement =>
+      rowAt(index).querySelector('select.row__unit') as HTMLSelectElement;
+
+    it('shows the unit the ingredient actually uses, not the first in the list', () => {
+      // `[value]` on a <select> does not stick when its <option>s render in the
+      // same pass, so the box silently fell back to whatever came first. The
+      // draft was right and the screen said grams — the worst kind of wrong,
+      // because an author correcting what they see writes down the error.
+      load();
+      expand();
+      component.changeIngredient(firstKey(), CIABATTA.baseIngredients[1]);
+      fixture.detectChanges();
+
+      expect(unitBoxAt(1).value).toBe(Unit.ML);
+    });
+
+    it('shows the recipe’s own unit for a change that only altered the quantity', () => {
+      // A stored change with no unit MEANS "keep the recipe's". Showing the
+      // first option instead is right for grams by accident and wrong for
+      // everything else.
+      load({
+        ...CIABATTA,
+        variations: [
+          {
+            ...CIABATTA.variations[0],
+            ingredients: [
+              {
+                ingredientId: 'i-water',
+                removed: false,
+                quantity: 400,
+                unit: null,
+                pantryCategory: null,
+                sortOrder: 0,
+                names: [],
+              },
+            ],
+          },
+        ],
+      });
+      expand();
+
+      expect(unitBoxAt(1).value).toBe(Unit.ML);
+      expect(
+        (rowAt(1).querySelector('input[type=number]') as HTMLInputElement).value,
+      ).toBe('400');
+    });
+
+    it('shows the shelf an added ingredient starts on', () => {
+      // 'other' is the LAST option, so a select ignoring its binding would show
+      // 'dairy' and file it under the milk.
+      load();
+      expand();
+      component.addIngredient(firstKey());
+      fixture.detectChanges();
+
+      const rows = fixture.nativeElement.querySelectorAll('.row--added');
+      const fresh = rows[rows.length - 1] as HTMLElement;
+      const selects = fresh.querySelectorAll('select') as NodeListOf<HTMLSelectElement>;
+
+      expect(selects[0].value).toBe(Unit.G);
+      expect(selects[1].value).toBe(PantryCategory.OTHER);
+    });
+
+    it('shows an already-added ingredient on the shelf it was filed under', () => {
+      // The ciabatta's sugar: added, in grams, under baking. Reading it back as
+      // the first option in each list would move it to another shelf on save.
+      load();
+      expand();
+
+      const sugar = fixture.nativeElement.querySelector('.row--added') as HTMLElement;
+      const selects = sugar.querySelectorAll('select') as NodeListOf<HTMLSelectElement>;
+
+      expect(selects[0].value).toBe(Unit.G);
+      expect(selects[1].value).toBe(PantryCategory.BAKING);
+    });
+  });
+
   it('refuses to save a variation nobody can tell apart', () => {
     load();
     component.addVariation();
