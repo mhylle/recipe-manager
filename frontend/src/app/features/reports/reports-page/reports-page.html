@@ -15,51 +15,80 @@
       {{ 'reports.summary' | t: { open: openCount(), total: items().length } }}
     </p>
 
-    <ul class="reports__list">
-      @for (report of items(); track report.id) {
-        <li class="reports__row">
-          <div class="reports__head">
-            <span
-              class="reports__kind"
-              [class.reports__kind--defect]="report.kind === 'defect'"
-            >{{ (report.kind === 'defect' ? 'report.kindDefect' : 'report.kindImprovement') | t }}</span>
-            <span
-              class="reports__status"
-              [class.reports__status--open]="report.githubState === 'open'"
-              [class.reports__status--closed]="report.githubState === 'closed'"
-            >{{ statusKey(report) | t }}</span>
-          </div>
-
-          <h2 class="reports__name">
-            @if (report.githubIssueUrl) {
-              <a [href]="report.githubIssueUrl" target="_blank" rel="noopener">{{ report.title }}</a>
-            } @else {
-              {{ report.title }}
-            }
-          </h2>
-
-          <p class="reports__body">{{ report.description }}</p>
-
-          <p class="reports__meta">
-            @if (showingAll()) {
-              <span>{{ report.reporterName }}</span>
-              <span aria-hidden="true">&middot;</span>
-            }
-            <span>{{ report.createdAt | localeDate }}</span>
-            @if (report.pagePath) {
-              <span aria-hidden="true">&middot;</span>
-              <code class="reports__page">{{ report.pagePath }}</code>
-            }
-          </p>
-
-          <!-- Only the owner can act on this, and only they see it. -->
-          @if (showingAll() && report.githubError) {
-            <p class="reports__warn">
-              {{ 'reports.mirrorFailed' | t: { reason: report.githubError } }}
-            </p>
+    <!-- Two columns on a wide screen: ideas and defects are read for different
+         reasons, and interleaving them means scanning the whole list to answer
+         either question. They stack on a phone. -->
+    <div class="reports__columns">
+      <section class="reports__column reports__column--ideas">
+        <h2 class="reports__column-title">
+          {{ 'reports.columnIdeas' | t: { count: ideas().length } }}
+        </h2>
+        @if (ideas().length === 0) {
+          <p class="reports__column-empty">{{ 'reports.noIdeas' | t }}</p>
+        }
+        <ul class="reports__list">
+          @for (report of ideas(); track report.id) {
+            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: report }" />
           }
-        </li>
-      }
-    </ul>
+        </ul>
+      </section>
+
+      <section class="reports__column reports__column--defects">
+        <h2 class="reports__column-title">
+          {{ 'reports.columnDefects' | t: { count: defects().length } }}
+        </h2>
+        @if (defects().length === 0) {
+          <p class="reports__column-empty">{{ 'reports.noDefects' | t }}</p>
+        }
+        <ul class="reports__list">
+          @for (report of defects(); track report.id) {
+            <ng-container [ngTemplateOutlet]="row" [ngTemplateOutletContext]="{ $implicit: report }" />
+          }
+        </ul>
+      </section>
+    </div>
   }
 </section>
+
+<!-- One row definition for both columns: two copies would drift. -->
+<ng-template #row let-report>
+  <li class="reports__row">
+    <div class="reports__head">
+      <span
+        class="reports__status"
+        [class.reports__status--open]="report.githubState === 'open'"
+        [class.reports__status--progress]="report.githubState === 'in_progress'"
+        [class.reports__status--closed]="report.githubState === 'closed'"
+      >{{ statusKey(report) | t }}</span>
+    </div>
+
+    <h3 class="reports__name">
+      @if (report.githubIssueUrl) {
+        <a [href]="report.githubIssueUrl" target="_blank" rel="noopener">{{ report.title }}</a>
+      } @else {
+        {{ report.title }}
+      }
+    </h3>
+
+    <p class="reports__body">{{ report.description }}</p>
+
+    <p class="reports__meta">
+      @if (showingAll()) {
+        <span>{{ report.reporterName }}</span>
+        <span aria-hidden="true">&middot;</span>
+      }
+      <span>{{ report.createdAt | localeDate }}</span>
+      @if (report.pagePath) {
+        <span aria-hidden="true">&middot;</span>
+        <code class="reports__page">{{ report.pagePath }}</code>
+      }
+    </p>
+
+    <!-- Only the owner can act on this, and only they see it. -->
+    @if (showingAll() && report.githubError) {
+      <p class="reports__warn">
+        {{ 'reports.mirrorFailed' | t: { reason: report.githubError } }}
+      </p>
+    }
+  </li>
+</ng-template>

@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { ReportsService, type Report } from '../reports.service';
 import { AuthService } from '../../../shared/services/auth.service';
 import { LocaleDatePipe, TranslatePipe } from '../../../shared/i18n';
+import { NgTemplateOutlet } from '@angular/common';
 
 /**
  * What has been reported, and where it stands.
@@ -17,7 +18,7 @@ import { LocaleDatePipe, TranslatePipe } from '../../../shared/i18n';
 @Component({
   selector: 'app-reports-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe, LocaleDatePipe],
+  imports: [TranslatePipe, LocaleDatePipe, NgTemplateOutlet],
   templateUrl: './reports-page.html',
   styleUrl: './reports-page.scss',
 })
@@ -31,8 +32,35 @@ export class ReportsPageComponent {
   /** True while showing everyone's, false while showing only your own. */
   readonly showingAll = signal(false);
 
+  /** Still outstanding — being worked on is emphatically not finished. */
   readonly openCount = computed(
-    () => this.items().filter((r) => r.githubState === 'open').length,
+    () =>
+      this.items().filter(
+        (r) => r.githubState === 'open' || r.githubState === 'in_progress',
+      ).length,
+  );
+
+  /**
+   * The list is read to answer "what is still outstanding", so it is ordered by
+   * how alive each report is rather than by when it arrived: picked up, then
+   * open, then whatever GitHub could not tell us about, then done.
+   *
+   * Newest first within a rank, sorted here rather than inherited from the API's
+   * `orderBy`. Taking the order from someone else's default means it changes
+   * without this view saying so.
+   */
+  readonly ordered = computed(() =>
+    [...this.items()].sort(
+      (a, b) => rank(a) - rank(b) || b.createdAt.localeCompare(a.createdAt),
+    ),
+  );
+
+  readonly ideas = computed(() =>
+    this.ordered().filter((r) => r.kind === 'improvement'),
+  );
+
+  readonly defects = computed(() =>
+    this.ordered().filter((r) => r.kind === 'defect'),
   );
 
   constructor() {
@@ -82,12 +110,23 @@ export class ReportsPageComponent {
     report: Report,
   ):
     | 'reports.statusOpen'
+    | 'reports.statusInProgress'
     | 'reports.statusClosed'
     | 'reports.statusUnknown'
     | 'reports.statusNotFiled' {
+    if (report.githubState === 'in_progress') return 'reports.statusInProgress';
     if (report.githubState === 'open') return 'reports.statusOpen';
     if (report.githubState === 'closed') return 'reports.statusClosed';
     if (report.githubIssueNumber === null) return 'reports.statusNotFiled';
     return 'reports.statusUnknown';
   }
+}
+
+/** Lower sorts first: alive at the top, finished at the bottom. */
+function rank(report: Report): number {
+  if (report.githubState === 'in_progress') return 0;
+  if (report.githubState === 'open') return 1;
+  if (report.githubState === 'closed') return 3;
+  // Unknown and never-filed sit above closed: neither is evidence of being done.
+  return 2;
 }

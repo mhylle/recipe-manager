@@ -111,5 +111,74 @@ describe('ReportsPageComponent', () => {
 
       expect(component.openCount()).toBe(1);
     });
+
+    it('shows what somebody has picked up', () => {
+      expectAllRequest().flush([report({ githubState: 'in_progress' })]);
+      expect(component.statusKey(component.items()[0])).toBe('reports.statusInProgress');
+    });
+
+    it('still counts work in progress as open', () => {
+      // The distractor: `githubState === 'open'` was the whole test before, and
+      // splitting in-progress out of open silently drops it from the count —
+      // "1 of 3 open" while two are visibly being worked on.
+      expectAllRequest().flush([
+        report({ id: 'r-1', githubState: 'open' }),
+        report({ id: 'r-2', githubState: 'in_progress' }),
+        report({ id: 'r-3', githubState: 'closed' }),
+      ]);
+
+      expect(component.openCount()).toBe(2);
+    });
+  });
+
+  /**
+   * #68 — the list is read to answer "what is still outstanding", so what is
+   * finished sinks and what is being worked on rises.
+   */
+  describe('order and columns', () => {
+    const mixed = () => [
+      report({ id: 'closed', githubState: 'closed' }),
+      report({ id: 'unfiled', githubIssueNumber: null, githubIssueUrl: null, githubState: null }),
+      report({ id: 'open', githubState: 'open' }),
+      report({ id: 'working', githubState: 'in_progress' }),
+    ];
+
+    it('puts live work first and finished work last', () => {
+      expectAllRequest().flush(mixed());
+
+      expect(component.ordered().map((r) => r.id)).toEqual([
+        'working',
+        'open',
+        'unfiled',
+        'closed',
+      ]);
+    });
+
+    it('keeps the newest first within a status', () => {
+      expectAllRequest().flush([
+        report({ id: 'older', githubState: 'open', createdAt: '2026-08-01T00:00:00.000Z' }),
+        report({ id: 'newer', githubState: 'open', createdAt: '2026-08-07T00:00:00.000Z' }),
+      ]);
+
+      expect(component.ordered().map((r) => r.id)).toEqual(['newer', 'older']);
+    });
+
+    it('splits ideas from defects', () => {
+      expectAllRequest().flush([
+        report({ id: 'd-1', kind: 'defect' }),
+        report({ id: 'i-1', kind: 'improvement' }),
+        report({ id: 'd-2', kind: 'defect' }),
+      ]);
+      fixture.detectChanges();
+
+      expect(component.ideas().map((r) => r.id)).toEqual(['i-1']);
+      expect(component.defects().map((r) => r.id)).toEqual(['d-1', 'd-2']);
+
+      const host = fixture.nativeElement as HTMLElement;
+      const inIdeas = host.querySelectorAll('.reports__column--ideas .reports__row');
+      const inDefects = host.querySelectorAll('.reports__column--defects .reports__row');
+      expect(inIdeas.length).toBe(1);
+      expect(inDefects.length).toBe(2);
+    });
   });
 });

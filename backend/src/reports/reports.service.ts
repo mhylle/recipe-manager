@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { GithubIssueService } from './github-issue.service.js';
+import { GithubIssueService, type IssueState } from './github-issue.service.js';
 
 export type ReportKind = 'defect' | 'improvement';
 
@@ -29,7 +29,7 @@ export interface ReportView {
    * older than the pages we read. "Unknown" is shown as such rather than guessed
    * at, because a closed request displayed as open is worse than no badge.
    */
-  githubState: 'open' | 'closed' | null;
+  githubState: IssueState | null;
 }
 
 /**

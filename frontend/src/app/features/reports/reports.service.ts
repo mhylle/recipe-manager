@@ -17,8 +17,13 @@ export interface Report {
   githubIssueUrl: string | null;
   githubIssueNumber: number | null;
   githubError: string | null;
-  /** GitHub's current view. Null means unknown, never assumed open. */
-  githubState: 'open' | 'closed' | null;
+  /**
+   * GitHub's current view. Null means unknown, never assumed open.
+   *
+   * `in_progress` replaces `open` rather than sitting beside it — GitHub has no
+   * such state, so the server infers it from an assignee or a label.
+   */
+  githubState: 'open' | 'in_progress' | 'closed' | null;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -22,6 +22,42 @@ const STATE_CACHE_MS = 60_000;
 const STATE_MAX_PAGES = 3;
 
 /**
+ * Where a report stands, as GitHub sees it.
+ *
+ * `in_progress` is ours: GitHub has no such state, so it is inferred from an
+ * assignee or a label. It replaces `open` rather than sitting beside it, so
+ * "closed and still assigned" cannot be represented — that combination is
+ * finished work, and reporting it as ongoing is the opposite of the point.
+ */
+export type IssueState = 'open' | 'in_progress' | 'closed';
+
+/** The label spellings that mean somebody has picked this up. */
+const IN_PROGRESS_LABEL = /^(in[-\s]?progress|wip|doing)$/i;
+
+/**
+ * Where one issue stands.
+ *
+ * Closed is decided first and alone. An issue that was assigned and then
+ * finished still carries the assignee, so reading that first would report every
+ * completed report as ongoing.
+ */
+function stateOf(row: {
+  state?: string;
+  assignees?: { login?: string }[];
+  labels?: ({ name?: string } | string)[];
+}): IssueState {
+  if (row.state === 'closed') return 'closed';
+
+  const assigned = (row.assignees ?? []).length > 0;
+  const labelled = (row.labels ?? []).some((label) =>
+    IN_PROGRESS_LABEL.test(
+      typeof label === 'string' ? label : (label.name ?? ''),
+    ),
+  );
+  return assigned || labelled ? 'in_progress' : 'open';
+}
+
+/**
  * Mirrors a report onto GitHub.
  *
  * Deliberately knows nothing about the database. The report is already saved by
@@ -48,7 +84,7 @@ export class GithubIssueService {
   private readonly repo =
     process.env.ISSUE_MIRROR_REPO?.trim() ?? 'mhylle/recipe-manager';
 
-  private statesCache = new Map<number, 'open' | 'closed'>();
+  private statesCache = new Map<number, IssueState>();
   private statesFetchedAt = 0;
 
   get configured(): boolean {
@@ -100,7 +136,7 @@ export class GithubIssueService {
    * Cached briefly. This is decoration on a list view; a state that is a minute
    * stale is not worth a request on every page load.
    */
-  async states(): Promise<Map<number, 'open' | 'closed'>> {
+  async states(): Promise<Map<number, IssueState>> {
     if (!this.configured) return new Map();
 
     const fresh = Date.now() - this.statesFetchedAt < STATE_CACHE_MS;
@@ -108,7 +144,7 @@ export class GithubIssueService {
       return this.statesCache;
     }
 
-    const found = new Map<number, 'open' | 'closed'>();
+    const found = new Map<number, IssueState>();
     try {
       for (let page = 1; page <= STATE_MAX_PAGES; page++) {
         const url = new URL(`https://api.github.com/repos/${this.repo}/issues`);
@@ -130,6 +166,8 @@ export class GithubIssueService {
           number?: number;
           state?: string;
           pull_request?: unknown;
+          assignees?: { login?: string }[];
+          labels?: ({ name?: string } | string)[];
         }[];
         if (!Array.isArray(rows) || rows.length === 0) break;
 
@@ -139,7 +177,7 @@ export class GithubIssueService {
           // map to what it claims to hold.
           if (row.pull_request !== undefined) continue;
           if (typeof row.number !== 'number') continue;
-          found.set(row.number, row.state === 'closed' ? 'closed' : 'open');
+          found.set(row.number, stateOf(row));
         }
         if (rows.length < 100) break;
       }
