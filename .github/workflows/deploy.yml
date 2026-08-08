@@ -355,9 +355,11 @@ jobs:
             # never dangling and never collected — about 550 MB per backend
             # build, on every deploy, forever.
             #
-            # Tags are removed oldest-first, keeping the most recent few so a
-            # rollback still has something to roll back to.
-            KEEP_IMAGES=3
+            # Tags are removed oldest-first. Two are kept: the one just
+            # deployed, and the one before it — which is the only thing a
+            # rollback actually needs. Anything older is rebuildable from git,
+            # so keeping it is paying disk to avoid a build we can run on demand.
+            KEEP_IMAGES=2
 
             prune_old_images() {
               repo="$1"
@@ -467,16 +469,16 @@ jobs:
           package-name: ${{ matrix.package }}
           package-type: container
           owner: ${{ github.repository_owner }}
-          # More generous than the server's 3: registry storage is cheap next to
-          # losing the ability to roll back to something from last month, and
-          # once the server has pruned an old build this is the only copy left.
+          # The same two the server keeps: the current build and the one before
+          # it. A rollback needs the previous version and nothing further back —
+          # anything older is rebuildable from git, and hoarding it here just
+          # moves the cost from the server's disk to registry storage.
           #
-          # This keeps the 10 NEWEST versions and deletes the rest. :latest is
-          # safe because it always resolves to the newest version, which is
-          # inside the kept window — so nothing can be deleted out from under a
-          # `docker pull`. Lowering this number never changes that; setting it to
-          # 0 would delete everything, including what is running.
-          min-versions-to-keep: 10
+          # :latest is safe because it always resolves to the newest version,
+          # which is inside the kept window, so nothing can be deleted out from
+          # under a `docker pull`. Setting this to 0 would delete everything,
+          # including what is running.
+          min-versions-to-keep: 2
 
   notify:
     needs: [build, deploy]
