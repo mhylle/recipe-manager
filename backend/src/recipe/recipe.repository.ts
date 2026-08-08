@@ -288,11 +288,19 @@ export class RecipeRepository {
     return this.toInterface(result, result.sourceLocale as Locale);
   }
 
-  /** Just the author, for the ownership check. Avoids hydrating the whole row. */
-  async findOwner(id: string): Promise<{ createdById: string } | null> {
+  /**
+   * The author and the recipe's kitchen, for the ownership and privacy checks.
+   *
+   * Avoids hydrating the whole row. `pantryId` rides along because turning a
+   * recipe private needs to know whether it already belongs to a kitchen — and
+   * a second query to find that out would be a second round trip on every write.
+   */
+  async findOwner(
+    id: string,
+  ): Promise<{ createdById: string; pantryId: string | null } | null> {
     return this.prisma.recipe.findUnique({
       where: { id },
-      select: { createdById: true },
+      select: { createdById: true, pantryId: true },
     });
   }
 

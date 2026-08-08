@@ -242,6 +242,15 @@ export class RecipeService {
     return (await this.visibility.forUser(viewerId)) ?? ANONYMOUS;
   }
 
+  /**
+   * Edit a recipe.
+   *
+   * `callerPantryId` exists for one narrow case: a recipe being made private
+   * that belongs to no kitchen. Every recipe written before kitchens were
+   * recorded is in that state, so without this, ticking "private" pinned it to
+   * nothing and left it readable by its author alone — which is how a shared
+   * household recipe disappeared from the household (#65).
+   */
   async update(
     id: string,
     callerId: string,
@@ -249,13 +258,26 @@ export class RecipeService {
     locale: Locale = DEFAULT_LOCALE,
     translations?: RecipeTranslationInput[],
     sourceLocale?: Locale,
+    callerPantryId?: string | null,
   ): Promise<Recipe> {
-    assertCanModify(await this.recipeRepository.findOwner(id), callerId);
-    return this.recipeRepository.update(id, dto, {
-      locale,
-      translations,
-      sourceLocale,
-    });
+    const owner = await this.recipeRepository.findOwner(id);
+    assertCanModify(owner, callerId);
+
+    // Only when privacy is being switched ON and the recipe has no kitchen.
+    // Writing it unconditionally would relocate a recipe filed in one kitchen
+    // because the cook happened to be looking at another.
+    const needsKitchen =
+      dto.isPrivate === true && !owner?.pantryId && !!callerPantryId;
+
+    // Carried on the payload, not the options bag: `data.pantryId` is the
+    // field the repository actually writes. An earlier cut of this passed it as
+    // an option, where it was silently dropped — and TypeScript did not object,
+    // because spreading an object into a literal skips excess-property checks.
+    return this.recipeRepository.update(
+      id,
+      needsKitchen ? { ...dto, pantryId: callerPantryId } : dto,
+      { locale, translations, sourceLocale },
+    );
   }
 
   async delete(id: string, callerId: string): Promise<void> {
