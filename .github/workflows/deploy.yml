@@ -346,8 +346,77 @@ jobs:
             fi
             echo "Write guard verified: writes rejected, reads still public."
 
-            # Clean up old images
+            # --- Reclaim disk from superseded images ---------------------------
+            #
+            # `docker image prune -f` alone was NOT doing this. It only removes
+            # DANGLING images, and every build we push is tagged
+            # v<date>-<sha> as well as :latest. Pushing a new build moves
+            # :latest but leaves the old image holding its version tag, so it is
+            # never dangling and never collected — about 550 MB per backend
+            # build, on every deploy, forever.
+            #
+            # Tags are removed oldest-first, keeping the most recent few so a
+            # rollback still has something to roll back to.
+            KEEP_IMAGES=3
+
+            prune_old_images() {
+              repo="$1"
+              # Version tags sort chronologically because they start with the
+              # date, so a reverse sort is newest-first. Deliberately not
+              # trusting `docker images` ordering, which is by the image's own
+              # build date — identical across anything retagged from one build.
+              #
+              # The `v<8 digits>-` filter is what protects :latest: it is not a
+              # version tag, so it is never a candidate, and the image it points
+              # at therefore always keeps at least one reference.
+              docker images "$repo" --format '{{.Tag}}' 2>/dev/null \
+                | grep -E '^v[0-9]{8}-' \
+                | sort -r \
+                | tail -n +$((KEEP_IMAGES + 1)) \
+                | while IFS= read -r tag; do
+                    # An image a container still uses cannot be removed, and
+                    # must not be: that is the running deploy, or one someone
+                    # rolled back to. Reported rather than treated as an error —
+                    # and guarded by `if` so `set -e` does not abort the deploy
+                    # over a reclaim that simply is not available yet.
+                    if docker rmi "$repo:$tag" >/dev/null 2>&1; then
+                      echo "    removed $repo:$tag"
+                    else
+                      echo "    still in use, left alone: $repo:$tag"
+                    fi
+                  done
+            }
+
+            echo "=== Reclaiming disk (keeping the newest $KEEP_IMAGES of each) ==="
+            # Derived by stripping the tag off the images this deploy was handed,
+            # rather than spelling the names out again — a second copy would be
+            # free to drift away from what the build job actually pushes, and the
+            # symptom of that drift is silence, not an error.
+            for repo in \
+              "${BACKEND_IMAGE%:*}" \
+              "${FRONTEND_IMAGE%:*}" \
+              "${MCP_IMAGE%:*}"; do
+              echo "  $repo"
+              prune_old_images "$repo"
+            done
+
+            # Still worth running: this is what actually frees the layers that
+            # lost their last reference when the tags above went, and it prints
+            # its own reclaimed total.
+            #
+            # Note that total can legitimately read 0B while tags were still
+            # removed — layers shared with an image we keep are not freed until
+            # the last thing referencing them is gone. The tag lines above are
+            # the record of what happened; this line is the disk that came back.
             docker image prune -f
+
+            echo "  kept per image:"
+            for repo in \
+              "${BACKEND_IMAGE%:*}" \
+              "${FRONTEND_IMAGE%:*}" \
+              "${MCP_IMAGE%:*}"; do
+              echo "    $repo -> $(docker images "$repo" --format '{{.Tag}}' | sort | tr '\n' ' ')"
+            done
 
             echo "=== Deployment complete ==="
             echo "Frontend: https://mhylle.com/recipe-manager/"
@@ -365,6 +434,49 @@ jobs:
             sleep 15
             curl -f -s https://mhylle.com/recipe-manager/ > /dev/null && echo "Frontend accessible" || echo "Frontend check failed"
             curl -f -s https://mhylle.com/api/recipe-manager/api/health > /dev/null && echo "API accessible" || echo "API check failed"
+
+  # Every build also leaves a version behind in the REGISTRY, which the server's
+  # prune cannot reach. Unpruned, that is the copy that grows without limit and
+  # is the one GitHub charges storage for.
+  #
+  # Its own job, after a successful deploy, because deleting a version the deploy
+  # is about to pull would be self-inflicted. Deliberately NOT allowed to fail
+  # the workflow: the app is already live and verified by this point, and losing
+  # a housekeeping step is not worth reporting a good deploy as broken. A
+  # permissions problem here shows up as a warning on a green run.
+  prune-registry:
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    continue-on-error: true
+    permissions:
+      packages: write
+    strategy:
+      # One at a time. Parallel deletes against the same registry are how the
+      # 403s in this workflow's history started.
+      max-parallel: 1
+      matrix:
+        package:
+          - recipe-manager-backend
+          - recipe-manager-frontend
+          - recipe-manager-mcp
+    steps:
+      - name: Delete superseded versions of ${{ matrix.package }}
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          owner: ${{ github.repository_owner }}
+          # More generous than the server's 3: registry storage is cheap next to
+          # losing the ability to roll back to something from last month, and
+          # once the server has pruned an old build this is the only copy left.
+          #
+          # This keeps the 10 NEWEST versions and deletes the rest. :latest is
+          # safe because it always resolves to the newest version, which is
+          # inside the kept window — so nothing can be deleted out from under a
+          # `docker pull`. Lowering this number never changes that; setting it to
+          # 0 would delete everything, including what is running.
+          min-versions-to-keep: 10
 
   notify:
     needs: [build, deploy]
