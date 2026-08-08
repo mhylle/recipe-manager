@@ -1,0 +1,103 @@
+name: Drain old container versions
+
+# A one-off broom, kept for reuse.
+#
+# The deploy workflow prunes on every run and is correct for steady state: each
+# deploy pushes ONE new version per package, and the action it uses deletes up to
+# 100 per run, so it never falls behind again.
+#
+# It could not clear the BACKLOG, though. Years of untrimmed builds meant the
+# first two deploys each hit that 100 ceiling on the backend and frontend, which
+# would have taken many deploys to work through. This drains it in one go by
+# repeating the delete until a pass comes back under the ceiling, which is what
+# "nothing left to delete" looks like.
+#
+# Deliberately manual. It is destructive, needs no schedule now that the deploy
+# keeps up, and re-running the deploy just to sweep would restart containers for
+# no reason.
+on:
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: How many newest versions to keep per package
+        required: false
+        default: "2"
+
+jobs:
+  drain:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      # Sequential: parallel deletes against the same registry are how the 403s
+      # in this repo's history started.
+      max-parallel: 1
+      matrix:
+        package:
+          - recipe-manager-backend
+          - recipe-manager-frontend
+          - recipe-manager-mcp
+    steps:
+      - name: Drain ${{ matrix.package }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OWNER: ${{ github.repository_owner }}
+          PACKAGE: ${{ matrix.package }}
+          KEEP: ${{ inputs.keep }}
+        run: |
+          set -euo pipefail
+
+          # A ceiling on passes rather than `while true`. A bug that never
+          # converges should stop and say so, not bill for an hour of API calls.
+          MAX_PASSES=40
+          deleted_total=0
+
+          for pass in $(seq 1 "$MAX_PASSES"); do
+            # Sorted here rather than trusting the API's ordering. This
+            # DELETES, so "the newest are first" must be a fact we establish,
+            # not a default we hope holds — reversed, the first pass would
+            # delete the version currently running.
+            #
+            # Anything tagged :latest is then dropped from the delete list as a
+            # second guard. It should already be inside the kept window; if it
+            # somehow is not, that is the one version whose loss breaks a plain
+            # `docker pull`. 100 is the API's own page maximum.
+            ids=$(gh api \
+              "/users/$OWNER/packages/container/$PACKAGE/versions?per_page=100" \
+              --jq "sort_by(.created_at) | reverse | .[$KEEP:]
+                    | map(select((.metadata.container.tags // [])
+                                 | index(\"latest\") | not))
+                    | .[].id" 2>/dev/null || true)
+
+            if [ -z "$ids" ]; then
+              echo "pass $pass: nothing beyond the newest $KEEP — $PACKAGE is drained"
+              break
+            fi
+
+            count=$(printf '%s\n' "$ids" | wc -l | tr -d ' ')
+            echo "pass $pass: deleting $count version(s) of $PACKAGE"
+
+            for id in $ids; do
+              # A single failure must not abandon the rest of the pass: one
+              # version can be undeletable because something still references it,
+              # and the other 99 are still worth reclaiming.
+              if gh api --method DELETE \
+                "/users/$OWNER/packages/container/$PACKAGE/versions/$id" \
+                >/dev/null 2>&1; then
+                deleted_total=$((deleted_total + 1))
+              else
+                echo "  could not delete version $id — left in place"
+              fi
+            done
+
+            if [ "$pass" -eq "$MAX_PASSES" ]; then
+              echo "Hit the $MAX_PASSES-pass ceiling with versions still left."
+              echo "Re-run to continue; this is a guard, not a failure."
+            fi
+          done
+
+          echo "Deleted $deleted_total version(s) of $PACKAGE in total."
+          remaining=$(gh api \
+            "/users/$OWNER/packages/container/$PACKAGE/versions?per_page=100" \
+            --jq 'length' 2>/dev/null || echo unknown)
+          echo "Remaining (first page): $remaining"
