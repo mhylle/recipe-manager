@@ -614,15 +614,46 @@ export class RecipeRepository {
           stepEdits.find((t) => t.locale === existing.sourceLocale) ??
           stepEdits[0];
         const count = sourceEdit.instructions.length;
+        const ids = data.stepIds;
+
+        // Without ids, position is the only thing identifying a step — which is
+        // fine for a text edit and WRONG the moment the count changes, because
+        // then position N is not the step that was at position N. Variations
+        // point at step ids, so guessing here silently moves an override onto a
+        // different instruction. Refuse instead, and say what is missing.
+        if (!ids && count !== existing.steps.length) {
+          const overrides = await tx.recipeVariationStep.count({
+            where: { step: { recipeId: id } },
+          });
+          if (overrides > 0) {
+            throw new BadRequestException(
+              'This recipe has variations that point at its steps, so adding or removing one needs stepIds saying which existing step each position is.',
+            );
+          }
+        }
 
         for (let index = 0; index < count; index++) {
-          const step = await tx.recipeStep.upsert({
-            where: { recipeId_sortOrder: { recipeId: id, sortOrder: index } },
-            create: { recipeId: id, sortOrder: index },
-            // Nothing: the text is written below and the photograph is its own
-            // edit. An empty update keeps the row and, crucially, its id.
-            update: {},
-          });
+          // An id says "this position IS that step", so a move updates the row
+          // rather than overwriting whatever happened to sit here.
+          const namedId = ids?.[index] ?? null;
+          const step = namedId
+            ? await tx.recipeStep.update({
+                where: { id: namedId },
+                data: { sortOrder: index },
+              })
+            : ids
+              ? await tx.recipeStep.create({
+                  data: { recipeId: id, sortOrder: index },
+                })
+              : await tx.recipeStep.upsert({
+                  where: {
+                    recipeId_sortOrder: { recipeId: id, sortOrder: index },
+                  },
+                  create: { recipeId: id, sortOrder: index },
+                  // Empty: the text is written below and the photograph is its
+                  // own edit. This keeps the row and, crucially, its id.
+                  update: {},
+                });
 
           for (const t of stepEdits) {
             const text = t.instructions[index];
@@ -635,11 +666,19 @@ export class RecipeRepository {
           }
         }
 
-        // A method that got shorter loses its tail. Cascade takes the
-        // translations with it.
-        await tx.recipeStep.deleteMany({
-          where: { recipeId: id, sortOrder: { gte: count } },
-        });
+        // Whatever the edit did not keep. By id when the caller named them, so
+        // a step that MOVED is not mistaken for one that was dropped; by
+        // position otherwise, which is a method that simply got shorter.
+        if (ids) {
+          const kept = ids.filter((v): v is string => Boolean(v));
+          await tx.recipeStep.deleteMany({
+            where: { recipeId: id, id: { notIn: kept } },
+          });
+        } else {
+          await tx.recipeStep.deleteMany({
+            where: { recipeId: id, sortOrder: { gte: count } },
+          });
+        }
       }
 
       // Photographs arrive on their own, from the generator, with no text

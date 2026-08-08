@@ -32,6 +32,15 @@ export interface Recipe {
   imageUrl?: string;
   /** Gallery-sized WebP. Absent means fall back to imageUrl. */
   thumbnailUrl?: string;
+  /** The method with its identities, for anything that needs to point at a step. */
+  steps?: { id: string; text: string; imageUrl: string | null }[];
+  /**
+   * Which existing step each position in `instructions` is, on a save.
+   *
+   * Null adds one. Omitted when the client cannot answer honestly — the server
+   * then refuses rather than guessing, if variations point at those steps.
+   */
+  stepIds?: (string | null)[];
   /** The other ways this recipe can be cooked. Absent means there are none. */
   variations?: RecipeVariationSummary[];
   /**

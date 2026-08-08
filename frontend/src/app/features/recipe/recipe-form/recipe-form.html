@@ -176,5 +176,9 @@
       </button>
       <a routerLink="/recipes" class="btn btn--ghost">{{ 'common.actions.cancel' | t }}</a>
     </div>
-  </form>
+  
+  @if (saveBlocked()) {
+    <p class="recipe-form__blocked" role="alert">{{ 'recipe.form.stepsBlocked' | t }}</p>
+  }
+</form>
 </div>

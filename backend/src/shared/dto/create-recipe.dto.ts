@@ -48,6 +48,18 @@ export class CreateRecipeDto {
   @IsString({ each: true })
   instructionImages?: string[];
 
+  /**
+   * Which existing step each position in `instructions` IS; null adds one.
+   *
+   * Needed whenever a recipe with variations changes its step COUNT. Position
+   * alone stops identifying a step the moment one is inserted, and variations
+   * point at step ids — so the server refuses rather than guessing, because
+   * guessing moves somebody's override onto a different instruction in silence.
+   */
+  @IsOptional()
+  @IsArray()
+  stepIds?: (string | null)[];
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => RecipeIngredientDto)

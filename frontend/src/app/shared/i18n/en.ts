@@ -401,6 +401,7 @@ export const en = {
   'pantry.create.errFailed': 'The kitchen could not be created. Try again in a moment.',
   'pantry.state.noPantry': 'You do not have a kitchen yet.',
   'pantry.switcher.label': 'Kitchen',
+  'recipe.form.stepsBlocked': 'This recipe has variations that point at its steps, so a step cannot be added or removed here yet. Edit the wording instead, or remove the variations first.',
   'recipe.variations.label': 'Ways to cook this',
   'recipe.variations.asWritten': 'As written',
   'recipe.detail.scaleLabel': 'Scale recipe',

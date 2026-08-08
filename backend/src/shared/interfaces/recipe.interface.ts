@@ -48,6 +48,14 @@ export interface Recipe {
    * never showed it.
    */
   steps?: { id: string; text: string; imageUrl: string | null }[];
+  /**
+   * Which existing step each position in `instructions` IS, on a save.
+   *
+   * Null at a position means a new step. Sent by any client that can add,
+   * remove or reorder steps, because position alone stops identifying a step
+   * the moment the count changes — and variations point at step ids.
+   */
+  stepIds?: (string | null)[];
   /** The other ways this recipe can be cooked. Absent means there are none. */
   variations?: RecipeVariationSummary[];
   /**

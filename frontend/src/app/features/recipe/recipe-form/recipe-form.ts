@@ -106,6 +106,10 @@ export class RecipeFormComponent implements OnInit {
       this.isEditMode.set(true);
       this.editId = id;
       this.recipeService.getById(id).subscribe((recipe) => {
+        // Kept so a text edit can say WHICH step each line is. Variations point
+        // at step ids, and a save that renumbered them would move somebody's
+        // override onto a different instruction.
+        this.loadedStepIds = (recipe.steps ?? []).map((step) => step.id);
         this.form.patchValue({
           servings: recipe.servings,
           prepTime: recipe.prepTime,
@@ -159,6 +163,28 @@ export class RecipeFormComponent implements OnInit {
     this.editingLocale.set(locale);
     this.applyDraft(locale);
     this.refreshMissingLocales();
+  }
+
+  /** True when the server refused the save and said why. */
+  readonly saveBlocked = signal(false);
+
+  /** The ids of the steps this form loaded, in order. Empty when creating. */
+  private loadedStepIds: string[] = [];
+
+  /**
+   * Which existing step each line is, when that can be answered honestly.
+   *
+   * A textarea has no per-line identity, so this is only knowable while the
+   * NUMBER of lines is unchanged — then line N is still step N and a pure text
+   * edit keeps every id. Once a line is added or removed, nothing here knows
+   * which one, so it says nothing and lets the server refuse if the recipe has
+   * variations pointing at those steps. Guessing is what moved an override onto
+   * the wrong instruction.
+   */
+  private stepIdsFor(lines: string[]): (string | null)[] | undefined {
+    if (this.loadedStepIds.length === 0) return undefined;
+    if (lines.length !== this.loadedStepIds.length) return undefined;
+    return [...this.loadedStepIds];
   }
 
   private captureDraft(): void {
@@ -227,6 +253,7 @@ export class RecipeFormComponent implements OnInit {
       difficulty: value.difficulty as Difficulty,
       tags: value.tags ? value.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [],
       instructions: splitLines(own.instructions),
+      stepIds: this.stepIdsFor(splitLines(own.instructions)),
       isPrivate: value.isPrivate,
       ingredients: value.ingredients.map((ing, index) => ({
         name: own.ingredientNames[index] ?? '',
@@ -248,11 +275,20 @@ export class RecipeFormComponent implements OnInit {
         })),
     };
 
-    const done = () => this.router.navigate(['/recipes']);
+    const done = () => {
+      void this.router.navigate(['/recipes']);
+    };
+    // A 400 here is the server refusing to guess which step is which — see
+    // stepIdsFor. Navigating away would lose the edit AND the reason.
+    const failed = () => this.saveBlocked.set(true);
     if (this.isEditMode()) {
-      this.recipeService.update(this.editId, payload, authoringLocale).subscribe(done);
+      this.recipeService
+        .update(this.editId, payload, authoringLocale)
+        .subscribe({ next: done, error: failed });
     } else {
-      this.recipeService.create(payload, authoringLocale).subscribe(done);
+      this.recipeService
+        .create(payload, authoringLocale)
+        .subscribe({ next: done, error: failed });
     }
   }
 
