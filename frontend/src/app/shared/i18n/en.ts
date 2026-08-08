@@ -406,6 +406,7 @@ export const en = {
     'The recipe was saved, but its variations were not. Check them and try again.',
   'recipe.variations.label': 'Ways to cook this',
   'recipe.variations.asWritten': 'As written',
+  'recipe.variations.editor.loading': 'Loading the other ways to cook this\u2026',
   'recipe.variations.editor.legend': 'Ways to cook this',
   'recipe.variations.editor.hint':
     'A variation is only the differences. Everything you leave alone stays shared with the recipe, so a change to the method reaches every version at once.',

@@ -379,6 +379,7 @@ export const da: Dictionary = {
     'Opskriften blev gemt, men dens variationer blev ikke. Tjek dem, og prøv igen.',
   'recipe.variations.label': 'Måder at lave den på',
   'recipe.variations.asWritten': 'Som skrevet',
+  'recipe.variations.editor.loading': 'Henter de andre m\u00e5der at lave den p\u00e5\u2026',
   'recipe.variations.editor.legend': 'Måder at lave den på',
   'recipe.variations.editor.hint':
     'En variation er kun forskellene. Alt, du lader stå, deles med opskriften, så en rettelse i fremgangsmåden slår igennem i alle versioner på én gang.',

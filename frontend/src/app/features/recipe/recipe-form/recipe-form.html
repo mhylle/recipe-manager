@@ -174,10 +174,17 @@
          been saved has none yet — so this is an edit-mode panel, and says so
          rather than offering an editor whose overrides could name nothing. -->
     @if (isEditMode()) {
-      <app-variations-editor
-        [authoring]="authoringVariations()"
-        [editingLocale]="editingLocale()"
-      />
+      <!-- Only once they have actually loaded. An empty editor over a recipe
+           that HAS variations would let a save send an empty set and delete
+           them — a failed read must not look like "there are none". -->
+      @if (authoringVariations()) {
+        <app-variations-editor
+          [authoring]="authoringVariations()"
+          [editingLocale]="editingLocale()"
+        />
+      } @else {
+        <p class="hint">{{ 'recipe.variations.editor.loading' | t }}</p>
+      }
     } @else {
       <p class="hint">{{ 'recipe.variations.editor.afterSave' | t }}</p>
     }

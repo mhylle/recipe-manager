@@ -376,6 +376,16 @@ describe('RecipeFormComponent — a recipe that has variations', () => {
     expect(fixture.nativeElement.querySelector('app-variations-editor')).toBeTruthy();
   });
 
+  it('shows no editor at all when the variations could not be read', () => {
+    // "No variations" and "we could not find out" look identical in an empty
+    // panel, and only one of them is safe to save: an empty set DELETES them.
+    recipeService.getVariationsForAuthoring.mockReturnValue(throwError(() => new Error('down')));
+    const retry = TestBed.createComponent(RecipeFormComponent);
+    retry.detectChanges();
+
+    expect(retry.nativeElement.querySelector('app-variations-editor')).toBeNull();
+  });
+
   it('sends the ingredient ids it loaded, so an edit keeps the overrides', () => {
     // Without these the server deletes and recreates the ingredient rows, and
     // that FK cascade takes every "10 g of yeast" with it.

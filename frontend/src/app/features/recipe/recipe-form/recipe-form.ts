@@ -151,8 +151,12 @@ export class RecipeFormComponent implements OnInit {
         // The differences themselves, in every language, keyed by the ids they
         // point at — which is what editing needs and what the payload above,
         // already resolved for a reader, cannot say.
-        this.recipeService.getVariationsForAuthoring(id).subscribe((authoring) => {
-          this.authoringVariations.set(authoring);
+        this.recipeService.getVariationsForAuthoring(id).subscribe({
+          next: (authoring) => this.authoringVariations.set(authoring),
+          // Left null on purpose, and the panel does not appear. An editor that
+          // showed "no variations" because the READ failed would let the next
+          // save send an empty set and delete the ones that are there.
+          error: () => this.authoringVariations.set(null),
         });
       });
     } else {
