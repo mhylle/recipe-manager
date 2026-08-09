@@ -358,7 +358,8 @@ export const en = {
   'recipe.form.languageTabs': 'Language being edited',
   'recipe.form.missingTranslation': 'No translation yet',
   'recipe.form.ingredientNeedsTranslation': 'Also needed in this language.',
-  'recipe.form.missingHint': 'Languages marked with a dot have no name yet. Readers will see the source language instead.',
+  'recipe.form.missingHint':
+    'Languages marked with a dot are not finished — a name, or an ingredient name, is still missing. Readers will see the source language instead.',
 
   'recipe.detail.totalTime': '{{minutes}} min total',
   'recipe.detail.prep': 'Prep',
