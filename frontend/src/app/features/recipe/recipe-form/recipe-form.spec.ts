@@ -8,6 +8,7 @@ import { RecipeFormComponent } from './recipe-form';
 import { VariationsEditorComponent } from './variations-editor/variations-editor';
 import { RecipeService } from '../recipe.service';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
+import { FILTER_TAGS } from '../recipe-tags';
 
 @Component({ template: '' })
 class DummyComponent {}
@@ -587,5 +588,106 @@ describe('RecipeFormComponent — the half-translated ingredient list', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('.ingredient-row .error')).toBeNull();
+  });
+});
+
+/**
+ * Tagging a recipe so it lands in the filters.
+ *
+ * The facets match a recipe by looking for its tag by name, and that vocabulary
+ * only ever existed inside the filter component — the form offered a free-text
+ * box and no hint that any particular word was load-bearing. The Birria was
+ * tagged "dinner, mexican" and so never appeared under Beef.
+ */
+describe('RecipeFormComponent — tags the filters actually match', () => {
+  let fixture: ComponentFixture<RecipeFormComponent>;
+  let component: RecipeFormComponent;
+
+  const chipFor = (value: string): HTMLButtonElement =>
+    fixture.nativeElement.querySelector(`.tag-chip[data-tag="${value}"]`);
+
+  const tags = (): string => component.form.controls.tags.value;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RecipeFormComponent],
+      providers: [
+        provideRouter([{ path: 'recipes', component: DummyComponent }]),
+        {
+          provide: RecipeService,
+          useValue: {
+            create: vi.fn().mockReturnValue(of({ id: 'new-1' })),
+            update: vi.fn().mockReturnValue(of({ id: 'r1' })),
+            getById: vi.fn(),
+            getTranslations: vi.fn().mockReturnValue(of([])),
+            getVariationsForAuthoring: vi.fn().mockReturnValue(of(null)),
+            replaceVariations: vi.fn(),
+          },
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => null } } },
+        },
+      ],
+    }).compileComponents();
+
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    fixture = TestBed.createComponent(RecipeFormComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('offers every tag the filters know about', () => {
+    for (const option of FILTER_TAGS) {
+      expect(chipFor(option.value)).toBeTruthy();
+    }
+  });
+
+  it('does not offer Main, which no tag can set', () => {
+    // The filter calls a recipe a main dish when it is tagged none of the
+    // others. A "Main" chip would write a tag that drives nothing — a control
+    // that looks like it works and does not.
+    expect(chipFor('Main')).toBeNull();
+  });
+
+  it('writes the tag when a chip is pressed', () => {
+    chipFor('Beef').click();
+    fixture.detectChanges();
+
+    expect(tags()).toContain('beef');
+  });
+
+  it('takes it off again when the chip is pressed twice', () => {
+    chipFor('Beef').click();
+    fixture.detectChanges();
+    chipFor('Beef').click();
+    fixture.detectChanges();
+
+    expect(tags()).not.toContain('beef');
+  });
+
+  it('keeps the tags the author typed by hand', () => {
+    // The distractor: rebuilding the field from the known vocabulary passes
+    // every test above and silently deletes "slow-cooked" and "tacos".
+    component.form.controls.tags.setValue('slow-cooked, tacos');
+
+    chipFor('Mexican').click();
+    fixture.detectChanges();
+
+    expect(tags()).toContain('slow-cooked');
+    expect(tags()).toContain('tacos');
+    expect(tags()).toContain('mexican');
+  });
+
+  it('shows a stored tag as already chosen, whatever its capitalisation', () => {
+    // Tags come back from the server lowercased, and the vocabulary is written
+    // in title case. Matching them exactly would leave every chip looking unset
+    // on an existing recipe.
+    component.form.controls.tags.setValue('mexican, dinner');
+    fixture.detectChanges();
+
+    expect(chipFor('Mexican').getAttribute('aria-pressed')).toBe('true');
+    expect(chipFor('Beef').getAttribute('aria-pressed')).toBe('false');
   });
 });

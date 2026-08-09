@@ -7,6 +7,7 @@ import {
   viewChild,
   OnInit,
 } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { FormGroup, FormControl, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
@@ -19,6 +20,14 @@ import { RecipeTranslation } from '../../../shared/models/translation.model';
 import type { Recipe } from '../../../shared/models/recipe.model';
 import type { RecipeVariationsAuthoring } from '../../../shared/models/variation-authoring.model';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
+import {
+  COURSE_TAGS,
+  CUISINE_TAGS,
+  PROTEIN_TAGS,
+  hasTag,
+  splitTags,
+  toggleTag,
+} from '../recipe-tags';
 import { VariationsEditorComponent } from './variations-editor/variations-editor';
 
 /** The prose fields of the form, for one language. */
@@ -78,6 +87,17 @@ export class RecipeFormComponent implements OnInit {
 
   /** Locales with no name entered yet — surfaced so gaps are visible, not silent. */
   readonly missingLocales = signal<readonly Locale[]>([]);
+
+  /**
+   * The tags the filters match on, offered rather than left to be guessed.
+   *
+   * Shared with the filter component instead of restated here — the two lists
+   * drifting is exactly how the form would start offering tags that nothing
+   * filters on.
+   */
+  readonly cuisineTags = CUISINE_TAGS;
+  readonly proteinTags = PROTEIN_TAGS;
+  readonly courseTags = COURSE_TAGS;
 
   readonly unitOptions = Object.values(Unit);
   readonly difficultyOptions = Object.values(Difficulty);
@@ -311,6 +331,34 @@ export class RecipeFormComponent implements OnInit {
 
   protected isMissing(locale: Locale): boolean {
     return this.missingLocales().includes(locale);
+  }
+
+  /**
+   * The tags field as a signal.
+   *
+   * Read straight off the control, the chips only repainted when something else
+   * happened to mark this OnPush view dirty — so opening an existing recipe
+   * showed every chip unset until you clicked one, which is worse than not
+   * having them. `valueChanges` covers patchValue, setValue and typing alike.
+   */
+  private readonly tagsValue = toSignal(this.form.controls.tags.valueChanges, {
+    initialValue: this.form.controls.tags.value,
+  });
+
+  /** Whether this recipe already carries the tag behind a chip. */
+  protected isTagged(value: string): boolean {
+    return hasTag(splitTags(this.tagsValue()), value);
+  }
+
+  /**
+   * Put a tag on or take it off, leaving everything else the author typed.
+   *
+   * The free-text box stays — "slow-cooked" and "tacos" are worth having and no
+   * facet will ever list them — so this edits the field rather than owning it.
+   */
+  protected toggleTagChip(value: string): void {
+    const next = toggleTag(splitTags(this.form.controls.tags.value), value);
+    this.form.controls.tags.setValue(next.join(', '));
   }
 
   addIngredient(): void {

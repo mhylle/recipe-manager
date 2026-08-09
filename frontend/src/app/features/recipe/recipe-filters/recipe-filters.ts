@@ -2,13 +2,12 @@ import { Component, ChangeDetectionStrategy, output, signal } from '@angular/cor
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
 import { EnumLabelPipe, TranslatePipe } from '../../../shared/i18n';
-import type { TranslationKey } from '../../../shared/i18n';
-
-/** A filter chip: the tag value sent to the API, plus the key for its display label. */
-interface FilterOption {
-  readonly value: string;
-  readonly labelKey: TranslationKey;
-}
+import {
+  COURSE_TAGS,
+  CUISINE_TAGS,
+  PROTEIN_TAGS,
+  type TagOption,
+} from '../recipe-tags';
 
 export interface RecipeFilters {
   query: string;
@@ -32,30 +31,16 @@ export class RecipeFiltersComponent {
 
   readonly difficultyOptions = Object.values(Difficulty);
 
-  // `value` is matched against tags stored on the recipe and MUST stay English;
-  // only `labelKey` drives what the user reads.
-  readonly cuisineOptions: readonly FilterOption[] = [
-    { value: 'Mexican', labelKey: 'recipe.filters.cuisine.mexican' },
-    { value: 'Italian', labelKey: 'recipe.filters.cuisine.italian' },
-    { value: 'Thai', labelKey: 'recipe.filters.cuisine.thai' },
-    { value: 'Japanese', labelKey: 'recipe.filters.cuisine.japanese' },
-    { value: 'Danish', labelKey: 'recipe.filters.cuisine.danish' },
-    { value: 'French', labelKey: 'recipe.filters.cuisine.french' },
-  ];
-  readonly proteinOptions: readonly FilterOption[] = [
-    { value: 'Chicken', labelKey: 'recipe.filters.protein.chicken' },
-    { value: 'Pork', labelKey: 'recipe.filters.protein.pork' },
-    { value: 'Beef', labelKey: 'recipe.filters.protein.beef' },
-    { value: 'Fish', labelKey: 'recipe.filters.protein.fish' },
-    { value: 'Vegetarian', labelKey: 'recipe.filters.protein.vegetarian' },
-  ];
-  readonly courseOptions: readonly FilterOption[] = [
+  // The vocabulary itself lives in recipe-tags.ts, shared with the authoring
+  // form. Copied into both, the two lists drift and the form starts offering
+  // tags no filter matches — which is the bug this extraction exists to stop.
+  readonly cuisineOptions: readonly TagOption[] = CUISINE_TAGS;
+  readonly proteinOptions: readonly TagOption[] = PROTEIN_TAGS;
+  // Main is a filter option but NOT a tag: it is defined by the absence of the
+  // others, so it belongs here rather than in the vocabulary authors write.
+  readonly courseOptions: readonly TagOption[] = [
     { value: 'Main', labelKey: 'recipe.filters.course.main' },
-    { value: 'Dessert', labelKey: 'recipe.filters.course.dessert' },
-    { value: 'Appetizer', labelKey: 'recipe.filters.course.appetizer' },
-    { value: 'Soup', labelKey: 'recipe.filters.course.soup' },
-    { value: 'Snack', labelKey: 'recipe.filters.course.snack' },
-    { value: 'Baking', labelKey: 'recipe.filters.course.baking' },
+    ...COURSE_TAGS,
   ];
 
   readonly searchControl = new FormControl('', { nonNullable: true });

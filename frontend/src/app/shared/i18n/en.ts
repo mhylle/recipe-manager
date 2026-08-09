@@ -323,6 +323,8 @@ export const en = {
   'recipe.form.difficulty': 'Difficulty',
   'recipe.form.difficultyPlaceholder': 'Select difficulty',
   'recipe.form.tags': 'Tags (comma-separated)',
+  'recipe.form.tagsMainHint':
+    'A recipe counts as a main course unless you mark it as one of the above. Add anything else you like below, separated by commas.',
   'recipe.form.tagsPlaceholder': 'e.g. breakfast, quick, italian',
   'recipe.form.visibility': 'Who can see this',
   'recipe.form.private': 'Keep this recipe in my kitchen',
