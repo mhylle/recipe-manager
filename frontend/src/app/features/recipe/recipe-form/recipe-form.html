@@ -130,7 +130,7 @@
       <div formArrayName="ingredients">
         @for (ingredient of ingredientsArray.controls; track $index; let i = $index) {
           <div class="ingredient-row" [formGroupName]="i">
-            <input type="text" class="input" formControlName="name" [attr.placeholder]="'recipe.form.ingredientNamePlaceholder' | t" [attr.aria-label]="'recipe.form.ingredientNameLabel' | t: { index: i + 1 }" />
+            <input type="text" class="input" formControlName="name" (input)="onNameInput()" [attr.placeholder]="'recipe.form.ingredientNamePlaceholder' | t" [attr.aria-label]="'recipe.form.ingredientNameLabel' | t: { index: i + 1 }" />
             <input type="number" class="input" formControlName="quantity" [attr.placeholder]="'recipe.form.ingredientQtyPlaceholder' | t" min="0" [attr.aria-label]="'recipe.form.ingredientQtyLabel' | t: { index: i + 1 }" />
             <select class="input" formControlName="unit" [attr.aria-label]="'recipe.form.ingredientUnitLabel' | t: { index: i + 1 }">
               @for (unit of unitOptions; track unit) {
@@ -150,6 +150,14 @@
             >
               {{ 'common.actions.remove' | t }}
             </button>
+            <!-- Named in the other language but not in this one. Required, and
+                 emptied by the language tab rather than by the author — so
+                 without this the save is blocked by a box nobody was told about. -->
+            @if (needsTranslation(i)) {
+              <p class="error ingredient-row__error" role="alert">
+                {{ 'recipe.form.ingredientNeedsTranslation' | t }}
+              </p>
+            }
           </div>
         }
       </div>

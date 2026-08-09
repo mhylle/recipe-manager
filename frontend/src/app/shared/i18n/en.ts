@@ -357,6 +357,7 @@ export const en = {
   'recipe.form.instructionsPlaceholder': 'Step 1\nStep 2\nStep 3',
   'recipe.form.languageTabs': 'Language being edited',
   'recipe.form.missingTranslation': 'No translation yet',
+  'recipe.form.ingredientNeedsTranslation': 'Also needed in this language.',
   'recipe.form.missingHint': 'Languages marked with a dot have no name yet. Readers will see the source language instead.',
 
   'recipe.detail.totalTime': '{{minutes}} min total',

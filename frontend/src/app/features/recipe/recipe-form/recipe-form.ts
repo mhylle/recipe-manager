@@ -249,14 +249,63 @@ export class RecipeFormComponent implements OnInit {
     });
   }
 
+  /**
+   * Which languages are not finished.
+   *
+   * Ingredient names count, not just the recipe's name. They are per-language
+   * too, and leaving them out of this check is what made #83 unanswerable: a
+   * language with every visible field filled reported itself complete while an
+   * empty ingredient name — required, and blanked by the tab switch — kept the
+   * save button greyed out with nothing on screen to explain it.
+   */
   private refreshMissingLocales(): void {
-    const currentName = this.form.controls.name.value.trim();
     this.missingLocales.set(
-      LOCALES.map((l) => l.code).filter((code) =>
-        code === this.editingLocale()
-          ? currentName.length === 0
-          : !(this.drafts.get(code)?.name ?? '').trim(),
-      ),
+      LOCALES.map((l) => l.code).filter((code) => this.isIncomplete(code)),
+    );
+  }
+
+  private isIncomplete(locale: Locale): boolean {
+    const isCurrent = locale === this.editingLocale();
+    const name = isCurrent
+      ? this.form.controls.name.value
+      : (this.drafts.get(locale)?.name ?? '');
+    if (!name.trim()) {
+      return true;
+    }
+    return this.ingredientNamesFor(locale).some((n) => !n.trim());
+  }
+
+  /** The ingredient names this language holds — live for the tab on screen. */
+  private ingredientNamesFor(locale: Locale): string[] {
+    if (locale === this.editingLocale()) {
+      return this.ingredientsArray.controls.map(
+        (group) => (group.get('name')?.value as string) ?? '',
+      );
+    }
+    const draft = this.drafts.get(locale);
+    return this.ingredientsArray.controls.map(
+      (_, index) => draft?.ingredientNames[index] ?? '',
+    );
+  }
+
+  /**
+   * True when this row is named in another language but not in this one.
+   *
+   * Deliberately not "the control is empty": a blank row on a recipe nobody has
+   * started is not a missing translation, and an error there would be noise
+   * people learn to ignore. Also deliberately not gated on `touched` — the tab
+   * switch is what emptied the box, so the user never touched it and never
+   * would have seen the message.
+   */
+  protected needsTranslation(index: number): boolean {
+    const here = (this.ingredientsArray.at(index)?.get('name')?.value as string) ?? '';
+    if (here.trim()) {
+      return false;
+    }
+    return LOCALES.some(
+      (l) =>
+        l.code !== this.editingLocale() &&
+        (this.drafts.get(l.code)?.ingredientNames[index] ?? '').trim().length > 0,
     );
   }
 

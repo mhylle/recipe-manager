@@ -330,6 +330,7 @@ export const da: Dictionary = {
   'recipe.form.instructionsPlaceholder': 'Trin 1\nTrin 2\nTrin 3',
   'recipe.form.languageTabs': 'Sprog der redigeres',
   'recipe.form.missingTranslation': 'Ingen oversættelse endnu',
+  'recipe.form.ingredientNeedsTranslation': 'Skal ogs\u00e5 udfyldes p\u00e5 dette sprog.',
   'recipe.form.missingHint': 'Sprog markeret med en prik mangler et navn. Læsere ser kildesproget i stedet.',
 
   'recipe.detail.totalTime': '{{minutes}} min i alt',

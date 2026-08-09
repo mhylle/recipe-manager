@@ -83,6 +83,13 @@
   align-items: center;
 }
 
+// Spans the row rather than sitting in the name column: Danish runs 30-40%
+// longer, and squeezed into a 2fr column it would wrap to three lines.
+.ingredient-row__error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
 .error {
   color: var(--error);
   font-size: 0.75rem;

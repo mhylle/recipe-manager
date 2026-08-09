@@ -471,3 +471,121 @@ function textEvent(value: string): Event {
   Object.defineProperty(event, 'target', { value: input });
   return event;
 }
+
+/**
+ * #83 — "the create button keeps being greyed out. I have added both danish and
+ * english versions".
+ *
+ * Ingredient names are per-language, and nothing said so. Switching the
+ * authoring tab loads that language's names, which for a new recipe are empty;
+ * those controls are required, so the form is invalid — while the tab markers,
+ * which only ever inspected the recipe's NAME, reported both languages complete.
+ * A disabled button, no error anywhere, and a reporter who had in fact filled in
+ * everything they were shown.
+ */
+describe('RecipeFormComponent — the half-translated ingredient list', () => {
+  let fixture: ComponentFixture<RecipeFormComponent>;
+  let component: RecipeFormComponent;
+
+  /** Everything the form asks for, in whichever language is on screen. */
+  const fillCurrentLanguage = (suffix: string): void => {
+    component.form.patchValue({
+      name: `Test ${suffix}`,
+      description: `Description ${suffix}`,
+      servings: 4,
+      prepTime: 10,
+      cookTime: 20,
+      difficulty: Difficulty.EASY,
+      instructions: `Step one ${suffix}`,
+    });
+    component.ingredientsArray.at(0).patchValue({
+      name: `Flour ${suffix}`,
+      quantity: 200,
+      unit: 'g',
+      pantryCategory: 'baking',
+    });
+    fixture.detectChanges();
+  };
+
+  const other = (): 'en' | 'da' => (component.editingLocale() === 'en' ? 'da' : 'en');
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [RecipeFormComponent],
+      providers: [
+        provideRouter([{ path: 'recipes', component: DummyComponent }]),
+        {
+          provide: RecipeService,
+          useValue: {
+            create: vi.fn().mockReturnValue(of({ id: 'new-1' })),
+            update: vi.fn().mockReturnValue(of({ id: 'r1' })),
+            getById: vi.fn(),
+            getTranslations: vi.fn().mockReturnValue(of([])),
+            getVariationsForAuthoring: vi.fn().mockReturnValue(of(null)),
+            replaceVariations: vi.fn(),
+          },
+        },
+        {
+          provide: ActivatedRoute,
+          useValue: { snapshot: { paramMap: { get: () => null } } },
+        },
+      ],
+    }).compileComponents();
+
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    fixture = TestBed.createComponent(RecipeFormComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('marks a language incomplete when only its ingredient names are missing', () => {
+    // The distractor: the old check looked at the recipe name alone, so this
+    // language — named, described, with a method, and blocking the save —
+    // reported itself finished.
+    fillCurrentLanguage('one');
+    const second = other();
+
+    component.switchLocale(second);
+    component.form.patchValue({ name: 'Anden titel', description: 'x', instructions: 'y' });
+    component.onNameInput();
+    fixture.detectChanges();
+
+    expect(component.form.invalid).toBe(true);
+    expect(component.missingLocales()).toContain(second);
+  });
+
+  it('says which row is missing, on the row', () => {
+    // A disabled button with no message is the actual bug report. The error has
+    // to be attached to the control that is blocking it.
+    fillCurrentLanguage('one');
+    component.switchLocale(other());
+    fixture.detectChanges();
+
+    const rowError = fixture.nativeElement.querySelector('.ingredient-row .error');
+
+    expect(rowError).toBeTruthy();
+    expect(rowError.textContent.trim().length).toBeGreaterThan(0);
+  });
+
+  it('stays quiet on a form nobody has filled in yet', () => {
+    // Guards the other direction: an empty row on a brand-new recipe is not a
+    // missing translation, and shouting about it would train people to ignore it.
+    const rowError = fixture.nativeElement.querySelector('.ingredient-row .error');
+
+    expect(rowError).toBeNull();
+  });
+
+  it('clears the warning once the name is given in this language too', () => {
+    fillCurrentLanguage('one');
+    component.switchLocale(other());
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.ingredient-row .error')).toBeTruthy();
+
+    component.ingredientsArray.at(0).patchValue({ name: 'Flour two' });
+    component.onNameInput();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.ingredient-row .error')).toBeNull();
+  });
+});
