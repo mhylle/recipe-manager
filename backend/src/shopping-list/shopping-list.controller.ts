@@ -42,12 +42,18 @@ export class ShoppingListController {
     @Param('recipeId') recipeId: string,
     @Query('servings') servings?: string,
     @Query('pantryId') pantryId?: string,
+    /**
+     * Which way the reader chose to cook it. Named the same as on the recipe
+     * read, so one id travels unchanged from the switcher to the shop.
+     */
+    @Query('variation') variation?: string,
   ): Promise<ShoppingList> {
     const servingsNum = servings ? parseInt(servings, 10) : undefined;
     return this.shoppingListService.generateFromRecipe(
       await this.access.resolve(user, pantryId),
       recipeId,
       servingsNum,
+      variation,
     );
   }
 

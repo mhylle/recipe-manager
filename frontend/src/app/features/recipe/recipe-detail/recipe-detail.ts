@@ -266,9 +266,15 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
     this.addingToList.set(true);
     // Scaled servings, not the recipe's own — the list should match what the
-    // ingredient panel is currently showing.
+    // ingredient panel is currently showing. And the chosen variation, for the
+    // same reason: the panel is showing ITS ingredients, so a list built from
+    // the recipe as written would disagree with the screen it was pressed on.
     this.shoppingListService
-      .generateFromRecipe(currentRecipe.id, this.scaledServings())
+      .generateFromRecipe(
+        currentRecipe.id,
+        this.scaledServings(),
+        this.chosenVariation() ?? undefined,
+      )
       .subscribe({
         next: (list) => {
           this.addingToList.set(false);

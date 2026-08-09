@@ -36,8 +36,26 @@ export class ShoppingListService {
     return this.http.patch<ShoppingList>(`${this.baseUrl}/${listId}/items/${itemIndex}`, {});
   }
 
-  generateFromRecipe(recipeId: string, servings?: number): Observable<ShoppingList> {
-    const params = servings ? `?servings=${servings}` : '';
-    return this.http.post<ShoppingList>(`${this.baseUrl}/from-recipe/${recipeId}${params}`, {});
+  /**
+   * Shop for one recipe, cooked the way the reader chose.
+   *
+   * `variationId` matters more than it looks: a variation can ADD an ingredient
+   * the recipe has none of — the teriyaki's garlic, the ciabatta's sugar — so
+   * leaving it out does not produce a slightly wrong list, it produces one that
+   * cannot contain them at all.
+   */
+  generateFromRecipe(
+    recipeId: string,
+    servings?: number,
+    variationId?: string,
+  ): Observable<ShoppingList> {
+    const params = new URLSearchParams();
+    if (servings) params.set('servings', String(servings));
+    if (variationId) params.set('variation', variationId);
+    const query = params.toString();
+    return this.http.post<ShoppingList>(
+      `${this.baseUrl}/from-recipe/${recipeId}${query ? `?${query}` : ''}`,
+      {},
+    );
   }
 }

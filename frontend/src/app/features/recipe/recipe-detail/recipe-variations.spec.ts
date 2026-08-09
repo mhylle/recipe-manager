@@ -3,7 +3,9 @@ import { provideRouter, ActivatedRoute } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { of } from 'rxjs';
 import { RecipeDetailComponent } from './recipe-detail';
+import { AuthService } from '../../../shared/services/auth.service';
 
 /**
  * #77 and #78 — choosing how to cook it.
@@ -58,6 +60,16 @@ describe('RecipeDetailComponent — ways to cook this', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => 'r-ciabatta' } } },
         },
+        {
+          // The shopping-list button only renders for a signed-in cook, so an
+          // anonymous fixture cannot reach the thing under test at all.
+          provide: AuthService,
+          useValue: {
+            isAuthenticated: () => true,
+            checkAuth: () => of(true),
+            localUserId: () => 'u1',
+          },
+        },
       ],
     });
     fixture = TestBed.createComponent(RecipeDetailComponent);
@@ -106,5 +118,44 @@ describe('RecipeDetailComponent — ways to cook this', () => {
       'Two to four hours',
     );
     expect(host().textContent).toContain('Sugar');
+  });
+
+  it('shops for the variation on screen, not for the recipe as written', () => {
+    // The list is built from the recipe the server resolves, so the variation
+    // id has to reach it. Without it the teriyaki's garlic — which is in NO base
+    // ingredient list — cannot appear on the list at all, which is exactly what
+    // #77 and #78 were reported about.
+    const choices = host().querySelectorAll<HTMLButtonElement>(
+      '.recipe-variations__choice',
+    );
+    choices[1].click();
+    httpTesting
+      .expectOne((r) => r.url.includes('variation=v-10g'))
+      .flush(recipe({ variationId: 'v-10g' }));
+    fixture.detectChanges();
+
+    const button = Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.trim() === 'Add to Shopping List',
+    );
+    button!.click();
+
+    const generated = httpTesting.expectOne((r) =>
+      r.url.includes('/from-recipe/r-ciabatta'),
+    );
+    expect(generated.request.urlWithParams).toContain('variation=v-10g');
+  });
+
+  it('shops for the recipe as written when nothing was chosen', () => {
+    // The distractor: sending whatever id happens to be lying around would pass
+    // the test above and quietly change what the plain button buys.
+    const button = Array.from(host().querySelectorAll<HTMLButtonElement>('button')).find(
+      (b) => b.textContent?.trim() === 'Add to Shopping List',
+    );
+    button!.click();
+
+    const generated = httpTesting.expectOne((r) =>
+      r.url.includes('/from-recipe/r-ciabatta'),
+    );
+    expect(generated.request.urlWithParams).not.toContain('variation=');
   });
 });

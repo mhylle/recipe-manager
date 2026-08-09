@@ -12,6 +12,12 @@ import {
   consolidateIngredients,
   ConsolidatedItem,
 } from './helpers/consolidation.helper.js';
+// Passed explicitly rather than left to the parameter default, because the
+// variation id sits behind it. The language is a separate decision from the
+// variation and a knowingly unfinished one — see insight 2aeb4195: the recipe,
+// the pantry and the staples are matched by lowercased NAME, so all three have
+// to move languages together or pantry deduction silently stops working.
+import { DEFAULT_LOCALE } from '../shared/i18n/locale.js';
 
 @Injectable()
 export class ShoppingListService {
@@ -97,12 +103,26 @@ export class ShoppingListService {
     });
   }
 
+  /**
+   * Shop for one recipe, cooked the way the reader chose.
+   *
+   * `variationId` is not optional decoration: the ciabatta's sugar and the
+   * teriyaki's garlic are in no base ingredient list, so a list generated
+   * without it cannot contain them at all — which is the complaint #77 and #78
+   * were filed about. The recipe arrives already resolved, so nothing here
+   * applies overrides itself.
+   */
   async generateFromRecipe(
     pantryId: string,
     recipeId: string,
     servings?: number,
+    variationId?: string,
   ): Promise<ShoppingList> {
-    const recipe = await this.recipeService.findByIdUnrestricted(recipeId);
+    const recipe = await this.recipeService.findByIdUnrestricted(
+      recipeId,
+      DEFAULT_LOCALE,
+      variationId,
+    );
     const [pantryItems, staplesConfig] = await Promise.all([
       this.pantryService.findAll(pantryId),
       this.staplesService.getStaples(pantryId),
