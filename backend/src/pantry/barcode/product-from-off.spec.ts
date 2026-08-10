@@ -119,6 +119,26 @@ describe('productFrom', () => {
       ).toBe(PantryCategory.OTHER);
     });
 
+    it('is not fooled by the umbrella tag that sits on half the database', () => {
+      // Caught on production, not here: these are the REAL tags Open Food Facts
+      // returns for Arla Smørbar, a Danish butter. `plant-based-foods-and-
+      // beverages` is a taxonomy root, and matched as a substring it contains
+      // "beverages" — so the butter came back filed as a drink.
+      expect(
+        shelfFor([
+          'en:plant-based-foods-and-beverages',
+          'en:dairies',
+          'en:plant-based-foods',
+          'en:fats',
+          'en:spreads',
+          'en:spreadable-fats',
+          'en:dairy-spreads',
+          'en:milkfat',
+          'en:butters',
+        ]),
+      ).toBe(PantryCategory.DAIRY);
+    });
+
     it('reads the English tag even when the list is mostly French', () => {
       // OFF mixes languages in one array. Only the `en:` ones are stable.
       expect(

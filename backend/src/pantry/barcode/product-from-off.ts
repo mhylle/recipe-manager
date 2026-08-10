@@ -109,6 +109,21 @@ const SHELVES: readonly [PantryCategory, readonly string[]][] = [
   ],
 ];
 
+/**
+ * Tags that say nothing about which shelf something goes on.
+ *
+ * `plant-based-foods-and-beverages` is an OFF taxonomy ROOT — it sits on a
+ * staggering share of the database and means little more than "food". Matched
+ * as a substring it contains the word "beverages", which is how Danish butter
+ * came back from production filed as a drink.
+ */
+const UMBRELLA_TAGS: ReadonlySet<string> = new Set([
+  'plant-based-foods-and-beverages',
+  'plant-based-foods',
+  'foods',
+  'groceries',
+]);
+
 /** The packaging sizes we can actually keep, spelled as OFF spells them. */
 const UNITS: readonly [string, Unit][] = [
   ['kg', Unit.KG],
@@ -159,7 +174,8 @@ function nameOf(product: OffProduct): string {
 function shelfOf(tags: string[]): PantryCategory {
   const english = tags
     .filter((tag) => tag.startsWith('en:'))
-    .map((tag) => tag.slice(3).toLowerCase());
+    .map((tag) => tag.slice(3).toLowerCase())
+    .filter((tag) => !UMBRELLA_TAGS.has(tag));
 
   for (const [category, keywords] of SHELVES) {
     if (english.some((tag) => keywords.some((word) => tag.includes(word)))) {
