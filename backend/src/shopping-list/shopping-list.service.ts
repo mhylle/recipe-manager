@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ShoppingListRepository } from './shopping-list.repository.js';
 import { MealPlanService } from '../meal-plan/meal-plan.service.js';
 import { RecipeService } from '../recipe/recipe.service.js';
@@ -12,6 +12,7 @@ import {
   consolidateIngredients,
   ConsolidatedItem,
 } from './helpers/consolidation.helper.js';
+import { planRestock } from './helpers/restock.helper.js';
 // Passed explicitly rather than left to the parameter default, because the
 // variation id sits behind it. The language is a separate decision from the
 // variation and a knowingly unfinished one — see insight 2aeb4195: the recipe,
@@ -21,6 +22,8 @@ import { DEFAULT_LOCALE } from '../shared/i18n/locale.js';
 
 @Injectable()
 export class ShoppingListService {
+  private readonly logger = new Logger(ShoppingListService.name);
+
   constructor(
     private readonly shoppingListRepository: ShoppingListRepository,
     private readonly mealPlanService: MealPlanService,
@@ -61,6 +64,7 @@ export class ShoppingListService {
             name: ingredient.name,
             quantity: ingredient.quantity * scaleFactor,
             unit: ingredient.unit,
+            category: ingredient.pantryCategory,
           });
         }
       } catch {
@@ -85,6 +89,7 @@ export class ShoppingListService {
           name: item.name,
           quantity: Math.ceil(needed * 100) / 100,
           unit: item.unit,
+          category: item.category,
           checked: false,
         });
       }
@@ -141,6 +146,7 @@ export class ShoppingListService {
         name: ingredient.name,
         quantity: ingredient.quantity * scaleFactor,
         unit: ingredient.unit,
+        category: ingredient.pantryCategory,
       });
     }
 
@@ -158,6 +164,7 @@ export class ShoppingListService {
           name: item.name,
           quantity: Math.ceil(needed * 100) / 100,
           unit: item.unit,
+          category: item.category,
           checked: false,
         });
       }
@@ -180,9 +187,58 @@ export class ShoppingListService {
     return this.shoppingListRepository.findCurrent(pantryId);
   }
 
-  /** Put the list away when the shopping is done. */
+  /**
+   * Put the list away when the shopping is done, and put the shopping away too.
+   *
+   * Generating a list already deducts what the pantry holds. Nothing ever added
+   * to it, so the pantry stayed frozen at what it held before the shop and the
+   * next list bought the same things again — the loop was only half built.
+   *
+   * Deliberately NOT `archiveCurrent`, which runs whenever a new list is
+   * generated: that archives a list nobody may have shopped from, and stocking
+   * the pantry off it would invent a trolley that never existed.
+   */
   async archive(pantryId: string, id: string): Promise<ShoppingList> {
+    const list = await this.shoppingListRepository.findById(pantryId, id);
+
+    // Archiving is reachable twice — a double click, a retry, a second tab —
+    // and a pantry that doubles on the second press is worse than one that
+    // never filled. An already-archived list has had its shopping put away.
+    if (!list.archivedAt) {
+      await this.restock(pantryId, list.items);
+    }
+
     return this.shoppingListRepository.archive(pantryId, id);
+  }
+
+  /**
+   * Move the ticked-off lines onto the shelves.
+   *
+   * Failures here are swallowed on purpose. Refusing to archive because the
+   * pantry write failed would strand the kitchen on a finished list with no way
+   * past it, and the list is the thing the cook asked to put away.
+   */
+  private async restock(
+    pantryId: string,
+    items: ShoppingListItem[],
+  ): Promise<void> {
+    try {
+      const held = await this.pantryService.findAll(pantryId);
+      const plan = planRestock(held, items);
+
+      for (const update of plan.updates) {
+        await this.pantryService.update(pantryId, update.id, {
+          quantity: update.quantity,
+        });
+      }
+      for (const create of plan.creates) {
+        await this.pantryService.create(pantryId, create);
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Could not stock the pantry from list in ${pantryId}: ${String(error)}`,
+      );
+    }
   }
 
   async findById(pantryId: string, id: string): Promise<ShoppingList> {

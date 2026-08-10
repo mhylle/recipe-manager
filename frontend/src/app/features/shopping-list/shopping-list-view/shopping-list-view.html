@@ -68,6 +68,15 @@
     }
   } @else {
     <div class="card shopping-list__empty" role="status">
+      @let stocked = stockedCount();
+      @if (stocked !== null) {
+        <!-- The pantry changing is the point of "done shopping", and it happens
+             as the list disappears — so it is said out loud rather than left to
+             be discovered on another page. -->
+        <p class="shopping-list__stocked">
+          {{ 'shoppingList.stocked' | t: { count: stocked } }}
+        </p>
+      }
       <p>{{ 'shoppingList.empty.none' | t }}</p>
     </div>
   }

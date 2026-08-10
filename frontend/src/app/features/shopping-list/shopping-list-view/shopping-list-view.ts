@@ -169,6 +169,9 @@ export class ShoppingListViewComponent {
 
   readonly archiving = signal(false);
 
+  /** How many ingredients the last "done shopping" put into the pantry. */
+  readonly stockedCount = signal<number | null>(null);
+
   /**
    * Put the list away when the shopping is done.
    *
@@ -178,11 +181,17 @@ export class ShoppingListViewComponent {
   archiveList(): void {
     const list = this.shoppingList();
     if (!list || this.archiving()) return;
+    // Counted BEFORE the list is cleared, and from the ticked lines only: those
+    // are the ones the server puts into the pantry.
+    const stocked = this.lines().filter((line) => line.checked).length;
     this.archiving.set(true);
     this.shoppingListService.archive(list.id).subscribe({
       next: () => {
         this.archiving.set(false);
         this.shoppingList.set(null);
+        // Said out loud, because the pantry changing is the whole point and it
+        // happens on a page the cook is about to leave.
+        this.stockedCount.set(stocked);
       },
       error: () => this.archiving.set(false),
     });

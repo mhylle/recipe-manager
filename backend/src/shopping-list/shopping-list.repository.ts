@@ -20,6 +20,7 @@ export class ShoppingListRepository {
             name: item.name,
             quantity: item.quantity,
             unit: item.unit,
+            category: item.category ?? null,
             checked: item.checked,
             sortOrder: i,
           })),
@@ -153,6 +154,7 @@ export class ShoppingListRepository {
         name: string;
         quantity: number;
         unit: string;
+        category: string | null;
         checked: boolean;
       }>;
     };
@@ -164,6 +166,7 @@ export class ShoppingListRepository {
         name: item.name,
         quantity: item.quantity,
         unit: item.unit as ShoppingList['items'][0]['unit'],
+        category: item.category as ShoppingList['items'][0]['category'],
         checked: item.checked,
       })),
     };

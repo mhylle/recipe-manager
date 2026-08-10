@@ -69,7 +69,12 @@ describe('ShoppingListService — the current list', () => {
 
   it('archives a list on request', async () => {
     const archive = jest.fn().mockResolvedValue({ id: 'list-1', items: [] });
-    const service = build({ archive });
+    // Archiving reads the list first now, to put its shopping into the pantry
+    // — and to refuse to do that twice. See shopping-list-restock.spec.ts.
+    const findById = jest
+      .fn()
+      .mockResolvedValue({ id: 'list-1', items: [], archivedAt: null });
+    const service = build({ archive, findById });
 
     await service.archive(PANTRY, 'list-1');
 

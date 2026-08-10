@@ -624,6 +624,7 @@ export const da: Dictionary = {
   'shoppingList.sendToBilkatogoLabel': 'Send ikke-afkrydsede varer til BilkaToGo-kurven',
   'shoppingList.sending': 'Sender...',
   'shoppingList.generate': 'Generer ud fra madplan',
+  'shoppingList.stocked': '{{count}} varer er lagt i dit spisekammer.',
   'shoppingList.archive': 'Færdig med at handle',
   'shoppingList.generating': 'Genererer...',
   'shoppingList.generatedOn': 'Genereret: {{date}}',

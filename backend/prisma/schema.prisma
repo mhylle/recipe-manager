@@ -643,6 +643,11 @@ model ShoppingListItem {
   name           String
   quantity       Float
   unit           Unit
+  /// Which shelf this belongs on, carried from the recipe so that stocking the
+  /// pantry after a shop can file it correctly. NULL on every row written before
+  /// this column existed, and on anything whose origin did not say — those land
+  /// under `other`, which is where an unfiled item belongs anyway.
+  category       PantryCategory?
   checked        Boolean      @default(false)
   shoppingListId String
   shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)

@@ -1,9 +1,11 @@
-import { Unit } from '../../shared/enums/index.js';
+import { PantryCategory, Unit } from '../../shared/enums/index.js';
 
 export interface ConsolidatedItem {
   name: string;
   quantity: number;
   unit: Unit;
+  /** The shelf this belongs on, carried through so the pantry can be stocked. */
+  category?: PantryCategory | null;
 }
 
 /**
@@ -28,8 +30,33 @@ const SCALE: Partial<Record<Unit, { dimension: string; perBase: number }>> = {
   [Unit.KG]: { dimension: 'mass', perBase: 1000 },
 };
 
+/**
+ * The same amount expressed in another unit, or null when that is not a
+ * question with an answer.
+ *
+ * Null is the honest result for grams into pieces: it needs to know what one
+ * onion weighs, and every caller would rather keep the two apart than have a
+ * number invented for them.
+ */
+export function convertTo(
+  quantity: number,
+  from: Unit,
+  to: Unit,
+): number | null {
+  if (from === to) {
+    return quantity;
+  }
+  const source = SCALE[from];
+  const target = SCALE[to];
+  if (!source || !target || source.dimension !== target.dimension) {
+    return null;
+  }
+  return (quantity * source.perBase) / target.perBase;
+}
+
 interface Bucket {
   name: string;
+  category?: PantryCategory | null;
   /** The amount so far, in the dimension's smallest unit. */
   base: number;
   /** The smallest unit actually seen, which is what this will be shown in. */
@@ -62,6 +89,7 @@ export function consolidateIngredients(
     if (!existing) {
       buckets.set(key, {
         name,
+        category: item.category,
         base: item.quantity * (scale?.perBase ?? 1),
         unit: item.unit,
         perBase: scale?.perBase ?? 1,
@@ -70,6 +98,9 @@ export function consolidateIngredients(
     }
 
     existing.base += item.quantity * (scale?.perBase ?? 1);
+    // First one that names a shelf wins: two recipes agreeing on the ingredient
+    // and disagreeing on the shelf is not worth a tie-break rule.
+    existing.category = existing.category ?? item.category;
     // Show the result in the SMALLEST unit that was asked for. Keeping the
     // first one instead turns a teaspoon into a third of a tablespoon, which is
     // a worse thing to read standing in a shop.
@@ -81,6 +112,7 @@ export function consolidateIngredients(
 
   return [...buckets.values()].map((bucket) => ({
     name: bucket.name,
+    category: bucket.category,
     // Two decimals, because 0.1 + 0.2 is 0.30000000000000004 in floating point
     // and a list that says so has lost the reader over nothing.
     quantity: Math.round((bucket.base / bucket.perBase) * 100) / 100,
