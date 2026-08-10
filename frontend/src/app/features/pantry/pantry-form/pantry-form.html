@@ -3,6 +3,19 @@
 
   <div class="card pantry-form__card">
     <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <!-- Only when adding: scanning an item that already exists would overwrite
+           what the cook has corrected by hand. -->
+      @if (!isEditMode()) {
+        <app-barcode-scanner (scanned)="onScanned($event)" />
+        @if (lookingUp()) {
+          <p class="hint" role="status">{{ 'pantry.scan.lookingUp' | t }}</p>
+        } @else if (scanResult() === 'found') {
+          <p class="hint" role="status">{{ 'pantry.scan.found' | t }}</p>
+        } @else if (scanResult() === 'unknown') {
+          <p class="hint" role="status">{{ 'pantry.scan.unknown' | t }}</p>
+        }
+      }
+
       <!-- Which language the name field below belongs to. -->
       <div class="lang-tabs" role="tablist" [attr.aria-label]="'recipe.form.languageTabs' | t">
         @for (option of locales; track option.code) {

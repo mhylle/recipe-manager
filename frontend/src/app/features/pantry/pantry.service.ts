@@ -5,6 +5,7 @@ import { PantryItem } from '../../shared/models/pantry-item.model';
 import { PantryTranslation } from '../../shared/models/translation.model';
 import { bcp47Of, type Locale } from '../../shared/i18n';
 import { environment } from '../../../environments/environment';
+import type { ScannedProduct } from '../../shared/models/scanned-product.model';
 
 @Injectable({ providedIn: 'root' })
 export class PantryService {
@@ -13,6 +14,18 @@ export class PantryService {
 
   getAll(): Observable<PantryItem[]> {
     return this.http.get<PantryItem[]>(this.baseUrl);
+  }
+
+  /**
+   * What a scanned barcode is, as far as an open database knows.
+   *
+   * Null is an ordinary answer: most of a Danish supermarket is missing from
+   * Open Food Facts, and the form stays fillable by hand.
+   */
+  lookupBarcode(barcode: string): Observable<ScannedProduct | null> {
+    return this.http.get<ScannedProduct | null>(
+      `${this.baseUrl}/lookup/${encodeURIComponent(barcode)}`,
+    );
   }
 
   getById(id: string): Observable<PantryItem> {

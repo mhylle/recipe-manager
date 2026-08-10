@@ -5,12 +5,19 @@ import { PantryService } from '../pantry.service';
 import { Unit } from '../../../shared/enums/unit.enum';
 import { PantryCategory } from '../../../shared/enums/pantry-category.enum';
 import { EnumLabelPipe, LOCALES, LocaleService, TranslatePipe } from '../../../shared/i18n';
+import { BarcodeScannerComponent } from './barcode-scanner/barcode-scanner';
 import type { Locale } from '../../../shared/i18n';
 
 @Component({
   selector: 'app-pantry-form',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, TranslatePipe, EnumLabelPipe],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    TranslatePipe,
+    EnumLabelPipe,
+    BarcodeScannerComponent,
+  ],
   templateUrl: './pantry-form.html',
   styleUrl: './pantry-form.scss',
 })
@@ -45,6 +52,43 @@ export class PantryFormComponent implements OnInit {
     barcode: new FormControl('', { nonNullable: true }),
     expiryDate: new FormControl('', { nonNullable: true }),
   });
+
+  /** What the last scan found, or null when the database had never heard of it. */
+  readonly scanResult = signal<'found' | 'unknown' | null>(null);
+  readonly lookingUp = signal(false);
+
+  /**
+   * Fill the form from a barcode.
+   *
+   * An unknown code still writes the barcode itself: the cook types the name
+   * once, and the item carries the number for next time. Nothing else is
+   * guessed — a quantity of 1 nobody measured is worse than an empty box.
+   */
+  onScanned(barcode: string): void {
+    this.lookingUp.set(true);
+    this.pantryService.lookupBarcode(barcode).subscribe({
+      next: (product) => {
+        this.lookingUp.set(false);
+        this.form.patchValue({ barcode });
+        if (!product) {
+          this.scanResult.set('unknown');
+          return;
+        }
+        this.form.patchValue({
+          name: product.name,
+          category: product.category,
+          ...(product.quantity !== null ? { quantity: product.quantity } : {}),
+          ...(product.unit !== null ? { unit: product.unit } : {}),
+        });
+        this.refreshMissingLocales();
+        this.scanResult.set('found');
+      },
+      error: () => {
+        this.lookingUp.set(false);
+        this.scanResult.set('unknown');
+      },
+    });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

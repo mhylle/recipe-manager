@@ -481,6 +481,24 @@ export const da: Dictionary = {
   'pantry.filters.searchPlaceholder': 'Søg i spisekammeret...',
   'pantry.filters.category': 'Kategori',
 
+  'pantry.scan.start':
+    'Scan en stregkode',
+  'pantry.scan.stop':
+    'Stop kameraet',
+  'pantry.scan.cameraFailed':
+    'Kameraet kunne ikke åbnes. Indtast i stedet tallene under stregkoden.',
+  'pantry.scan.typeLabel':
+    'Eller indtast stregkoden',
+  'pantry.scan.typePlaceholder':
+    'f.eks. 5701234567890',
+  'pantry.scan.lookUp':
+    'Slå den op',
+  'pantry.scan.lookingUp':
+    'Slår den op…',
+  'pantry.scan.found':
+    'Fundet. Tjek oplysningerne, inden du gemmer.',
+  'pantry.scan.unknown':
+    'Den stregkode findes ikke i fødevaredatabasen. Nummeret er gemt — udfyld selv resten.',
   'pantry.form.titleAdd': 'Tilføj vare',
   'pantry.form.titleEdit': 'Rediger vare',
   'pantry.form.name': 'Navn',

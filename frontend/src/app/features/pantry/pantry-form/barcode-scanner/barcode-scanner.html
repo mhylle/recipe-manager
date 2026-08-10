@@ -1,0 +1,38 @@
+<div class="scanner">
+  @if (cameraSupported) {
+    @if (!cameraOn()) {
+      <button type="button" class="btn btn--small" (click)="startCamera()">
+        {{ 'pantry.scan.start' | t }}
+      </button>
+    } @else {
+      <div class="scanner__viewfinder">
+        <video #video class="scanner__video" muted playsinline></video>
+        <button type="button" class="btn btn--small btn--ghost" (click)="stop()">
+          {{ 'pantry.scan.stop' | t }}
+        </button>
+      </div>
+    }
+  }
+
+  @if (cameraFailed()) {
+    <p class="scanner__note" role="status">{{ 'pantry.scan.cameraFailed' | t }}</p>
+  }
+
+  <!-- Always present, on every browser. The number under the bars is readable
+       by a human, and iOS Safari cannot read it any other way. -->
+  <div class="scanner__manual">
+    <label for="typed-barcode">{{ 'pantry.scan.typeLabel' | t }}</label>
+    <input
+      id="typed-barcode"
+      type="text"
+      inputmode="numeric"
+      class="input"
+      [value]="typed()"
+      (input)="onTyped($event)"
+      [attr.placeholder]="'pantry.scan.typePlaceholder' | t"
+    />
+    <button type="button" class="btn btn--small" [disabled]="!typed().trim()" (click)="submitTyped()">
+      {{ 'pantry.scan.lookUp' | t }}
+    </button>
+  </div>
+</div>

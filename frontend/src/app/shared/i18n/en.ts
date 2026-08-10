@@ -507,6 +507,24 @@ export const en = {
   'pantry.filters.searchPlaceholder': 'Search pantry...',
   'pantry.filters.category': 'Category',
 
+  'pantry.scan.start':
+    'Scan a barcode',
+  'pantry.scan.stop':
+    'Stop the camera',
+  'pantry.scan.cameraFailed':
+    'The camera could not be opened. Type the number under the barcode instead.',
+  'pantry.scan.typeLabel':
+    'Or type the barcode',
+  'pantry.scan.typePlaceholder':
+    'e.g. 5701234567890',
+  'pantry.scan.lookUp':
+    'Look it up',
+  'pantry.scan.lookingUp':
+    'Looking it up…',
+  'pantry.scan.found':
+    'Found it. Check the details before saving.',
+  'pantry.scan.unknown':
+    'That barcode is not in the food database. The number has been saved — fill in the rest yourself.',
   'pantry.form.titleAdd': 'Add Pantry Item',
   'pantry.form.titleEdit': 'Edit Pantry Item',
   'pantry.form.name': 'Name',

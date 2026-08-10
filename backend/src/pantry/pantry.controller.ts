@@ -26,6 +26,8 @@ import type { Locale } from '../shared/i18n/locale.js';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard.js';
 import { CurrentUser } from '../shared/auth/current-user.decorator.js';
 import type { LocalUser } from '../shared/auth/user.service.js';
+import { BarcodeLookupService } from './barcode/barcode-lookup.service.js';
+import type { ScannedProduct } from './barcode/product-from-off.js';
 
 /**
  * Every route here is guarded, reads included.
@@ -44,7 +46,24 @@ export class PantryController {
   constructor(
     private readonly pantryService: PantryService,
     private readonly access: PantryAccessService,
+    private readonly barcodes: BarcodeLookupService,
   ) {}
+
+  /**
+   * What a scanned barcode is, as far as an open database knows.
+   *
+   * MUST stay above `@Get(':id')`: routes match in declaration order, so
+   * declared after it a barcode arrives as an item id and 404s.
+   *
+   * Null is an ordinary answer, not an error — most of a Danish supermarket is
+   * missing from Open Food Facts, and the form stays fillable by hand.
+   */
+  @Get('lookup/:barcode')
+  async lookupBarcode(
+    @Param('barcode') barcode: string,
+  ): Promise<ScannedProduct | null> {
+    return this.barcodes.lookup(barcode);
+  }
 
   /** The kitchens this user belongs to — drives the switcher and sharing UI. */
   @Get('mine')

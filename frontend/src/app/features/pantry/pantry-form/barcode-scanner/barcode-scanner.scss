@@ -1,0 +1,46 @@
+.scanner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  background: var(--surface-container-low);
+  border-radius: var(--radius-lg);
+  margin-bottom: 1rem;
+}
+
+.scanner__viewfinder {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.scanner__video {
+  inline-size: 100%;
+  // Capped so the viewfinder cannot push the form off the screen on a phone.
+  max-block-size: 14rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-container-high);
+}
+
+.scanner__manual {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.scanner__manual label {
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+}
+
+.scanner__manual .input {
+  inline-size: 12rem;
+}
+
+.scanner__note {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--on-surface-variant);
+}

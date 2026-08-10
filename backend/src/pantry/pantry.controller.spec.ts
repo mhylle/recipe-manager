@@ -4,6 +4,7 @@ import { NotFoundException } from '@nestjs/common';
 import { PantryController } from './pantry.controller';
 import { PantryService } from './pantry.service';
 import { PantryAccessService } from './pantry-access.service';
+import { BarcodeLookupService } from './barcode/barcode-lookup.service';
 import { PantryItem } from '../shared/interfaces/pantry-item.interface';
 import { Unit } from '../shared/enums/unit.enum';
 import { PantryCategory } from '../shared/enums/pantry-category.enum';
@@ -53,6 +54,9 @@ describe('PantryController', () => {
             listForUser: jest.fn(),
           },
         },
+        // Barcode lookup calls a third party and has its own spec. Stubbed here
+        // so a controller test never reaches out over the network.
+        { provide: BarcodeLookupService, useValue: { lookup: jest.fn() } },
       ],
     }) // The controller is the unit here. Whether the guard admits a caller is
       // SsoAuthGuard's own concern and is covered in its spec; wiring the real
