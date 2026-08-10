@@ -7,6 +7,15 @@ import { BilkaToGoService } from '../bilkatogo/bilkatogo.service';
 import { BilkaToGoLoginDialogComponent } from '../bilkatogo/bilkatogo-login-dialog';
 import { BilkaToGoResultsDialogComponent } from '../bilkatogo/bilkatogo-results-dialog';
 import { ShoppingList, ShoppingListItem } from '../../../shared/models/shopping-list.model';
+
+/** One ingredient to buy, however many ways the recipes measured it. */
+interface ShoppingListLine {
+  name: string;
+  parts: ShoppingListItem[];
+  /** Where each part sits in the stored list, so one tick can reach them all. */
+  indexes: number[];
+  checked: boolean;
+}
 import { BilkaToGoSendResult } from '../../../shared/models/bilkatogo.model';
 import { Unit } from '../../../shared/enums/unit.enum';
 import {
@@ -47,10 +56,68 @@ export class ShoppingListViewComponent {
   readonly sendingToBilkatogo = signal(false);
   readonly bilkatogoSessionId = signal<string | null>(null);
 
+  /**
+   * The list as lines, one per ingredient.
+   *
+   * The generator adds up everything that measures the same kind of thing, so
+   * what arrives is at most one row per ingredient per KIND — 2 onions and 80 g
+   * of onion have no honest sum. They are still ONE thing to buy, which is what
+   * "1 list item of white onion" asked for, so they share a line and both
+   * amounts are shown on it.
+   *
+   * `indexes` are the positions in the stored list, kept so the one checkbox can
+   * tick off every part. Order follows first appearance, so the shelf order the
+   * generator produced survives the grouping.
+   */
+  readonly lines = computed<ShoppingListLine[]>(() => {
+    const items = this.shoppingList()?.items ?? [];
+    const byName = new Map<string, ShoppingListLine>();
+
+    items.forEach((item, index) => {
+      const key = item.name.trim().toLowerCase();
+      const line = byName.get(key);
+      if (!line) {
+        byName.set(key, {
+          name: item.name,
+          parts: [item],
+          indexes: [index],
+          // A line is only done when every part of it is: ticked off early, the
+          // rest of the ingredient would be invisible and never bought.
+          checked: item.checked,
+        });
+        return;
+      }
+      line.parts.push(item);
+      line.indexes.push(index);
+      line.checked = line.checked && item.checked;
+    });
+
+    return [...byName.values()];
+  });
+
+  /** Tick off every part of one ingredient — the line is one thing to buy. */
+  toggleLine(line: ShoppingListLine): void {
+    for (const index of line.indexes) {
+      this.toggleItem(index);
+    }
+  }
+
   readonly hasUncheckedItems = computed(() => {
     const list = this.shoppingList();
     return list !== null && list.items.some((item) => !item.checked);
   });
+
+  /**
+   * The whole amount of one ingredient, spoken rather than laid out.
+   *
+   * The visible line shows "2 stk + 80 g" in two spans; a screen reader needs it
+   * as one phrase, and the label is parameterised so the words stay translatable.
+   */
+  amountOf(line: ShoppingListLine): string {
+    return line.parts
+      .map((part) => `${part.quantity} ${this.unitLabel(part.unit)}`)
+      .join(' + ');
+  }
 
   /** Translated unit, for feeding into the checkbox's parameterised aria-label. */
   unitLabel(unit: Unit): string {

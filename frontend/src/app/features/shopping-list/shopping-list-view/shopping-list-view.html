@@ -40,17 +40,26 @@
     } @else {
       <div class="card">
         <ul class="shopping-list__items" role="list">
-          @for (item of shoppingList()!.items; track $index) {
-            <li class="shopping-list__item" [class.shopping-list__item--checked]="item.checked">
+          @for (line of lines(); track line.name) {
+            <li class="shopping-list__item" [class.shopping-list__item--checked]="line.checked">
               <label class="shopping-list__label">
                 <input
                   type="checkbox"
-                  [checked]="item.checked"
-                  (change)="toggleItem($index)"
-                  [attr.aria-label]="'shoppingList.itemLabel' | t: { name: item.name, quantity: item.quantity, unit: unitLabel(item.unit) }"
+                  [checked]="line.checked"
+                  (change)="toggleLine(line)"
+                  [attr.aria-label]="'shoppingList.itemLabel' | t: { name: line.name, quantity: amountOf(line), unit: '' }"
                 />
-                <span class="shopping-list__name">{{ item.name }}</span>
-                <span class="shopping-list__qty">{{ item.quantity | localeNumber }} {{ item.unit | enumLabel: 'unit' }}</span>
+                <span class="shopping-list__name">{{ line.name }}</span>
+                <!-- Both amounts, because 2 onions and 80 g of onion have no
+                     honest sum and showing only one sends you home short. -->
+                <span class="shopping-list__qty">
+                  @for (part of line.parts; track $index) {
+                    @if ($index > 0) {
+                      <span class="shopping-list__plus" aria-hidden="true">+</span>
+                    }
+                    {{ part.quantity | localeNumber }} {{ part.unit | enumLabel: 'unit' }}
+                  }
+                </span>
               </label>
             </li>
           }

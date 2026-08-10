@@ -189,3 +189,124 @@ describe('ShoppingListViewComponent — coming back to the list', () => {
     expect(host().querySelector('.shopping-list__archive')).toBeNull();
   });
 });
+
+/**
+ * #79 — one line per ingredient, not one per unit.
+ *
+ * The generator now adds up everything that measures the same kind of thing, so
+ * what reaches the list is at most one row per ingredient per KIND: 2 onions and
+ * 80 g of onion cannot honestly become one number. They can still be one LINE,
+ * which is what was actually asked for — "1 list item of white onion".
+ */
+describe('ShoppingListViewComponent — one line per ingredient', () => {
+  let fixture: ComponentFixture<ShoppingListViewComponent>;
+  let component: ShoppingListViewComponent;
+  let service: { toggleItem: ReturnType<typeof vi.fn> };
+
+  const splitList = {
+    id: 'sl-1',
+    mealPlanId: 'plan-1',
+    generatedDate: '2026-03-19T12:00:00.000Z',
+    items: [
+      { name: 'White Onion', quantity: 2, unit: Unit.PIECE, checked: false },
+      { name: 'Garlic', quantity: 3, unit: Unit.PIECE, checked: false },
+      { name: 'White Onion', quantity: 80, unit: Unit.G, checked: false },
+    ],
+  };
+
+  const rows = (): HTMLElement[] =>
+    Array.from(fixture.nativeElement.querySelectorAll('.shopping-list__item'));
+
+  const build = async (list: typeof splitList) => {
+    service = { toggleItem: vi.fn().mockReturnValue(of(list)) };
+    await TestBed.configureTestingModule({
+      imports: [ShoppingListViewComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: ShoppingListService,
+          useValue: {
+            ...service,
+            generate: vi.fn().mockReturnValue(of(list)),
+            getById: vi.fn().mockReturnValue(of(list)),
+            current: vi.fn().mockReturnValue(of(list)),
+            archive: vi.fn().mockReturnValue(of({ ...list, items: [] })),
+          },
+        },
+        {
+          provide: MealPlanService,
+          useValue: {
+            getByWeek: vi.fn().mockReturnValue(
+              of({ id: 'plan-1', weekStartDate: '2026-03-16', entries: [] }),
+            ),
+          },
+        },
+        {
+          provide: BilkaToGoService,
+          useValue: {
+            login: vi.fn().mockReturnValue(of({ sessionId: 's' })),
+            sendToCart: vi.fn().mockReturnValue(of({ matched: [], unmatched: [], cartUrl: '' })),
+          },
+        },
+        { provide: ActivatedRoute, useValue: { snapshot: { queryParamMap: { get: () => null } } } },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ShoppingListViewComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  };
+
+  beforeEach(async () => {
+    TestBed.resetTestingModule();
+    await build(splitList);
+  });
+
+  it('shows the onion once, however many ways it was measured', () => {
+    expect(rows()).toHaveLength(2);
+    expect(rows()[0].textContent).toContain('White Onion');
+    expect(rows()[0].textContent).not.toContain('Garlic');
+  });
+
+  it('shows both amounts on that one line', () => {
+    // The alternative — picking one and hiding the other — sends somebody home
+    // with two onions when the recipes wanted two AND eighty grams.
+    const onion = rows()[0].textContent ?? '';
+
+    expect(onion).toContain('2');
+    expect(onion).toContain('80');
+  });
+
+  it('keeps the ingredients in the order the list gave them', () => {
+    // The onion's second row arrives after the garlic. Grouping must not shuffle
+    // the list, or the shelf order the generator produced is lost.
+    expect(rows()[1].textContent).toContain('Garlic');
+  });
+
+  it('ticks off every part of an ingredient at once', () => {
+    // One line, one checkbox. Ticking it while half the onion stays unchecked
+    // would leave the list permanently unfinishable.
+    const box = rows()[0].querySelector('input[type=checkbox]') as HTMLInputElement;
+    box.click();
+
+    expect(service.toggleItem).toHaveBeenCalledTimes(2);
+    const indexes = service.toggleItem.mock.calls.map((c) => c[1]);
+    expect(indexes).toEqual([0, 2]);
+  });
+
+  it('shows a grouped line as done only when all of its parts are', () => {
+    const half = {
+      ...splitList,
+      items: [
+        { name: 'White Onion', quantity: 2, unit: Unit.PIECE, checked: true },
+        { name: 'White Onion', quantity: 80, unit: Unit.G, checked: false },
+      ],
+    };
+
+    TestBed.resetTestingModule();
+    return build(half).then(() => {
+      const box = rows()[0].querySelector('input[type=checkbox]') as HTMLInputElement;
+      expect(box.checked).toBe(false);
+    });
+  });
+});
