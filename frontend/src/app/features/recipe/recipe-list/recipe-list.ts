@@ -12,6 +12,7 @@ import {
   isRecipeSort,
   sortRecipes,
 } from '../recipe-sort';
+import { matchesCourse } from '../recipe-tags';
 import {
   RECIPE_VIEW_MODES,
   RecipeViewMode,
@@ -191,18 +192,8 @@ export class RecipeListComponent {
           filters.proteins.some((p) => r.tags.some((t) => t.toLowerCase() === p.toLowerCase())));
       }
       if (filters?.courses?.length) {
-        // 'Main' is defined by exclusion, so every other course must be listed
-        // here — otherwise e.g. a sourdough loaf is counted as a main dish.
-        const nonMainCourses = ['dessert', 'appetizer', 'soup', 'snack', 'baking'];
-        filtered = filtered.filter((r) => {
-          const rTags = r.tags.map((t) => t.toLowerCase());
-          return filters.courses.some((c) => {
-            if (c.toLowerCase() === 'main') {
-              return !nonMainCourses.some((nm) => rTags.includes(nm));
-            }
-            return rTags.includes(c.toLowerCase());
-          });
-        });
+        filtered = filtered.filter((r) =>
+          filters.courses.some((c) => matchesCourse(r.tags, c)));
       }
       this.items.set(filtered);
     });

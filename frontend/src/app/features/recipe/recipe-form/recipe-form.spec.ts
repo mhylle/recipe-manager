@@ -644,11 +644,18 @@ describe('RecipeFormComponent — tags the filters actually match', () => {
     }
   });
 
-  it('does not offer Main, which no tag can set', () => {
-    // The filter calls a recipe a main dish when it is tagged none of the
-    // others. A "Main" chip would write a tag that drives nothing — a control
-    // that looks like it works and does not.
-    expect(chipFor('Main')).toBeNull();
+  it('offers Main, so a dish can be SAID to be a main course', () => {
+    // The filter used to infer a main dish from the absence of every other
+    // course, which left the author with no way to state it. Reported as a
+    // defect: the one course everybody wants was the one chip missing.
+    expect(chipFor('Main')).toBeTruthy();
+  });
+
+  it('writes the main tag when the Main chip is pressed', () => {
+    chipFor('Main').click();
+    fixture.detectChanges();
+
+    expect(tags()).toContain('main');
   });
 
   it('writes the tag when a chip is pressed', () => {

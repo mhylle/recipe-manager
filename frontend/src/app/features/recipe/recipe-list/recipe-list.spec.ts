@@ -268,4 +268,37 @@ describe('RecipeListComponent', () => {
       expect(idsFor('  ')).toHaveLength(3);
     });
   });
+
+  describe('filtering by course', () => {
+    const courses = [
+      { ...mockRecipes[0], id: 'r-main', tags: ['main', 'beef'] },
+      { ...mockRecipes[0], id: 'r-untagged', tags: ['italian'] },
+      { ...mockRecipes[0], id: 'r-dessert', tags: ['dessert'] },
+    ];
+
+    const idsFor = (courses_: string[]) => {
+      mockRecipeService.getAll.mockReturnValue(of(courses));
+      component.loadItems({ courses: courses_ } as never);
+      fixture.detectChanges();
+      return component.items().map((r) => r.id);
+    };
+
+    it('finds a recipe its author marked as a main course', () => {
+      // #84: the Main chip is new to the form; a recipe that uses it must
+      // actually turn up under the facet.
+      expect(idsFor(['Main'])).toContain('r-main');
+    });
+
+    it('still finds the recipes written before the main tag existed', () => {
+      expect(idsFor(['Main'])).toContain('r-untagged');
+    });
+
+    it('keeps the dessert out of the main dishes', () => {
+      expect(idsFor(['Main'])).not.toContain('r-dessert');
+    });
+
+    it('matches another course by its tag', () => {
+      expect(idsFor(['Dessert'])).toEqual(['r-dessert']);
+    });
+  });
 });

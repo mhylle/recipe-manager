@@ -297,7 +297,7 @@ export const da: Dictionary = {
   'recipe.form.difficultyPlaceholder': 'Vælg sværhedsgrad',
   'recipe.form.tags': 'Tags (kommasepareret)',
   'recipe.form.tagsMainHint':
-    'En opskrift t\u00e6ller som hovedret, medmindre du markerer den som en af ovenst\u00e5ende. Tilf\u00f8j gerne andre m\u00e6rkater nedenfor, adskilt af kommaer.',
+    'En opskrift uden en markeret ret t\u00e6ller stadig som hovedret. Tilf\u00f8j gerne andre m\u00e6rkater nedenfor, adskilt af kommaer.',
   'recipe.form.tagsPlaceholder': 'f.eks. morgenmad, hurtig, italiensk',
   'recipe.form.visibility': 'Hvem kan se den',
   'recipe.form.private': 'Behold denne opskrift i mit køkken',

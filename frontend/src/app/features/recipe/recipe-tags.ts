@@ -36,16 +36,21 @@ export const PROTEIN_TAGS: readonly TagOption[] = [
   { value: 'Vegetarian', labelKey: 'recipe.filters.protein.vegetarian' },
 ];
 
+/** The tag that says a dish is a main course. */
+export const MAIN_COURSE_TAG = 'Main';
+
 /**
- * The courses that are actual tags.
+ * The courses an author can put on a recipe.
  *
- * "Main" is deliberately absent: the filter defines a main dish by EXCLUSION —
- * anything not tagged as one of these — so a `main` tag would drive nothing and
- * offering it in the form would be a control that quietly does nothing. The
- * filter adds Main to its own list as an option; it is not part of the
- * vocabulary an author writes.
+ * Main used to be missing here: the filter defined a main dish by EXCLUSION —
+ * anything tagged none of the others — so there was nothing for a `main` tag to
+ * drive. That left an author unable to SAY a dish is a main course, which is
+ * how it reads to everyone who is not the filter. Main is now a tag like the
+ * rest; the exclusion rule survives inside `matchesCourse` as the fallback for
+ * the recipes written before it existed.
  */
 export const COURSE_TAGS: readonly TagOption[] = [
+  { value: MAIN_COURSE_TAG, labelKey: 'recipe.filters.course.main' },
   { value: 'Dessert', labelKey: 'recipe.filters.course.dessert' },
   { value: 'Appetizer', labelKey: 'recipe.filters.course.appetizer' },
   { value: 'Soup', labelKey: 'recipe.filters.course.soup' },
@@ -84,4 +89,23 @@ export function toggleTag(tags: readonly string[], value: string): string[] {
   return hasTag(tags, value)
     ? tags.filter((tag) => tag.toLowerCase() !== value.toLowerCase())
     : [...tags, value.toLowerCase()];
+}
+
+/**
+ * True when a recipe with these tags belongs to `course`.
+ *
+ * Main answers to two things: the tag itself, and — for every recipe written
+ * before that tag existed — carrying no course tag at all. Without the second
+ * clause, turning Main into a tag would empty the Main facet of the entire
+ * existing library. The list it excludes is derived from COURSE_TAGS rather
+ * than restated, so adding a course cannot leave a stale copy behind that
+ * counts the new one as a main dish.
+ */
+export function matchesCourse(tags: readonly string[], course: string): boolean {
+  if (course.toLowerCase() !== MAIN_COURSE_TAG.toLowerCase()) {
+    return hasTag(tags, course);
+  }
+  const otherCourses = COURSE_TAGS.filter((option) => option.value !== MAIN_COURSE_TAG);
+  return hasTag(tags, MAIN_COURSE_TAG)
+    || !otherCourses.some((option) => hasTag(tags, option.value));
 }

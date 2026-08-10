@@ -36,12 +36,7 @@ export class RecipeFiltersComponent {
   // tags no filter matches — which is the bug this extraction exists to stop.
   readonly cuisineOptions: readonly TagOption[] = CUISINE_TAGS;
   readonly proteinOptions: readonly TagOption[] = PROTEIN_TAGS;
-  // Main is a filter option but NOT a tag: it is defined by the absence of the
-  // others, so it belongs here rather than in the vocabulary authors write.
-  readonly courseOptions: readonly TagOption[] = [
-    { value: 'Main', labelKey: 'recipe.filters.course.main' },
-    ...COURSE_TAGS,
-  ];
+  readonly courseOptions: readonly TagOption[] = COURSE_TAGS;
 
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly difficultyControl = new FormControl('', { nonNullable: true });
