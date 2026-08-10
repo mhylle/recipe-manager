@@ -5,6 +5,7 @@ import { MealPlanService } from '../meal-plan/meal-plan.service';
 import { RecipeService } from '../recipe/recipe.service';
 import { PantryService } from '../pantry/pantry.service';
 import { StaplesService } from '../staples/staples.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * A shopping list you can come back to.
@@ -130,5 +131,48 @@ describe('ShoppingListService — a list belongs to one kitchen', () => {
     await expect(service.findById('p-other', 'list-1')).rejects.toThrow(
       NotFoundException,
     );
+  });
+});
+
+/**
+ * The repository must hand back the field the service decides on.
+ *
+ * Caught in production, not here: `archive` refuses to stock the pantry twice by
+ * checking `archivedAt`, and every unit test proved it — against a MOCK that
+ * returned the field. The real mapping never did, so the guard read undefined,
+ * and pressing "done shopping" a second time doubled the pantry. 400 g of rice
+ * became 800.
+ *
+ * The lesson the project already had, in a new costume: assert on what the
+ * collaborator actually READS, and derive the fixture from the real contract
+ * rather than from the call you just wrote.
+ */
+describe('ShoppingListRepository — the shape callers depend on', () => {
+  const row = {
+    id: 'list-1',
+    mealPlanId: 'plan-1',
+    generatedDate: new Date('2026-08-10T00:00:00.000Z'),
+    archivedAt: new Date('2026-08-10T10:00:00.000Z'),
+    items: [],
+  };
+
+  const build = (found: unknown) =>
+    new ShoppingListRepository({
+      shoppingList: { findFirst: jest.fn().mockResolvedValue(found) },
+    } as unknown as PrismaService);
+
+  it('says whether a list has already been put away', async () => {
+    const list = await build(row).findById('p-home', 'list-1');
+
+    expect(list.archivedAt).toBe('2026-08-10T10:00:00.000Z');
+  });
+
+  it('says so plainly when it has not', async () => {
+    const list = await build({ ...row, archivedAt: null }).findById(
+      'p-home',
+      'list-1',
+    );
+
+    expect(list.archivedAt).toBeNull();
   });
 });

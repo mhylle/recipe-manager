@@ -150,6 +150,7 @@ export class ShoppingListRepository {
       id: string;
       mealPlanId: string;
       generatedDate: Date;
+      archivedAt: Date | null;
       items: Array<{
         name: string;
         quantity: number;
@@ -162,6 +163,10 @@ export class ShoppingListRepository {
       id: r.id,
       mealPlanId: r.mealPlanId,
       generatedDate: r.generatedDate.toISOString(),
+      // Load-bearing, not decoration: `archive` reads this to refuse stocking
+      // the pantry twice. Left off the mapping it is always undefined, the
+      // guard never fires, and a second "done shopping" doubles the shelf.
+      archivedAt: r.archivedAt ? r.archivedAt.toISOString() : null,
       items: r.items.map((item) => ({
         name: item.name,
         quantity: item.quantity,
