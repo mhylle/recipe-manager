@@ -21,6 +21,8 @@ import { TimerPushService } from '../../../shared/services/timer-push.service';
 import { GeminiKeyDialogComponent } from '../../../shared/components/gemini-key-dialog/gemini-key-dialog';
 import { TransferRecipeDialogComponent } from '../../../shared/components/transfer-recipe-dialog/transfer-recipe-dialog';
 import { PlanRecipeDialogComponent } from '../../../shared/components/plan-recipe-dialog/plan-recipe-dialog';
+import { RecipeReactionsComponent } from '../../../shared/components/recipe-reactions/recipe-reactions';
+import type { RecipeReactionSummary } from '../../../shared/models/recipe.model';
 
 /** Kept in step with RecipeImageService on the backend. */
 const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
@@ -46,6 +48,7 @@ import {
     GeminiKeyDialogComponent,
     TransferRecipeDialogComponent,
     PlanRecipeDialogComponent,
+    RecipeReactionsComponent,
   ],
   templateUrl: './recipe-detail.html',
   styleUrl: './recipe-detail.scss',
@@ -65,6 +68,16 @@ export class RecipeDetailComponent implements OnInit, OnDestroy {
 
   readonly recipe = signal<Recipe | null>(null);
   readonly chosenVariation = signal<string | null>(null);
+
+  /**
+   * Keep the page's copy of the recipe in step with the reaction controls.
+   *
+   * The component owns what is on screen while a request is in flight; this is
+   * what stops a later re-render of the page from resurrecting the old totals.
+   */
+  onReactionsChanged(reactions: RecipeReactionSummary): void {
+    this.recipe.update((r) => (r ? { ...r, reactions } : r));
+  }
 
   /** Whether the hand-over dialog is up. Author-only, gated by canEdit(). */
   readonly transferOpen = signal(false);

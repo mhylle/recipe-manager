@@ -40,12 +40,16 @@ import { PantryAccessService } from '../pantry/pantry-access.service.js';
 import { GenerateImagesDto } from './dto/generate-images.dto.js';
 import { TransferRecipeDto } from './dto/transfer-recipe.dto.js';
 import { MAX_IMAGE_BYTES } from './recipe-image.service.js';
+import { SetLikeDto, SetStarsDto } from './dto/reaction.dto.js';
+import { RecipeReactionService } from './recipe-reaction.service.js';
+import type { RecipeReactionSummary } from './recipe-reaction.js';
 
 @Controller('recipes')
 export class RecipeController {
   constructor(
     private readonly recipeService: RecipeService,
     private readonly pantryAccess: PantryAccessService,
+    private readonly reactions: RecipeReactionService,
   ) {}
 
   @UseGuards(SsoAuthGuard, ContributorGuard)
@@ -219,6 +223,35 @@ export class RecipeController {
     @Body() dto: TransferRecipeDto,
   ): Promise<Recipe> {
     return this.recipeService.transferAuthor(id, user.id, dto.userId);
+  }
+
+  /**
+   * Like a recipe, or take the like back.
+   *
+   * SsoAuthGuard alone, deliberately without ContributorGuard: contributing is
+   * permission to change the shared library, and an opinion about someone
+   * else's dish is not a change to it. Gating likes on it would leave every
+   * reader with a control they are not allowed to press.
+   */
+  @UseGuards(SsoAuthGuard)
+  @Put(':id/like')
+  async setLike(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Body() dto: SetLikeDto,
+  ): Promise<RecipeReactionSummary> {
+    return this.reactions.setLike(user.id, id, dto.liked);
+  }
+
+  /** Score a recipe out of five, or clear the score with 0. */
+  @UseGuards(SsoAuthGuard)
+  @Put(':id/rating')
+  async setRating(
+    @CurrentUser() user: LocalUser,
+    @Param('id') id: string,
+    @Body() dto: SetStarsDto,
+  ): Promise<RecipeReactionSummary> {
+    return this.reactions.setStars(user.id, id, dto.stars);
   }
 
   @UseGuards(SsoAuthGuard, ContributorGuard)

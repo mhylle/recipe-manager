@@ -58,6 +58,7 @@ describe('RecipeRepository.update — steps keep their identity', () => {
             translations: [],
           })),
           variations: [],
+          reactions: [],
           translations: [
             { locale: 'en', name: 'R', description: '', instructions: [] },
           ],
@@ -76,6 +77,7 @@ describe('RecipeRepository.update — steps keep their identity', () => {
             translations: [],
           })),
           variations: [],
+          reactions: [],
           translations: [
             { locale: 'en', name: 'R', description: '', instructions: [] },
           ],

@@ -1,0 +1,19 @@
+@if (hasAnything()) {
+  <span class="score">
+    @if (averageLabel(); as average) {
+      <app-star-rating
+        [groupId]="recipeId()"
+        [value]="current().ratingAverage"
+        [readonly]="true" />
+      <span class="score__text">
+        {{ 'recipe.reactions.average' | t: { average: average, count: current().ratingCount } }}
+      </span>
+    }
+    @if (current().likeCount > 0) {
+      <span class="score__likes">
+        <span class="score__heart" aria-hidden="true">♥</span>
+        {{ 'recipe.reactions.likeCount' | t: { count: current().likeCount } }}
+      </span>
+    }
+  </span>
+}

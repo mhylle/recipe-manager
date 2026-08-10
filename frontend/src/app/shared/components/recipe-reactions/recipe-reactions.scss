@@ -1,0 +1,70 @@
+.reactions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  // Danish compounds run long ("Ryd bedømmelse"), so this wraps to two rows on
+  // a narrow phone rather than squeezing the star targets.
+  gap: 0.5rem 1rem;
+}
+
+.like {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  // The WCAG AA target size, same as the stars.
+  min-height: 2.75rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font: inherit;
+  cursor: pointer;
+}
+
+.like:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+.like:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.like--on {
+  border-color: var(--primary);
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+// A tally, not a button: no border, no pointer, nothing that invites a tap a
+// signed-out reader cannot complete.
+.like--static {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  cursor: default;
+}
+
+.like__icon {
+  color: var(--like-filled, #d2544f);
+  font-size: 1.125rem;
+  line-height: 1;
+}
+
+.like__count {
+  font-variant-numeric: tabular-nums;
+}
+
+.rating {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.rating__summary {
+  color: var(--on-surface-variant);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}

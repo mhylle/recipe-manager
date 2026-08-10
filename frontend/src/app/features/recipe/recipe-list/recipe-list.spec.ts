@@ -301,4 +301,40 @@ describe('RecipeListComponent', () => {
       expect(idsFor(['Dessert'])).toEqual(['r-dessert']);
     });
   });
+
+  describe('filtering to my favourites', () => {
+    const summary = (likedByMe: boolean) => ({
+      likeCount: likedByMe ? 1 : 0,
+      ratingCount: 0,
+      ratingAverage: null,
+      likedByMe,
+      myStars: null,
+    });
+
+    const liked = [
+      { ...mockRecipes[0], id: 'r-liked', reactions: summary(true) },
+      { ...mockRecipes[0], id: 'r-not-liked', reactions: summary(false) },
+      // A recipe from before reactions existed carries none at all.
+      { ...mockRecipes[0], id: 'r-legacy', reactions: undefined },
+    ];
+
+    const idsFor = (likedOnly: boolean) => {
+      mockRecipeService.getAll.mockReturnValue(of(liked));
+      component.loadItems({ likedOnly } as never);
+      fixture.detectChanges();
+      return component.items().map((r) => r.id);
+    };
+
+    it('keeps only what this reader liked', () => {
+      expect(idsFor(true)).toEqual(['r-liked']);
+    });
+
+    it('drops a recipe that carries no reactions rather than crashing', () => {
+      expect(idsFor(true)).not.toContain('r-legacy');
+    });
+
+    it('leaves the list alone when the chip is off', () => {
+      expect(idsFor(false)).toHaveLength(3);
+    });
+  });
 });

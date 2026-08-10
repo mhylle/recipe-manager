@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { EMPTY, Observable } from 'rxjs';
 import { expand, map, reduce } from 'rxjs/operators';
-import { Recipe } from '../../shared/models/recipe.model';
+import { Recipe, type RecipeReactionSummary } from '../../shared/models/recipe.model';
 import { RecipeTranslation } from '../../shared/models/translation.model';
 import type {
   RecipeVariationsAuthoring,
@@ -113,6 +113,22 @@ export class RecipeService {
    */
   replaceVariations(id: string, variations: VariationWrite[]): Observable<Recipe> {
     return this.http.put<Recipe>(`${this.baseUrl}/${id}/variations`, { variations });
+  }
+
+  /**
+   * Like a recipe, or take the like back.
+   *
+   * The target state is sent, not a toggle. Two quick taps then settle on what
+   * the cook last asked for rather than on whichever request the server saw
+   * last, and a retry cannot flip the answer back.
+   */
+  setLike(id: string, liked: boolean): Observable<RecipeReactionSummary> {
+    return this.http.put<RecipeReactionSummary>(`${this.baseUrl}/${id}/like`, { liked });
+  }
+
+  /** Score a recipe out of five. 0 clears the score without touching the like. */
+  setRating(id: string, stars: number): Observable<RecipeReactionSummary> {
+    return this.http.put<RecipeReactionSummary>(`${this.baseUrl}/${id}/rating`, { stars });
   }
 
   /**

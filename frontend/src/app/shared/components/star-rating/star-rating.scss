@@ -1,0 +1,85 @@
+:host {
+  display: inline-flex;
+}
+
+.stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+// A fieldset carries a border and padding by default in every browser, and here
+// it is a grouping for assistive tech rather than a visible box.
+.stars--input {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.stars__row {
+  display: inline-flex;
+  // Deliberately tight: five stars read as one control, not five.
+  gap: 0.125rem;
+  line-height: 1;
+}
+
+.star {
+  // Not var(--outline): an empty star against the page must still be visible,
+  // and the variant token is tuned for hairline borders rather than glyphs.
+  color: var(--outline-variant);
+  font-size: 1.25rem;
+}
+
+.star--on {
+  color: var(--star-filled, #e8a33d);
+}
+
+.star--pick {
+  cursor: pointer;
+  // 44px is the WCAG AA target size. The glyph is nowhere near that on its own,
+  // so the label supplies the rest — this is a control people tap on a phone
+  // while holding a pan.
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: var(--radius-sm, 0.25rem);
+}
+
+.star--pick:hover {
+  background: var(--surface-container-high);
+}
+
+// The radio itself is visually hidden, so focus has to be shown on the label.
+// Without this the whole control is keyboard-navigable and invisibly so.
+.star--pick:has(input:focus-visible) {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.stars__clear {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm, 0.25rem);
+  background: transparent;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.stars__clear:hover {
+  background: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+.stars__clear:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+// The read-out sits inside dense card text, where the touch-target padding
+// above would push the line apart for no benefit — nothing here is tappable.
+.stars--readonly .star {
+  font-size: 1rem;
+}

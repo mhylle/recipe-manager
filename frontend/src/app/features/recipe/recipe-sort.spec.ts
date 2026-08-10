@@ -102,6 +102,62 @@ describe('sortRecipes', () => {
     expect(names(input)).toEqual(before);
   });
 
+  describe('by rating', () => {
+    const rated = (name: string, ratingAverage: number | null, likeCount = 0) =>
+      recipe(name, {
+        reactions: {
+          likeCount,
+          ratingCount: ratingAverage === null ? 0 : 1,
+          ratingAverage,
+          likedByMe: false,
+          myStars: null,
+        },
+      });
+
+    it('puts the highest average first', () => {
+      const input = [rated('Middling', 3), rated('Great', 5), rated('Poor', 1)];
+      expect(names(sortRecipes(input, 'rating-desc', 'en'))).toEqual([
+        'Great',
+        'Middling',
+        'Poor',
+      ]);
+    });
+
+    it('sinks the unrated below even a one-star recipe', () => {
+      // The distractor: treating a null average as 0 would still put it last
+      // here, but treating it as "no opinion" must not float it to the top.
+      const input = [rated('Unrated', null), rated('Poor', 1)];
+      expect(names(sortRecipes(input, 'rating-desc', 'en'))).toEqual([
+        'Poor',
+        'Unrated',
+      ]);
+    });
+
+    it('handles a recipe from before reactions existed', () => {
+      const input = [recipe('Legacy'), rated('Great', 5)];
+      expect(names(sortRecipes(input, 'rating-desc', 'en'))).toEqual([
+        'Great',
+        'Legacy',
+      ]);
+    });
+
+    it('orders by likes when asked for likes, not by score', () => {
+      const input = [rated('Adored', 1, 9), rated('Excellent', 5, 0)];
+      expect(names(sortRecipes(input, 'likes-desc', 'en'))).toEqual([
+        'Adored',
+        'Excellent',
+      ]);
+    });
+
+    it('breaks a rating tie by name', () => {
+      const input = [rated('Zabaione', 4), rated('Aioli', 4)];
+      expect(names(sortRecipes(input, 'rating-desc', 'en'))).toEqual([
+        'Aioli',
+        'Zabaione',
+      ]);
+    });
+  });
+
   it('exposes every option with a translation key', () => {
     expect(RECIPE_SORT_OPTIONS.length).toBeGreaterThan(1);
     for (const option of RECIPE_SORT_OPTIONS) {

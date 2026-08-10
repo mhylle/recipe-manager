@@ -10,6 +10,7 @@ import { PantryCategory } from '../shared/enums/pantry-category.enum';
 import { SsoAuthGuard } from '../shared/auth/sso-auth.guard';
 import { PantryAccessService } from '../pantry/pantry-access.service';
 import { OptionalSsoAuthGuard } from '../shared/auth/optional-sso-auth.guard';
+import { RecipeReactionService } from './recipe-reaction.service';
 
 /** New recipes are attributed to whoever added them. */
 const martinUser = {
@@ -86,6 +87,12 @@ describe('RecipeController', () => {
         {
           provide: PantryAccessService,
           useValue: { resolve: jest.fn().mockResolvedValue('p-home') },
+        },
+        // Likes and ratings are their own endpoints with their own spec; the
+        // controller's job is only to pass the caller's id through.
+        {
+          provide: RecipeReactionService,
+          useValue: { setLike: jest.fn(), setStars: jest.fn() },
         },
       ],
     }) // The controller is the unit here. Whether the guard admits a caller is

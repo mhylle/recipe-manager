@@ -6,6 +6,7 @@ import { RecipeImageService } from './recipe-image.service.js';
 import { ThumbnailService } from './thumbnail.service.js';
 import { ThumbnailBackfillService } from './thumbnail-backfill.service.js';
 import { RecipeVisibilityService } from './recipe-visibility.service.js';
+import { RecipeReactionService } from './recipe-reaction.service.js';
 import { PantryModule } from '../pantry/pantry.module.js';
 
 @Module({
@@ -20,6 +21,7 @@ import { PantryModule } from '../pantry/pantry.module.js';
     ThumbnailService,
     ThumbnailBackfillService,
     RecipeVisibilityService,
+    RecipeReactionService,
   ],
   exports: [RecipeService],
 })

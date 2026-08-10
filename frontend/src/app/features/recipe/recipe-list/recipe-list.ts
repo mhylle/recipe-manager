@@ -13,6 +13,7 @@ import {
   sortRecipes,
 } from '../recipe-sort';
 import { matchesCourse } from '../recipe-tags';
+import { RecipeScoreComponent } from '../../../shared/components/recipe-score/recipe-score';
 import {
   RECIPE_VIEW_MODES,
   RecipeViewMode,
@@ -34,7 +35,7 @@ const GALLERY_PAGE = 12;
 @Component({
   selector: 'app-recipe-list',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, RecipeFiltersComponent, TranslatePipe, EnumLabelPipe],
+  imports: [RouterLink, RecipeFiltersComponent, TranslatePipe, EnumLabelPipe, RecipeScoreComponent],
   templateUrl: './recipe-list.html',
   styleUrl: './recipe-list.scss',
 })
@@ -106,7 +107,8 @@ export class RecipeListComponent {
     if (!this.currentFilters) return false;
     const f = this.currentFilters;
     return !!(f.query || f.difficulty || f.maxPrepTime || f.tags
-      || f.cuisines.length || f.proteins.length || f.courses.length);
+      || f.cuisines.length || f.proteins.length || f.courses.length
+      || f.likedOnly);
   }
 
   /** First letter, for the gallery placeholder when a recipe has no photograph. */
@@ -194,6 +196,11 @@ export class RecipeListComponent {
       if (filters?.courses?.length) {
         filtered = filtered.filter((r) =>
           filters.courses.some((c) => matchesCourse(r.tags, c)));
+      }
+      if (filters?.likedOnly) {
+        // `likedByMe` is resolved server-side against the caller's token, so a
+        // guest's payload has it false everywhere and this correctly empties.
+        filtered = filtered.filter((r) => r.reactions?.likedByMe === true);
       }
       this.items.set(filtered);
     });

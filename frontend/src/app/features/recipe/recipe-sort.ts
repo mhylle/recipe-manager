@@ -7,7 +7,9 @@ export type RecipeSort =
   | 'name-desc'
   | 'time-asc'
   | 'time-desc'
-  | 'difficulty-asc';
+  | 'difficulty-asc'
+  | 'rating-desc'
+  | 'likes-desc';
 
 export interface RecipeSortOption {
   readonly value: RecipeSort;
@@ -20,6 +22,8 @@ export const RECIPE_SORT_OPTIONS: readonly RecipeSortOption[] = [
   { value: 'time-asc', labelKey: 'recipe.sort.timeAsc' },
   { value: 'time-desc', labelKey: 'recipe.sort.timeDesc' },
   { value: 'difficulty-asc', labelKey: 'recipe.sort.difficultyAsc' },
+  { value: 'rating-desc', labelKey: 'recipe.sort.ratingDesc' },
+  { value: 'likes-desc', labelKey: 'recipe.sort.likesDesc' },
 ];
 
 export const DEFAULT_RECIPE_SORT: RecipeSort = 'name-asc';
@@ -36,6 +40,17 @@ const DIFFICULTY_RANK: Record<Difficulty, number> = {
 };
 
 const totalTime = (r: Recipe): number => r.prepTime + r.cookTime;
+
+/**
+ * A recipe's average score for ORDERING purposes.
+ *
+ * Unrated sorts to the bottom of "highest rated" rather than to the top, which
+ * is what -1 buys: a null average would compare as 0 under `-`, and NaN would
+ * make the comparator inconsistent and the sort order arbitrary.
+ */
+const ratingRank = (r: Recipe): number => r.reactions?.ratingAverage ?? -1;
+
+const likeRank = (r: Recipe): number => r.reactions?.likeCount ?? 0;
 
 /**
  * Order recipes for display.
@@ -62,6 +77,8 @@ export function sortRecipes(
     'time-asc': (a, b) => totalTime(a) - totalTime(b),
     'time-desc': (a, b) => totalTime(b) - totalTime(a),
     'difficulty-asc': (a, b) => DIFFICULTY_RANK[a.difficulty] - DIFFICULTY_RANK[b.difficulty],
+    'rating-desc': (a, b) => ratingRank(b) - ratingRank(a),
+    'likes-desc': (a, b) => likeRank(b) - likeRank(a),
   };
 
   const compare = comparators[sort];

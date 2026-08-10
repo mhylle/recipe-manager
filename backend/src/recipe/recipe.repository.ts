@@ -21,9 +21,11 @@ import {
 } from '../shared/pagination.js';
 import {
   visibilityWhere,
+  viewerIdOf,
   UNRESTRICTED,
   type RecipeAudience,
 } from './recipe-visibility.js';
+import { NO_REACTIONS, summariseReactions } from './recipe-reaction.js';
 import type { RecipeVariationDto } from './dto/variation.dto.js';
 import {
   applyVariation,
@@ -85,6 +87,14 @@ const RECIPE_INCLUDE = {
   },
   translations: true,
   createdBy: { select: { id: true, displayName: true, email: true } },
+  // Read with the recipe rather than aggregated in SQL. The alternative is a
+  // groupBy for the average plus a second one for the likes plus a lookup of
+  // the viewer's own row — three round trips to replace an array that, for a
+  // household cookbook, is a handful of rows per recipe. Only the four columns
+  // the arithmetic needs travel; the timestamps stay behind.
+  reactions: {
+    select: { recipeId: true, userId: true, liked: true, stars: true },
+  },
   // `satisfies` rather than `as const`: a const assertion makes the orderBy array
   // readonly, which Prisma's argument types reject, while still giving the
   // literal types RecipeGetPayload needs below.
@@ -365,7 +375,9 @@ export class RecipeRepository {
     ]);
 
     return {
-      data: rows.map((r) => this.toInterface(r, locale)),
+      data: rows.map((r) =>
+        this.toInterface(r, locale, undefined, viewerIdOf(audience)),
+      ),
       total,
       limit,
       offset,
@@ -452,7 +464,7 @@ export class RecipeRepository {
     if (!result) {
       throw new NotFoundException(`recipes with id ${id} not found`);
     }
-    return this.toInterface(result, locale, variationId);
+    return this.toInterface(result, locale, variationId, viewerIdOf(audience));
   }
 
   /** Every language stored for a recipe — the authoring view, not a reading view. */
@@ -1036,6 +1048,7 @@ export class RecipeRepository {
     result: RecipeRow,
     locale: Locale,
     variationId?: string,
+    viewerId?: string,
   ): Recipe {
     // The ONLY place translations are resolved. Everything downstream keeps
     // reading `recipe.name` and never learns that locales exist.
@@ -1102,6 +1115,11 @@ export class RecipeRepository {
       // Only ever reaches someone allowed to read the row at all.
       isPrivate: result.isPrivate,
       pantryId: result.pantryId,
+      // Always present, so a client never has to tell "no reactions yet" apart
+      // from "this endpoint did not send them".
+      reactions:
+        summariseReactions(result.reactions, viewerId).get(result.id) ??
+        NO_REACTIONS,
       ingredients: varied.ingredients.map((ing) => ({
         id: ing.id,
         name: ing.name,

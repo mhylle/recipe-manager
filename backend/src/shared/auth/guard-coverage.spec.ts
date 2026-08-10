@@ -233,16 +233,46 @@ describe('guard coverage across the whole API surface', () => {
       expect(upload!.contributorGated).toBe(true);
     });
 
+    /**
+     * Writes that change what a recipe IS are gated. An opinion about it is not.
+     *
+     * A like and a star rating write a row of their own and never touch the
+     * recipe, so gating them on the contribution grant would hand every reader
+     * a control they are not allowed to press. They still require a signed-in
+     * cook — asserted below, because "not contributor-gated" must not quietly
+     * become "open to the world".
+     */
+    const OPINION_HANDLERS = new Set(['setLike', 'setRating']);
+
     it('gates EVERY recipe mutation on the app grant', () => {
       const ungated = routes
         .filter(
           (r) =>
             r.controller === 'RecipeController' &&
             WRITE_METHODS.has(r.method) &&
-            !r.contributorGated,
+            !r.contributorGated &&
+            !OPINION_HANDLERS.has(r.handler),
         )
         .map((r) => `${r.handler} (${RequestMethod[r.method]} ${r.path})`);
       expect(ungated).toEqual([]);
+    });
+
+    it('still makes a like or a rating prove who is asking', () => {
+      const opinions = routes.filter(
+        (r) =>
+          r.controller === 'RecipeController' &&
+          OPINION_HANDLERS.has(r.handler),
+      );
+
+      // The exemption above is only safe while these stay authenticated: an
+      // unguarded rating endpoint is an open ballot box.
+      expect(opinions.map((r) => r.handler).sort()).toEqual([
+        'setLike',
+        'setRating',
+      ]);
+      for (const route of opinions) {
+        expect(route.guarded).toBe(true);
+      }
     });
 
     it('lets anyone report a fault without a contribution grant', () => {

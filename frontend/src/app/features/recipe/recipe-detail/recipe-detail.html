@@ -161,6 +161,14 @@
       </p>
     }
 
+    <!-- Below the byline rather than beside the title: the verdict on a dish
+         belongs after you know whose it is. -->
+    <app-recipe-reactions
+      class="recipe-view__reactions"
+      [recipeId]="recipe()!.id"
+      [reactions]="recipe()!.reactions"
+      (changed)="onReactionsChanged($event)" />
+
     <!-- Tags -->
     @if (recipe()!.tags.length > 0) {
       <div class="recipe-view__tags">

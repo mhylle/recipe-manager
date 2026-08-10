@@ -1,0 +1,41 @@
+@if (readonly()) {
+  <!--
+    A picture of a score, not a control. aria-hidden on the stars with the real
+    value in text beside them: five separate star glyphs read aloud one by one
+    are noise, and "rated 4.2 out of 5" is the thing a listener actually wants.
+  -->
+  <span class="stars stars--readonly">
+    <span class="stars__row" aria-hidden="true">
+      @for (star of stars; track star) {
+        <span class="star" [class.star--on]="isFilled(star)">★</span>
+      }
+    </span>
+  </span>
+} @else {
+  <fieldset class="stars stars--input">
+    <legend class="sr-only">{{ 'recipe.reactions.rateLegend' | t }}</legend>
+    <span class="stars__row">
+      @for (star of stars; track star) {
+        <label
+          class="star star--pick"
+          [class.star--on]="isFilled(star)"
+          [attr.title]="'recipe.reactions.starsOf' | t: { stars: star }">
+          <input
+            class="sr-only"
+            type="radio"
+            [name]="'stars-' + groupId()"
+            [value]="star"
+            [checked]="isFilled(star) && star === filled()"
+            (change)="onPick(star)" />
+          <span aria-hidden="true">★</span>
+          <span class="sr-only">{{ 'recipe.reactions.starsOf' | t: { stars: star } }}</span>
+        </label>
+      }
+    </span>
+    @if (value() !== null) {
+      <button type="button" class="stars__clear" (click)="onClear()">
+        {{ 'recipe.reactions.clearRating' | t }}
+      </button>
+    }
+  </fieldset>
+}

@@ -46,6 +46,7 @@ describe('RecipeRepository — assembling the method from step rows', () => {
     ingredients: [],
     steps,
     variations: [],
+    reactions: [],
     translations: [
       {
         id: 't-en',
@@ -184,6 +185,7 @@ describe('RecipeRepository — writing steps', () => {
       id: 'r1',
       steps: [],
       variations: [],
+      reactions: [],
       translations: [],
       ingredients: [],
       instructionImages: [],

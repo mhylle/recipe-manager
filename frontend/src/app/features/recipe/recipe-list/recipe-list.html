@@ -63,6 +63,7 @@
               }
               <span class="recipe-row__meta">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
               <span class="recipe-row__meta">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
+              <app-recipe-score [recipeId]="recipe.id" [reactions]="recipe.reactions" />
               <div class="recipe-row__actions">
                 @if (canEdit(recipe)) {
                   <a [routerLink]="['/recipes', recipe.id, 'edit']" class="btn btn--small btn--ghost">{{ 'common.actions.edit' | t }}</a>
@@ -109,6 +110,7 @@
                   {{ recipe.difficulty | enumLabel: 'difficulty' }}
                   &middot; {{ 'recipe.list.servings' | t: { count: recipe.servings } }}
                 </span>
+                <app-recipe-score [recipeId]="recipe.id" [reactions]="recipe.reactions" />
               </div>
             </a>
           }
@@ -139,6 +141,7 @@
                 <span class="recipe-card__time" [attr.aria-label]="'recipe.list.prepLabel' | t">{{ 'recipe.list.prep' | t: { minutes: recipe.prepTime } }}</span>
                 <span class="recipe-card__time" [attr.aria-label]="'recipe.list.cookLabel' | t">{{ 'recipe.list.cook' | t: { minutes: recipe.cookTime } }}</span>
                 <span class="recipe-card__servings" [attr.aria-label]="'recipe.list.servingsLabel' | t">{{ 'recipe.list.servings' | t: { count: recipe.servings } }}</span>
+                <app-recipe-score [recipeId]="recipe.id" [reactions]="recipe.reactions" />
               </div>
               @if (recipe.tags.length > 0) {
                 <div class="recipe-card__tags">

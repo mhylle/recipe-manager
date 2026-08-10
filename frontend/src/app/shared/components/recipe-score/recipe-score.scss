@@ -1,0 +1,20 @@
+.score {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.625rem;
+  color: var(--on-surface-variant);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.score__likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.score__heart {
+  color: var(--like-filled, #d2544f);
+  line-height: 1;
+}

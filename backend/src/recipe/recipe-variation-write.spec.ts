@@ -38,6 +38,7 @@ describe('RecipeRepository.replaceVariations', () => {
           ingredients: [],
           steps: [],
           variations: [],
+          reactions: [],
           translations: [],
           createdBy: { id: 'u1', displayName: 'A', email: 'a@b.c' },
         }),

@@ -1,4 +1,11 @@
-import { Component, ChangeDetectionStrategy, output, signal } from '@angular/core';
+import {
+  Component,
+  ChangeDetectionStrategy,
+  computed,
+  inject,
+  output,
+  signal,
+} from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
 import { EnumLabelPipe, TranslatePipe } from '../../../shared/i18n';
@@ -8,6 +15,7 @@ import {
   PROTEIN_TAGS,
   type TagOption,
 } from '../recipe-tags';
+import { AuthService } from '../../../shared/services/auth.service';
 
 export interface RecipeFilters {
   query: string;
@@ -17,6 +25,8 @@ export interface RecipeFilters {
   cuisines: string[];
   proteins: string[];
   courses: string[];
+  /** Narrow to the recipes this reader liked. Always false for a guest. */
+  likedOnly: boolean;
 }
 
 @Component({
@@ -27,6 +37,8 @@ export interface RecipeFilters {
   styleUrl: './recipe-filters.scss',
 })
 export class RecipeFiltersComponent {
+  private readonly auth = inject(AuthService);
+
   readonly filtersChanged = output<RecipeFilters>();
 
   readonly difficultyOptions = Object.values(Difficulty);
@@ -46,6 +58,10 @@ export class RecipeFiltersComponent {
   readonly activeCuisines = signal<Set<string>>(new Set());
   readonly activeProteins = signal<Set<string>>(new Set());
   readonly activeCourses = signal<Set<string>>(new Set());
+  readonly likedOnly = signal(false);
+
+  /** A guest has no likes, so the chip would only ever empty the list. */
+  readonly canFilterLikes = computed(() => this.auth.isAuthenticated());
 
   toggleCuisine(value: string): void {
     this.activeCuisines.update(s => {
@@ -74,6 +90,11 @@ export class RecipeFiltersComponent {
     this.emitFilters();
   }
 
+  toggleLikedOnly(): void {
+    this.likedOnly.update((on) => !on);
+    this.emitFilters();
+  }
+
   emitFilters(): void {
     this.filtersChanged.emit({
       query: this.searchControl.value,
@@ -83,6 +104,7 @@ export class RecipeFiltersComponent {
       cuisines: Array.from(this.activeCuisines()),
       proteins: Array.from(this.activeProteins()),
       courses: Array.from(this.activeCourses()),
+      likedOnly: this.likedOnly(),
     });
   }
 
@@ -94,6 +116,7 @@ export class RecipeFiltersComponent {
     this.activeCuisines.set(new Set());
     this.activeProteins.set(new Set());
     this.activeCourses.set(new Set());
+    this.likedOnly.set(false);
     this.emitFilters();
   }
 }

@@ -39,6 +39,17 @@ export type RecipeAudience =
   | typeof UNRESTRICTED;
 
 /**
+ * Who to attribute "my like" and "my rating" to, if anyone.
+ *
+ * Separate from `visibilityWhere` because the two questions differ: an
+ * UNRESTRICTED read is a trusted internal caller with no person behind it, so
+ * it sees every recipe and yet has no reactions of its own.
+ */
+export function viewerIdOf(audience: RecipeAudience): string | undefined {
+  return typeof audience === 'object' ? audience.userId : undefined;
+}
+
+/**
  * The WHERE that decides which recipes a caller may read.
  *
  * Expressed as data rather than as a post-filter on purpose: the list is paged

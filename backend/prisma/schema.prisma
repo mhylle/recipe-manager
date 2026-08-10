@@ -85,7 +85,7 @@ model User {
   /// Consequence worth knowing: a grant revoked in the auth-service keeps working
   /// over MCP until that person next signs in through the browser. Acceptable for
   /// a household cookbook; it would not be for anything larger.
-  canContribute      Boolean  @default(false)
+  canContribute Boolean @default(false)
 
   /// Contribution granted HERE, by the app owner, from the admin page.
   ///
@@ -97,7 +97,7 @@ model User {
   /// person next signs in, and later still for their MCP key. An owner clicking
   /// "allow" and seeing nothing change for a day is a worse answer than a second
   /// source of truth.
-  localContributor   Boolean  @default(false)
+  localContributor Boolean @default(false)
 
   /// The user's Gemini API key, encrypted IN THE BROWSER.
   ///
@@ -115,13 +115,14 @@ model User {
   /// Shown on the profile page so a stale key is recognisable as stale.
   geminiKeyUpdatedAt DateTime?
 
-  ownedPantries     Pantry[]       @relation("PantryOwner")
+  ownedPantries     Pantry[]           @relation("PantryOwner")
   pantryMemberships PantryMember[]
   createdRecipes    Recipe[]
   pushSubscriptions PushSubscription[]
   scheduledTimers   ScheduledTimer[]
   mcpApiKeys        McpApiKey[]
   reports           Report[]
+  recipeReactions   RecipeReaction[]
 
   @@index([email])
 }
@@ -170,20 +171,20 @@ model Report {
 /// that returns it again, because a database that can hand back live credentials
 /// is a database whose backup is a set of live credentials.
 model McpApiKey {
-  id        String    @id @default(uuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// SHA-256 of the token. Unique so a presented key is one indexed lookup.
-  tokenHash String    @unique
+  tokenHash  String    @unique
   /// The leading characters, for telling two keys apart in a list. Not a secret.
-  prefix    String
+  prefix     String
   /// Whose laptop this is, in the user's own words.
-  label     String
-  createdAt DateTime  @default(now())
+  label      String
+  createdAt  DateTime  @default(now())
   /// Helps someone recognise a key they have forgotten about.
   lastUsedAt DateTime?
   /// Set rather than deleted, so a revoked key stays visible as revoked.
-  revokedAt DateTime?
+  revokedAt  DateTime?
 
   @@index([userId])
 }
@@ -221,9 +222,9 @@ model PushSubscription {
 /// `fireAt` is computed server-side from a duration in seconds rather than
 /// accepted as an instant, so a phone with a skewed clock still rings on time.
 model ScheduledTimer {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Notification text, already localised by the client that asked for it. The
   /// backend never translates these — it has no idea which language the person
   /// was reading the recipe in.
@@ -233,7 +234,7 @@ model ScheduledTimer {
   /// Set the moment the send is claimed, which is what stops the next poll from
   /// ringing the same timer twice. Non-null means "dealt with", not "delivered".
   firedAt   DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   // The scheduler's only query: unfired timers that are due. Ordering the index
   // firedAt-first lets Postgres skip every already-rung row, which is all of
@@ -283,7 +284,7 @@ model PantryMember {
 }
 
 model Recipe {
-  id                String             @id @default(uuid())
+  id                String              @id @default(uuid())
   servings          Int
   /// DEPRECATED — superseded by RecipeStep.imageUrl. Copied, not dropped; see
   /// the note on RecipeTranslation.instructions.
@@ -304,17 +305,17 @@ model Recipe {
   thumbnailUrl      String?
   // Which locale this recipe was authored in. Reads fall back to it when the
   // requested locale has no translation, so text is never blank.
-  sourceLocale      String             @default("en")
+  sourceLocale      String              @default("en")
   /// Who added this recipe. Attribution first, and — since private recipes —
   /// also the one person who can always read it back, whatever happens to the
   /// kitchen below. Restrict, never Cascade: deleting a person must not delete
   /// the family's cookbook.
   createdById       String
-  createdBy         User               @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdBy         User                @relation(fields: [createdById], references: [id], onDelete: Restrict)
   /// False means the shared library, which is what a recipe is by default and
   /// what every recipe was before this column existed. True narrows it to the
   /// members of `pantry` (plus the author, always).
-  isPrivate         Boolean            @default(false)
+  isPrivate         Boolean             @default(false)
   /// Which kitchen a private recipe belongs to, captured when it was written.
   ///
   /// A person can be in two kitchens, so "the author's household" is not a
@@ -322,14 +323,15 @@ model Recipe {
   /// deleting a kitchen must not delete recipes, and a private recipe left
   /// without one falls back to author-only — never to public.
   pantryId          String?
-  pantry            Pantry?            @relation(fields: [pantryId], references: [id], onDelete: SetNull)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  pantry            Pantry?             @relation(fields: [pantryId], references: [id], onDelete: SetNull)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
   ingredients       RecipeIngredient[]
   mealEntries       MealPlanEntry[]
   translations      RecipeTranslation[]
   steps             RecipeStep[]
   variations        RecipeVariation[]
+  reactions         RecipeReaction[]
 
   // The recipe list filters on difficulty and the two times, and orders by
   // createdAt. These are the columns the WHERE and ORDER BY now touch.
@@ -345,10 +347,10 @@ model Recipe {
 // All localised recipe prose lives here, including the source locale — there is no
 // second copy on Recipe to drift out of sync.
 model RecipeTranslation {
-  id          String @id @default(uuid())
-  locale      String
-  name        String
-  description String
+  id           String   @id @default(uuid())
+  locale       String
+  name         String
+  description  String
   /// DEPRECATED — superseded by RecipeStep/RecipeStepTranslation, which give a
   /// step an id so a variation can override one.
   ///
@@ -358,7 +360,7 @@ model RecipeTranslation {
   /// once the new tables are verified on production.
   instructions String[]
   recipeId     String
-  recipe       Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe       Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
   @@unique([recipeId, locale])
   @@index([locale])
@@ -374,10 +376,10 @@ model RecipeTranslation {
 /// The step itself is locale-independent: its position and its photograph are
 /// the same in every language. Only the text translates.
 model RecipeStep {
-  id        String  @id @default(uuid())
-  recipeId  String
-  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  sortOrder Int
+  id            String                  @id @default(uuid())
+  recipeId      String
+  recipe        Recipe                  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  sortOrder     Int
   /// Was instructionImages[sortOrder]. Null where a recipe has fewer photographs
   /// than steps, which is the ordinary case rather than an error.
   imageUrl      String?
@@ -400,16 +402,16 @@ model RecipeStepTranslation {
 }
 
 model RecipeIngredient {
-  id             String         @id @default(uuid())
+  id             String                        @id @default(uuid())
   // Author-defined position within the recipe. Ingredient order is meaningful —
   // it tracks the method and groups sub-preparations — and ordering by `id`
   // (a random uuid) shuffles it. ShoppingListItem carries one for the same reason.
-  sortOrder      Int            @default(0)
+  sortOrder      Int                           @default(0)
   quantity       Float
   unit           Unit
   pantryCategory PantryCategory
   recipeId       String
-  recipe         Recipe         @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipe         Recipe                        @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   translations   RecipeIngredientTranslation[]
   variationUses  RecipeVariationIngredient[]
 
@@ -432,17 +434,17 @@ model RecipeIngredientTranslation {
 }
 
 model PantryItem {
-  id           String         @id @default(uuid())
+  id           String                  @id @default(uuid())
   pantryId     String
-  pantry       Pantry         @relation(fields: [pantryId], references: [id], onDelete: Cascade)
+  pantry       Pantry                  @relation(fields: [pantryId], references: [id], onDelete: Cascade)
   quantity     Float
   unit         Unit
   category     PantryCategory
   barcode      String?
   expiryDate   DateTime?
-  sourceLocale String         @default("en")
-  addedDate    DateTime       @default(now())
-  lastUpdated  DateTime       @updatedAt
+  sourceLocale String                  @default("en")
+  addedDate    DateTime                @default(now())
+  lastUpdated  DateTime                @updatedAt
   translations PantryItemTranslation[]
 
   @@index([pantryId])
@@ -475,12 +477,12 @@ model MealPlan {
 }
 
 model MealPlanEntry {
-  id         String    @id @default(uuid())
-  day        DayOfWeek
-  meal       MealType
-  servings   Int
-  recipeId   String
-  recipe     Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  id          String           @id @default(uuid())
+  day         DayOfWeek
+  meal        MealType
+  servings    Int
+  recipeId    String
+  recipe      Recipe           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   /// Which version of the recipe is being cooked.
   ///
   /// NULL is the recipe as written, which is the only thing every row that
@@ -492,9 +494,9 @@ model MealPlanEntry {
   /// intended but a far better one than a missing dinner.
   variationId String?
   variation   RecipeVariation? @relation(fields: [variationId], references: [id], onDelete: SetNull)
-  mealPlanId String
-  mealPlan   MealPlan  @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
-  createdAt  DateTime  @default(now())
+  mealPlanId  String
+  mealPlan    MealPlan         @relation(fields: [mealPlanId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
 
   @@index([mealPlanId])
   // Also serves the cascade delete when a recipe is removed.
@@ -520,8 +522,8 @@ model RecipeVariation {
   sortOrder Int    @default(0)
   /// Null inherits the base recipe's time. The ciabatta's rise is the whole
   /// point of choosing between its variations, so this is not decoration.
-  prepTime Int?
-  cookTime Int?
+  prepTime  Int?
+  cookTime  Int?
 
   translations RecipeVariationTranslation[]
   ingredients  RecipeVariationIngredient[]
@@ -537,10 +539,10 @@ model RecipeVariationTranslation {
   variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
   locale      String
   /// What to call it in the switcher: "1 g yeast — overnight".
-  name String
+  name        String
   /// Why you would choose it. #77 asked for this explicitly, and it is the part
   /// a second recipe could never carry.
-  note String
+  note        String
 
   @@unique([variationId, locale])
   @@index([locale])
@@ -552,19 +554,19 @@ model RecipeVariationTranslation {
 /// (yeast 1 g becomes 10 g), add what is not (the ciabatta's sugar and the
 /// teriyaki's garlic are in no base list), and drop what a method does without.
 model RecipeVariationIngredient {
-  id          String          @id @default(uuid())
-  variationId String
-  variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  id             String            @id @default(uuid())
+  variationId    String
+  variation      RecipeVariation   @relation(fields: [variationId], references: [id], onDelete: Cascade)
   /// The base ingredient this changes. Null means it adds one.
-  ingredientId String?
-  ingredient   RecipeIngredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  ingredientId   String?
+  ingredient     RecipeIngredient? @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
   /// True drops the base ingredient. Only meaningful with an ingredientId.
-  removed Boolean @default(false)
+  removed        Boolean           @default(false)
   /// Null keeps the base value. An added ingredient must supply all three.
   quantity       Float?
   unit           Unit?
   pantryCategory PantryCategory?
-  sortOrder      Int             @default(0)
+  sortOrder      Int               @default(0)
 
   translations RecipeVariationIngredientTranslation[]
 
@@ -590,14 +592,14 @@ model RecipeVariationIngredientTranslation {
 /// three of the ciabatta's four variations, and the other fourteen steps are
 /// untouched and unduplicated.
 model RecipeVariationStep {
-  id          String          @id @default(uuid())
-  variationId String
-  variation   RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  id            String          @id @default(uuid())
+  variationId   String
+  variation     RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
   /// The base step this replaces. Null means it inserts a new one.
-  stepId String?
-  step   RecipeStep? @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  stepId        String?
+  step          RecipeStep?     @relation(fields: [stepId], references: [id], onDelete: Cascade)
   /// True drops the base step — the marinade variation skips the quick sear.
-  removed Boolean @default(false)
+  removed       Boolean         @default(false)
   /// Where an INSERTED step goes: after this many base steps. Ignored when
   /// stepId is set. 0 puts it first, which is where a marinade belongs.
   afterPosition Int?
@@ -639,7 +641,7 @@ model ShoppingList {
 }
 
 model ShoppingListItem {
-  id             String       @id @default(uuid())
+  id             String          @id @default(uuid())
   name           String
   quantity       Float
   unit           Unit
@@ -648,10 +650,10 @@ model ShoppingListItem {
   /// this column existed, and on anything whose origin did not say — those land
   /// under `other`, which is where an unfiled item belongs anyway.
   category       PantryCategory?
-  checked        Boolean      @default(false)
+  checked        Boolean         @default(false)
   shoppingListId String
-  shoppingList   ShoppingList @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
-  sortOrder      Int          @default(0)
+  shoppingList   ShoppingList    @relation(fields: [shoppingListId], references: [id], onDelete: Cascade)
+  sortOrder      Int             @default(0)
 
   @@index([shoppingListId])
 }
@@ -662,4 +664,39 @@ model StaplesConfig {
   pantryId String   @unique
   pantry   Pantry   @relation(fields: [pantryId], references: [id], onDelete: Cascade)
   items    String[]
+}
+
+/// What one cook thinks of one recipe: a like, a score, or both.
+///
+/// The two are INDEPENDENT and share a row rather than a table each. A like is
+/// a bookmark — "cook this again" — and the stars are a considered verdict, so
+/// collapsing one into the other ("liked means five stars") would lose the
+/// difference between a recipe you want to find again and one you thought was
+/// excellent. Sharing the row keeps them a single upsert and a single read.
+///
+/// `stars` is nullable because unrated is not zero: an unrated recipe must not
+/// drag the average down, so only non-null rows are averaged. Clearing a rating
+/// writes NULL here rather than deleting the row, which would also throw away
+/// the like sitting beside it.
+///
+/// Cascade on both sides: a reaction is meaningless without its recipe or its
+/// author, and neither deletion should be blocked by one.
+model RecipeReaction {
+  id        String   @id @default(uuid())
+  recipeId  String
+  recipe    Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  liked     Boolean  @default(false)
+  /// 1-5, or NULL for unrated. The API accepts 0 as "clear my rating".
+  stars     Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// One reaction per cook per recipe — the upsert target.
+  @@unique([recipeId, userId])
+  /// "Only my favourites" reads every like of one person.
+  @@index([userId, liked])
+  /// The aggregate for a list of recipes groups by recipe.
+  @@index([recipeId])
 }

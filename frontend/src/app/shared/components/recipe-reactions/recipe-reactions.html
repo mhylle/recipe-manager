@@ -1,0 +1,39 @@
+<div class="reactions">
+  @if (canReact()) {
+    <button
+      type="button"
+      class="like"
+      [class.like--on]="likedByMe()"
+      [attr.aria-pressed]="likedByMe()"
+      (click)="toggleLike()">
+      <span class="like__icon" aria-hidden="true">{{ likedByMe() ? '♥' : '♡' }}</span>
+      <span class="like__label">{{ 'recipe.reactions.like' | t }}</span>
+      <span class="like__count">{{ likeCount() }}</span>
+    </button>
+  } @else {
+    <!-- No control for a guest, but the tally is still worth reading. -->
+    <span class="like like--static">
+      <span class="like__icon" aria-hidden="true">♥</span>
+      <span class="like__count">{{ 'recipe.reactions.likeCount' | t: { count: likeCount() } }}</span>
+    </span>
+  }
+
+  <div class="rating">
+    @if (canReact()) {
+      <app-star-rating
+        [groupId]="recipeId()"
+        [value]="myStars()"
+        (rated)="rate($event)" />
+    } @else {
+      <app-star-rating [groupId]="recipeId()" [value]="current().ratingAverage" [readonly]="true" />
+    }
+
+    <span class="rating__summary">
+      @if (averageLabel(); as average) {
+        {{ 'recipe.reactions.average' | t: { average: average, count: ratingCount() } }}
+      } @else {
+        {{ 'recipe.reactions.unrated' | t }}
+      }
+    </span>
+  </div>
+</div>

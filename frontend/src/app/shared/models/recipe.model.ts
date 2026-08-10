@@ -62,4 +62,41 @@ export interface Recipe {
   createdBy?: { id: string; displayName: string };
   /** True means only the author's kitchen sees it. Absent reads as false. */
   isPrivate?: boolean;
+  /**
+   * Likes and stars: everyone's, plus this reader's own.
+   *
+   * Sent with every recipe the API reads back, so a list of twelve cards costs
+   * no extra requests. Optional only because a recipe being WRITTEN has none.
+   */
+  reactions?: RecipeReactionSummary;
 }
+
+/**
+ * What people think of a recipe.
+ *
+ * A like and a score are independent. A like is a bookmark — "cook this again"
+ * — and the stars are a verdict, so neither is derived from the other.
+ */
+export interface RecipeReactionSummary {
+  likeCount: number;
+  ratingCount: number;
+  /**
+   * The mean score, or null when nobody has rated it.
+   *
+   * Null and not 0: an unrated dish must not be displayed as one that everybody
+   * scored zero.
+   */
+  ratingAverage: number | null;
+  likedByMe: boolean;
+  /** This reader's own score, or null. Always null for a guest. */
+  myStars: number | null;
+}
+
+/** A recipe nobody has reacted to, and what a guest sees of their own. */
+export const NO_REACTIONS: RecipeReactionSummary = {
+  likeCount: 0,
+  ratingCount: 0,
+  ratingAverage: null,
+  likedByMe: false,
+  myStars: null,
+};

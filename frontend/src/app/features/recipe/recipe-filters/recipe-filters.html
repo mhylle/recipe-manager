@@ -27,6 +27,16 @@
           (click)="toggleCourse(option.value)">{{ option.labelKey | t }}</button>
       }
     </div>
+    <!-- Only offered to someone who has likes to filter to. For a guest the
+         chip could only ever return nothing. -->
+    @if (canFilterLikes()) {
+      <div class="chip-group">
+        <button type="button" class="chip"
+          [class.chip--active]="likedOnly()"
+          [attr.aria-pressed]="likedOnly()"
+          (click)="toggleLikedOnly()">{{ 'recipe.filters.likedOnly' | t }}</button>
+      </div>
+    }
   </div>
 
   <div class="filter-row">

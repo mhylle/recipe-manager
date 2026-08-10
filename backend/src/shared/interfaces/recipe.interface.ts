@@ -1,6 +1,7 @@
 import { Difficulty } from '../enums/index.js';
 import { PantryCategory } from '../enums/index.js';
 import { Unit } from '../enums/index.js';
+import type { RecipeReactionSummary } from '../../recipe/recipe-reaction.js';
 
 export interface RecipeIngredient {
   /** Absent on a payload being written; present on everything read back. */
@@ -66,4 +67,12 @@ export interface Recipe {
    * a shopping list cannot disagree about what "the 10 g version" contains.
    */
   variationId?: string;
+  /**
+   * Likes and stars: everyone's, plus the caller's own.
+   *
+   * Optional on the type because a payload being WRITTEN has none, and always
+   * present on anything read back — so a client can render the controls without
+   * a second request per recipe.
+   */
+  reactions?: RecipeReactionSummary;
 }

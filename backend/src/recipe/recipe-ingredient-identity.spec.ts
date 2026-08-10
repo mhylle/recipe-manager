@@ -51,6 +51,7 @@ describe('RecipeRepository.update — ingredients keep their identity', () => {
       ingredients: existingIngredients,
       steps: [],
       variations: [],
+      reactions: [],
       translations: [
         { locale: 'en', name: 'R', description: '', instructions: [] },
       ],
