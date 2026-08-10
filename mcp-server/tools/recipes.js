@@ -29,7 +29,7 @@ export const tools = [
   {
     name: 'recipes_list',
     description:
-      'List recipes, optionally filtered. Returns every recipe when called with no arguments, so prefer narrowing with `query` or `tags` when the user is looking for something specific. Text comes back in the requested language.',
+      'List recipes, optionally filtered. Returns every recipe when called with no arguments, so prefer narrowing with `query` or `tags` when the user is looking for something specific. Text comes back in the requested language.\n\nEach recipe carries `reactions`: `ratingAverage` (null when nobody has rated it — that is NOT a zero) and `ratingCount`, plus `likeCount`, and `likedByMe`/`myStars` for this user. Answer "what are our favourites?" or "what is highly rated?" from these rather than guessing, and say how many ratings an average rests on — one 5-star vote is not a verdict.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -53,7 +53,7 @@ export const tools = [
   {
     name: 'recipes_get',
     description:
-      'Fetch one recipe in full — ingredients with quantities, and the numbered method. Use this before answering questions about how to cook something; `recipes_list` returns the same shape but is wasteful for a single dish. A recipe may carry `variations`: other ways to cook it, each with a name and the reason it exists. Pass `variationId` to get the recipe AS that variation — ingredients, method and times all resolved to it, so nothing has to apply the differences itself.',
+      'Fetch one recipe in full — ingredients with quantities, and the numbered method. Use this before answering questions about how to cook something; `recipes_list` returns the same shape but is wasteful for a single dish. A recipe may carry `variations`: other ways to cook it, each with a name and the reason it exists. Pass `variationId` to get the recipe AS that variation — ingredients, method and times all resolved to it, so nothing has to apply the differences itself.\n\nAlso carries `reactions`: what everyone thought (`ratingAverage`, `ratingCount`, `likeCount`) and what this user thought (`likedByMe`, `myStars`). A null `ratingAverage` means unrated, not zero.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -196,6 +196,44 @@ export const tools = [
       await api.del(`/recipes/${id}`);
       return { deleted: id };
     },
+  },
+
+  {
+    name: 'recipes_like',
+    description:
+      "Like a recipe on the user's behalf, or take an existing like back. A like is a bookmark — \"cook this again\" — and is SEPARATE from the star rating: liking something does not score it, and un-liking does not clear a score. Ask before recording an opinion the user has not actually expressed.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Recipe id.' },
+        liked: {
+          type: 'boolean',
+          description:
+            'True to like it, false to take the like back. Sent as the target state rather than a toggle, so calling twice with the same value is harmless.',
+        },
+      },
+      required: ['id', 'liked'],
+    },
+    handler: ({ id, liked }) => api.put(`/recipes/${id}/like`, { liked }),
+  },
+
+  {
+    name: 'recipes_rate',
+    description:
+      "Score a recipe out of five on the user's behalf. SEPARATE from a like: rating does not like it. Pass 0 to clear a rating the user wants to withdraw — that leaves any like on the recipe untouched. The reply carries the recipe's new average and how many people it is drawn from. Ask before recording an opinion the user has not actually expressed.",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'Recipe id.' },
+        stars: {
+          type: 'number',
+          description:
+            'A whole number from 1 to 5, or 0 to clear the rating. Half stars are refused.',
+        },
+      },
+      required: ['id', 'stars'],
+    },
+    handler: ({ id, stars }) => api.put(`/recipes/${id}/rating`, { stars }),
   },
 
   {

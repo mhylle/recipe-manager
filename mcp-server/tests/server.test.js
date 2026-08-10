@@ -52,6 +52,27 @@ describe('tool catalogue', () => {
       assert.match(t.description, /permanent|no undo|confirm/i, `${name}: no warning`);
     }
   });
+
+  test('tools that record an opinion tell the model to ask first', () => {
+    // A like and a rating are attributed to the user and are visible to
+    // everyone in the household. An assistant inferring "you liked that one"
+    // from enthusiasm in a conversation would be putting words in their mouth.
+    for (const name of ['recipes_like', 'recipes_rate']) {
+      const t = allTools.find((x) => x.name === name);
+      assert.ok(t, `${name}: missing`);
+      assert.match(t.description, /ask before/i, `${name}: no "ask first" warning`);
+    }
+  });
+
+  test('a like and a rating are described as separate things', () => {
+    // They share a row on the server and neither write touches the other. A
+    // description that blurred them would have the model clearing somebody's
+    // rating to un-like a recipe.
+    for (const name of ['recipes_like', 'recipes_rate']) {
+      const t = allTools.find((x) => x.name === name);
+      assert.match(t.description, /separate/i, `${name}: does not distinguish the two`);
+    }
+  });
 });
 
 describe('api base', () => {

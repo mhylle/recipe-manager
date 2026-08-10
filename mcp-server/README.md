@@ -154,7 +154,8 @@ long `proxy_read_timeout` (the default 60s kills idle sessions mid-conversation)
 ## What it can do
 
 **Recipes** — `recipes_list`, `recipes_get`, `recipes_get_translations`,
-`recipes_create`, `recipes_update`, `recipes_delete`, `recipes_what_can_i_cook`
+`recipes_create`, `recipes_update`, `recipes_delete`, `recipes_like`,
+`recipes_rate`, `recipes_what_can_i_cook`
 
 **Pantry** — `pantry_list`, `pantry_expiring`, `pantry_get`, `pantry_add`,
 `pantry_update`, `pantry_delete`, `staples_get`, `staples_set`
