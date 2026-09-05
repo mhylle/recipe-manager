@@ -49,16 +49,47 @@ header is then dropped with no error, leaving a confusing OAuth-discovery failur
 in its place. `X-MCP-Token:<token>` has no space anywhere, so nothing can split it.
 On macOS and Linux either form works.
 
-The token lives in the `RECIPE_MANAGER_MCP_TOKEN` GitHub Secret on the
-`mhylle/recipe-manager` repo. It is never committed. To rotate it:
+### Which credential to put in the header
+
+Two are accepted, and they are different things:
+
+- **Your own key** (`rmk_…`) — minted on your profile page, stored only as a
+  SHA-256 hash. Writes are attributed to *you*, and revoking yours disturbs
+  nobody else. Use this one.
+- **The shared `RECIPE_MANAGER_MCP_TOKEN`** — the pre-existing path, still
+  accepted so a Desktop config that predates personal keys keeps working.
+
+**Neither is affected by a restart.** Personal keys are rows in Postgres, so they
+survive restarts, deploys and image rebuilds; the shared token comes from the
+`RECIPE_MANAGER_MCP_TOKEN` GitHub Secret and is re-injected on every deploy. It is
+never committed. A personal key stops working only when you revoke it, and the
+shared token only when it is rotated:
 
 ```bash
 gh secret set RECIPE_MANAGER_MCP_TOKEN --repo mhylle/recipe-manager
 gh workflow run deploy.yml --repo mhylle/recipe-manager
 ```
 
-Then update the header value in the Desktop config. Old tokens stop working the
-moment the new container starts.
+Rotation takes effect the moment the new container is up — old value out, new
+value in, which is the whole point of rotating. Update the header in the Desktop
+config at the same time.
+
+### Restarts do not need your attention
+
+An MCP *session* is not a credential and cannot survive the process: it holds an
+open SSE stream. So after any restart every connected client is holding a session
+id the new process has never seen.
+
+The server answers those with `404`, which is the Streamable HTTP spec's signal to
+open a new session by re-sending `initialize`, and clients do so on their own. You
+re-enter nothing and change no config.
+
+Answering anything else here is a trap worth naming, because it was the behaviour
+until 2026-09-05: falling through to a fresh, un-initialized transport makes the
+server reply *"Server not initialized"* (400) to that request and to every request
+after it, so the connector stays broken until somebody restarts Claude Desktop —
+which reads, from the user's seat, exactly like a token that stopped working.
+`tests/http-app.test.js` holds the line.
 
 ## Local: run over stdio
 

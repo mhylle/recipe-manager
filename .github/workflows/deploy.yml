@@ -315,6 +315,26 @@ jobs:
             fi
             echo "Unauthenticated MCP request correctly rejected (401)."
 
+            # A client reconnecting after this deploy is holding a session id the
+            # new container has never seen — sessions hold an open SSE stream and
+            # cannot outlive the process. 404 is the Streamable HTTP spec's signal
+            # to re-initialize, and clients act on it by themselves. Any other
+            # answer strands every connected Claude Desktop until a human restarts
+            # it, which looks from the outside like a credential that expired.
+            echo "Checking that an unknown MCP session is answered with 404..."
+            STALE_STATUS=$(curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:3100/mcp \
+              -H 'Content-Type: application/json' \
+              -H 'Accept: application/json, text/event-stream' \
+              -H "X-MCP-Token:${RECIPE_MANAGER_MCP_TOKEN}" \
+              -H 'mcp-session-id: 00000000-0000-4000-8000-000000000000' \
+              -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')
+            if [ "$STALE_STATUS" != "404" ]; then
+              echo "MCP returned $STALE_STATUS for an unknown session, expected 404. Rolling back."
+              docker stop recipe-manager-mcp && docker rm recipe-manager-mcp
+              exit 1
+            fi
+            echo "Unknown MCP session correctly answered with 404 (clients re-initialize on their own)."
+
             # Prove the write guard is closed, on the real deployed backend.
             # The DELETE targets a uuid that does not exist, so even a total
             # guard failure cannot destroy data — but it still distinguishes the
