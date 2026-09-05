@@ -278,6 +278,7 @@ export const da: Dictionary = {
 
   'recipe.filters.cuisine.mexican': 'Mexicansk',
   'recipe.filters.cuisine.italian': 'Italiensk',
+  'recipe.filters.cuisine.asian': 'Asiatisk',
   'recipe.filters.cuisine.thai': 'Thailandsk',
   'recipe.filters.cuisine.japanese': 'Japansk',
   'recipe.filters.cuisine.danish': 'Dansk',

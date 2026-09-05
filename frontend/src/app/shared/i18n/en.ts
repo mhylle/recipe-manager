@@ -305,6 +305,7 @@ export const en = {
   // recipe-filters.ts, where each option carries both a value and a label key.
   'recipe.filters.cuisine.mexican': 'Mexican',
   'recipe.filters.cuisine.italian': 'Italian',
+  'recipe.filters.cuisine.asian': 'Asian',
   'recipe.filters.cuisine.thai': 'Thai',
   'recipe.filters.cuisine.japanese': 'Japanese',
   'recipe.filters.cuisine.danish': 'Danish',

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { RecipeController } from './recipe.controller.js';
+import { RecipeTagController } from './recipe-tag.controller.js';
 import { RecipeService } from './recipe.service.js';
 import { RecipeRepository } from './recipe.repository.js';
 import { RecipeImageService } from './recipe-image.service.js';
@@ -13,7 +14,7 @@ import { PantryModule } from '../pantry/pantry.module.js';
   // For PantryAccessService: creating a recipe pins it to the author's kitchen,
   // and only the membership check can say which kitchen that legitimately is.
   imports: [PantryModule],
-  controllers: [RecipeController],
+  controllers: [RecipeController, RecipeTagController],
   providers: [
     RecipeService,
     RecipeRepository,

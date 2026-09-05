@@ -8,7 +8,10 @@ import { RecipeFormComponent } from './recipe-form';
 import { VariationsEditorComponent } from './variations-editor/variations-editor';
 import { RecipeService } from '../recipe.service';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
-import { FILTER_TAGS } from '../recipe-tags';
+import {
+  TEST_TAG_VALUES,
+  provideTestVocabulary,
+} from '../recipe-tags.testing';
 
 @Component({ template: '' })
 class DummyComponent {}
@@ -42,6 +45,7 @@ describe('RecipeFormComponent', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => null } } },
         },
+        provideTestVocabulary(),
       ],
     }).compileComponents();
 
@@ -172,6 +176,7 @@ describe('RecipeFormComponent — keeping a recipe in your kitchen', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => null } } },
         },
+        provideTestVocabulary(),
       ],
     }).compileComponents();
 
@@ -530,6 +535,7 @@ describe('RecipeFormComponent — the half-translated ingredient list', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => null } } },
         },
+        provideTestVocabulary(),
       ],
     }).compileComponents();
 
@@ -628,6 +634,7 @@ describe('RecipeFormComponent — tags the filters actually match', () => {
           provide: ActivatedRoute,
           useValue: { snapshot: { paramMap: { get: () => null } } },
         },
+        provideTestVocabulary(),
       ],
     }).compileComponents();
 
@@ -638,9 +645,9 @@ describe('RecipeFormComponent — tags the filters actually match', () => {
     fixture.detectChanges();
   });
 
-  it('offers every tag the filters know about', () => {
-    for (const option of FILTER_TAGS) {
-      expect(chipFor(option.value)).toBeTruthy();
+  it('offers every tag the backend serves', () => {
+    for (const value of TEST_TAG_VALUES) {
+      expect(chipFor(value), `no chip for ${value}`).toBeTruthy();
     }
   });
 

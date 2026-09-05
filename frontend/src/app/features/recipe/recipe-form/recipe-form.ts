@@ -20,14 +20,8 @@ import { RecipeTranslation } from '../../../shared/models/translation.model';
 import type { Recipe } from '../../../shared/models/recipe.model';
 import type { RecipeVariationsAuthoring } from '../../../shared/models/variation-authoring.model';
 import { PantryContextService } from '../../../shared/services/pantry-context.service';
-import {
-  COURSE_TAGS,
-  CUISINE_TAGS,
-  PROTEIN_TAGS,
-  hasTag,
-  splitTags,
-  toggleTag,
-} from '../recipe-tags';
+import { hasTag, splitTags, toOptions, toggleTag } from '../recipe-tags';
+import { RecipeTagService } from '../recipe-tag.service';
 import { VariationsEditorComponent } from './variations-editor/variations-editor';
 
 /** The prose fields of the form, for one language. */
@@ -95,9 +89,19 @@ export class RecipeFormComponent implements OnInit {
    * drifting is exactly how the form would start offering tags that nothing
    * filters on.
    */
-  readonly cuisineTags = CUISINE_TAGS;
-  readonly proteinTags = PROTEIN_TAGS;
-  readonly courseTags = COURSE_TAGS;
+  // Fetched from the backend that owns the vocabulary, so the form can never
+  // offer a tag the filters do not understand.
+  private readonly tags = inject(RecipeTagService);
+
+  readonly cuisineTags = computed(() =>
+    toOptions(this.tags.vocabulary().cuisines, 'cuisine'),
+  );
+  readonly proteinTags = computed(() =>
+    toOptions(this.tags.vocabulary().proteins, 'protein'),
+  );
+  readonly courseTags = computed(() =>
+    toOptions(this.tags.vocabulary().courses, 'course'),
+  );
 
   readonly unitOptions = Object.values(Unit);
   readonly difficultyOptions = Object.values(Difficulty);

@@ -1,6 +1,8 @@
 import { Component, ChangeDetectionStrategy, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RecipeService } from '../recipe.service';
+import { RecipeTagService } from '../recipe-tag.service';
+
 import { Recipe } from '../../../shared/models/recipe.model';
 import { RecipeFiltersComponent, RecipeFilters } from '../recipe-filters/recipe-filters';
 import { EnumLabelPipe, LocaleService, TranslatePipe, reloadOnLocaleChange } from '../../../shared/i18n';
@@ -12,7 +14,7 @@ import {
   isRecipeSort,
   sortRecipes,
 } from '../recipe-sort';
-import { matchesCourse } from '../recipe-tags';
+import { expandCuisine, matchesCourse } from '../recipe-tags';
 import { RecipeScoreComponent } from '../../../shared/components/recipe-score/recipe-score';
 import {
   RECIPE_VIEW_MODES,
@@ -55,6 +57,7 @@ export class RecipeListComponent {
   }
 
   private readonly recipeService = inject(RecipeService);
+  private readonly tags = inject(RecipeTagService);
   private readonly locale = inject(LocaleService);
 
   readonly items = signal<Recipe[]>([]);
@@ -186,16 +189,27 @@ export class RecipeListComponent {
         }
       }
       if (filters?.cuisines?.length) {
+        // Asian stands over Thai and Japanese, so a selected cuisine widens to
+        // whatever the backend says it covers. One-way: asking for Thai does
+        // not drag in every other Asian recipe.
+        const vocabulary = this.tags.vocabulary();
+        const wanted = new Set(
+          filters.cuisines.flatMap((c) => expandCuisine(vocabulary, c)),
+        );
         filtered = filtered.filter((r) =>
-          filters.cuisines.some((c) => r.tags.some((t) => t.toLowerCase() === c.toLowerCase())));
+          r.tags.some((t) => wanted.has(t.toLowerCase())));
       }
       if (filters?.proteins?.length) {
         filtered = filtered.filter((r) =>
           filters.proteins.some((p) => r.tags.some((t) => t.toLowerCase() === p.toLowerCase())));
       }
       if (filters?.courses?.length) {
+        // matchesCourse carries the Main rule: the tag itself, or — for the
+        // recipes written before that tag existed — no course tag at all. The
+        // courses it excludes come from the served vocabulary.
+        const vocabulary = this.tags.vocabulary();
         filtered = filtered.filter((r) =>
-          filters.courses.some((c) => matchesCourse(r.tags, c)));
+          filters.courses.some((c) => matchesCourse(vocabulary, r.tags, c)));
       }
       if (filters?.likedOnly) {
         // `likedByMe` is resolved server-side against the caller's token, so a

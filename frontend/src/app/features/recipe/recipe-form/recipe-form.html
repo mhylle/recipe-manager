@@ -112,7 +112,7 @@
       <div class="tag-picker">
         <div class="tag-picker__group" role="group" [attr.aria-label]="'recipe.filters.cuisineLabel' | t">
           <span class="tag-picker__label">{{ 'recipe.filters.cuisineLabel' | t }}</span>
-          @for (option of cuisineTags; track option.value) {
+          @for (option of cuisineTags(); track option.value) {
             <button type="button" class="tag-chip"
               [attr.data-tag]="option.value"
               [class.tag-chip--on]="isTagged(option.value)"
@@ -122,7 +122,7 @@
         </div>
         <div class="tag-picker__group" role="group" [attr.aria-label]="'recipe.filters.proteinLabel' | t">
           <span class="tag-picker__label">{{ 'recipe.filters.proteinLabel' | t }}</span>
-          @for (option of proteinTags; track option.value) {
+          @for (option of proteinTags(); track option.value) {
             <button type="button" class="tag-chip"
               [attr.data-tag]="option.value"
               [class.tag-chip--on]="isTagged(option.value)"
@@ -132,7 +132,7 @@
         </div>
         <div class="tag-picker__group" role="group" [attr.aria-label]="'recipe.filters.courseLabel' | t">
           <span class="tag-picker__label">{{ 'recipe.filters.courseLabel' | t }}</span>
-          @for (option of courseTags; track option.value) {
+          @for (option of courseTags(); track option.value) {
             <button type="button" class="tag-chip"
               [attr.data-tag]="option.value"
               [class.tag-chip--on]="isTagged(option.value)"

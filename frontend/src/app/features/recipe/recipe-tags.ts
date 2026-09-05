@@ -1,69 +1,113 @@
 import type { TranslationKey } from '../../shared/i18n';
 
-/** A tag the filters know about, plus the key for its display label. */
+/**
+ * The recipe tag vocabulary, as the backend serves it.
+ *
+ * `backend/src/recipe/recipe-tags.ts` is the source of truth — the same list
+ * drives the image-prompt builder there — and the frontend fetches it from
+ * `GET /recipe-tags` (see `RecipeTagService`). It used to be copied here, and
+ * in the image service, and again as a bare course array in the list component;
+ * the three drifted.
+ */
+export interface TagFacet {
+  readonly value: string;
+  /** Cuisines this one stands over — asian stands over thai and japanese. */
+  readonly children?: readonly string[];
+}
+
+export interface TagVocabulary {
+  readonly cuisines: readonly TagFacet[];
+  readonly proteins: readonly TagFacet[];
+  readonly courses: readonly TagFacet[];
+}
+
+/** What the filters render before the fetch lands, or if it fails. */
+export const EMPTY_VOCABULARY: TagVocabulary = {
+  cuisines: [],
+  proteins: [],
+  courses: [],
+};
+
+/** A tag ready to render: the stored value, plus the key for its display label. */
 export interface TagOption {
   readonly value: string;
   readonly labelKey: TranslationKey;
 }
 
-/**
- * The tags that drive the recipe filters.
- *
- * These words are load-bearing: the cuisine and protein facets match a recipe by
- * looking for its tag by NAME. Until this list existed in one place it lived
- * only inside the filter component, so the authoring form could not offer it —
- * a recipe landed in a facet only if its author happened to type the exact word.
- * The Birria was tagged "dinner, mexican" and never appeared under Beef.
- *
- * `value` is matched against the stored tags and MUST stay English; only
- * `labelKey` decides what a reader sees. Comparison is case-insensitive on both
- * sides (tags are stored lowercased), so the capitalisation here is cosmetic.
- */
-export const CUISINE_TAGS: readonly TagOption[] = [
-  { value: 'Mexican', labelKey: 'recipe.filters.cuisine.mexican' },
-  { value: 'Italian', labelKey: 'recipe.filters.cuisine.italian' },
-  { value: 'Thai', labelKey: 'recipe.filters.cuisine.thai' },
-  { value: 'Japanese', labelKey: 'recipe.filters.cuisine.japanese' },
-  { value: 'Danish', labelKey: 'recipe.filters.cuisine.danish' },
-  { value: 'French', labelKey: 'recipe.filters.cuisine.french' },
-];
-
-export const PROTEIN_TAGS: readonly TagOption[] = [
-  { value: 'Chicken', labelKey: 'recipe.filters.protein.chicken' },
-  { value: 'Pork', labelKey: 'recipe.filters.protein.pork' },
-  { value: 'Beef', labelKey: 'recipe.filters.protein.beef' },
-  { value: 'Fish', labelKey: 'recipe.filters.protein.fish' },
-  { value: 'Vegetarian', labelKey: 'recipe.filters.protein.vegetarian' },
-];
+export type TagKind = 'cuisine' | 'protein' | 'course';
 
 /** The tag that says a dish is a main course. */
-export const MAIN_COURSE_TAG = 'Main';
+export const MAIN_COURSE_TAG = 'main';
 
 /**
- * The courses an author can put on a recipe.
+ * The dictionary key for a tag's display name.
  *
- * Main used to be missing here: the filter defined a main dish by EXCLUSION —
- * anything tagged none of the others — so there was nothing for a `main` tag to
- * drive. That left an author unable to SAY a dish is a main course, which is
- * how it reads to everyone who is not the filter. Main is now a tag like the
- * rest; the exclusion rule survives inside `matchesCourse` as the fallback for
- * the recipes written before it existed.
+ * Labels stay in the frontend dictionaries rather than coming from the API:
+ * they are chrome, and the `t` pipe switches language without a round trip,
+ * whereas server-supplied text goes stale until something re-fetches it.
+ *
+ * The cast is the cost of a runtime vocabulary — `TranslationKey` can no longer
+ * prove the key exists. `tools/check-tag-labels.mjs` reads the backend list and
+ * fails `npm run check` when either dictionary is missing an entry, which is the
+ * same guarantee moved from the compiler to the build.
  */
-export const COURSE_TAGS: readonly TagOption[] = [
-  { value: MAIN_COURSE_TAG, labelKey: 'recipe.filters.course.main' },
-  { value: 'Dessert', labelKey: 'recipe.filters.course.dessert' },
-  { value: 'Appetizer', labelKey: 'recipe.filters.course.appetizer' },
-  { value: 'Soup', labelKey: 'recipe.filters.course.soup' },
-  { value: 'Snack', labelKey: 'recipe.filters.course.snack' },
-  { value: 'Baking', labelKey: 'recipe.filters.course.baking' },
-];
+export function labelKeyFor(kind: TagKind, value: string): TranslationKey {
+  return `recipe.filters.${kind}.${value.toLowerCase()}` as TranslationKey;
+}
 
-/** Every tag the filters understand, in the order the form offers them. */
-export const FILTER_TAGS: readonly TagOption[] = [
-  ...CUISINE_TAGS,
-  ...PROTEIN_TAGS,
-  ...COURSE_TAGS,
-];
+/** Pair each served value with its label key, keeping the API's order. */
+export function toOptions(
+  facets: readonly TagFacet[],
+  kind: TagKind,
+): readonly TagOption[] {
+  return facets.map((facet) => ({
+    value: facet.value,
+    labelKey: labelKeyFor(kind, facet.value),
+  }));
+}
+
+/**
+ * A selected cuisine, plus anything it stands over.
+ *
+ * One-way on purpose: asking for Asian reaches Thai, asking for Thai does not
+ * reach Japanese. An unknown value — or any value before the vocabulary has
+ * arrived — passes through, so the filter narrows rather than returning nothing.
+ */
+export function expandCuisine(
+  vocabulary: TagVocabulary,
+  value: string,
+): string[] {
+  const wanted = value.toLowerCase();
+  const facet = vocabulary.cuisines.find((tag) => tag.value === wanted);
+  return [wanted, ...(facet?.children ?? [])];
+}
+
+/**
+ * True when a recipe with these tags belongs to `course`.
+ *
+ * Main answers to two things: the tag itself, and — for every recipe written
+ * before that tag existed — carrying no course tag at all. Without the second
+ * clause, turning Main into a tag would empty the Main facet of the entire
+ * existing library. The courses it excludes come from the served vocabulary
+ * rather than a restated list, so adding a course cannot leave a stale copy
+ * behind that counts the new one as a main dish.
+ */
+export function matchesCourse(
+  vocabulary: TagVocabulary,
+  tags: readonly string[],
+  course: string,
+): boolean {
+  if (course.toLowerCase() !== MAIN_COURSE_TAG) {
+    return hasTag(tags, course);
+  }
+  const otherCourses = vocabulary.courses.filter(
+    (facet) => facet.value !== MAIN_COURSE_TAG,
+  );
+  return (
+    hasTag(tags, MAIN_COURSE_TAG) ||
+    !otherCourses.some((facet) => hasTag(tags, facet.value))
+  );
+}
 
 /** The comma-separated tags field, as a list. */
 export function splitTags(value: string): string[] {
@@ -89,23 +133,4 @@ export function toggleTag(tags: readonly string[], value: string): string[] {
   return hasTag(tags, value)
     ? tags.filter((tag) => tag.toLowerCase() !== value.toLowerCase())
     : [...tags, value.toLowerCase()];
-}
-
-/**
- * True when a recipe with these tags belongs to `course`.
- *
- * Main answers to two things: the tag itself, and — for every recipe written
- * before that tag existed — carrying no course tag at all. Without the second
- * clause, turning Main into a tag would empty the Main facet of the entire
- * existing library. The list it excludes is derived from COURSE_TAGS rather
- * than restated, so adding a course cannot leave a stale copy behind that
- * counts the new one as a main dish.
- */
-export function matchesCourse(tags: readonly string[], course: string): boolean {
-  if (course.toLowerCase() !== MAIN_COURSE_TAG.toLowerCase()) {
-    return hasTag(tags, course);
-  }
-  const otherCourses = COURSE_TAGS.filter((option) => option.value !== MAIN_COURSE_TAG);
-  return hasTag(tags, MAIN_COURSE_TAG)
-    || !otherCourses.some((option) => hasTag(tags, option.value));
 }

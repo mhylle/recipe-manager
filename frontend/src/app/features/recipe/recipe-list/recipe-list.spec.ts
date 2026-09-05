@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { of } from 'rxjs';
 import { RecipeListComponent } from './recipe-list';
 import { RecipeService } from '../recipe.service';
+import { provideTestVocabulary } from '../recipe-tags.testing';
 import { Recipe } from '../../../shared/models/recipe.model';
 import { Unit } from '../../../shared/enums/unit.enum';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
@@ -56,6 +57,7 @@ describe('RecipeListComponent', () => {
       providers: [
         provideRouter([]),
         { provide: RecipeService, useValue: mockRecipeService },
+        provideTestVocabulary(),
       ],
     }).compileComponents();
 
@@ -213,6 +215,50 @@ describe('RecipeListComponent', () => {
 
       // A new search should start at its first result, not partway down.
       expect(component.visibleCount()).toBe(12);
+    });
+  });
+
+  describe('filtering by cuisine', () => {
+    const byCuisine = [
+      { ...mockRecipes[0], id: 'r-asian', tags: ['asian', 'dinner'] },
+      { ...mockRecipes[0], id: 'r-thai', tags: ['thai', 'curry'] },
+      { ...mockRecipes[0], id: 'r-japanese', tags: ['japanese'] },
+      { ...mockRecipes[0], id: 'r-italian', tags: ['italian'] },
+    ];
+
+    const idsFor = (...cuisines: string[]) => {
+      mockRecipeService.getAll.mockReturnValue(of(byCuisine));
+      component.loadItems({ cuisines } as never);
+      fixture.detectChanges();
+      return component.items().map((r) => r.id);
+    };
+
+    it('lets Asian stand over Thai and Japanese', () => {
+      expect(idsFor('asian').sort()).toEqual(
+        ['r-asian', 'r-japanese', 'r-thai'].sort(),
+      );
+    });
+
+    it('does not let Asian reach a cuisine it does not cover', () => {
+      // The distractor: an umbrella implemented as "match anything" passes the
+      // test above and fails here.
+      expect(idsFor('asian')).not.toContain('r-italian');
+    });
+
+    it('keeps Thai narrow — a child does not widen back to its siblings', () => {
+      // The other distractor: expanding through the parent in both directions
+      // makes every Japanese recipe show up under Thai.
+      expect(idsFor('thai')).toEqual(['r-thai']);
+    });
+
+    it('still matches a recipe tagged with the umbrella itself', () => {
+      expect(idsFor('asian')).toContain('r-asian');
+    });
+
+    it('unions across several selected cuisines', () => {
+      expect(idsFor('italian', 'thai').sort()).toEqual(
+        ['r-italian', 'r-thai'].sort(),
+      );
     });
   });
 

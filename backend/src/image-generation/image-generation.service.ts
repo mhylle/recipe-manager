@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { cuisineOf } from '../recipe/recipe-tags.js';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -67,12 +68,7 @@ export class ImageGenerationService {
       .slice(0, 5)
       .map((i) => i.name)
       .join(', ');
-    const cuisine =
-      recipe.tags.find((t) =>
-        ['mexican', 'italian', 'thai', 'japanese', 'danish', 'french'].includes(
-          t,
-        ),
-      ) || '';
+    const cuisine = cuisineOf(recipe.tags);
 
     const prompt =
       `Professional food photography of ${recipe.name}. ${recipe.description}. ` +
@@ -106,12 +102,7 @@ export class ImageGenerationService {
   ): Promise<string[]> {
     this.ensureDirs();
 
-    const cuisine =
-      recipe.tags.find((t) =>
-        ['mexican', 'italian', 'thai', 'japanese', 'danish', 'french'].includes(
-          t,
-        ),
-      ) || '';
+    const cuisine = cuisineOf(recipe.tags);
 
     const images: string[] = [];
 

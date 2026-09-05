@@ -9,12 +9,8 @@ import {
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Difficulty } from '../../../shared/enums/difficulty.enum';
 import { EnumLabelPipe, TranslatePipe } from '../../../shared/i18n';
-import {
-  COURSE_TAGS,
-  CUISINE_TAGS,
-  PROTEIN_TAGS,
-  type TagOption,
-} from '../recipe-tags';
+import { toOptions } from '../recipe-tags';
+import { RecipeTagService } from '../recipe-tag.service';
 import { AuthService } from '../../../shared/services/auth.service';
 
 export interface RecipeFilters {
@@ -43,12 +39,24 @@ export class RecipeFiltersComponent {
 
   readonly difficultyOptions = Object.values(Difficulty);
 
-  // The vocabulary itself lives in recipe-tags.ts, shared with the authoring
-  // form. Copied into both, the two lists drift and the form starts offering
-  // tags no filter matches — which is the bug this extraction exists to stop.
-  readonly cuisineOptions: readonly TagOption[] = CUISINE_TAGS;
-  readonly proteinOptions: readonly TagOption[] = PROTEIN_TAGS;
-  readonly courseOptions: readonly TagOption[] = COURSE_TAGS;
+  // The vocabulary comes from the backend that owns it — the same list drives
+  // the image-prompt builder there. Copied into each consumer, the lists drift:
+  // the form starts offering tags no filter matches, and a cuisine added to the
+  // filters loses its image prompt.
+  private readonly tags = inject(RecipeTagService);
+
+  readonly cuisineOptions = computed(() =>
+    toOptions(this.tags.vocabulary().cuisines, 'cuisine'),
+  );
+  readonly proteinOptions = computed(() =>
+    toOptions(this.tags.vocabulary().proteins, 'protein'),
+  );
+  // Main is served like any other course (#84) rather than injected here: an
+  // author has to be able to SAY a dish is a main course, not only have it
+  // inferred. The exclusion rule lives on in matchesCourse.
+  readonly courseOptions = computed(() =>
+    toOptions(this.tags.vocabulary().courses, 'course'),
+  );
 
   readonly searchControl = new FormControl('', { nonNullable: true });
   readonly difficultyControl = new FormControl('', { nonNullable: true });
