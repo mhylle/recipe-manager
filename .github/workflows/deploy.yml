@@ -196,7 +196,11 @@ jobs:
             # Ensure images directory exists for volume mount
             mkdir -p /home/mhylle/recipe-manager-images
 
-            # Start backend
+            # Start backend.
+            # Health probe uses busybox wget, not curl: the backend image is
+            # node:22-alpine, which ships no curl. A curl probe fails with
+            # "curl: not found" every interval and parks a working container
+            # in `unhealthy`.
             docker run -d \
               --name recipe-manager-backend \
               --network mhylle_app-network \
@@ -215,7 +219,7 @@ jobs:
               -e ISSUE_MIRROR_REPO="${ISSUE_MIRROR_REPO}" \
               -v /home/mhylle/recipe-manager-images:/app/public/recipes \
               -p 127.0.0.1:8006:3000 \
-              --health-cmd="curl -f http://localhost:3000/api/health || exit 1" \
+              --health-cmd="wget -q --spider http://localhost:3000/api/health || exit 1" \
               --health-interval=30s \
               --health-timeout=10s \
               --health-retries=3 \
