@@ -35,6 +35,7 @@ export const TEST_VOCABULARY: TagVocabulary = {
     { value: 'soup' },
     { value: 'snack' },
     { value: 'baking' },
+    { value: 'drink' },
   ],
 };
 

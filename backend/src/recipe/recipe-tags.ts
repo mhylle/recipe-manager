@@ -44,6 +44,9 @@ export const PROTEIN_TAGS: readonly TagFacet[] = [
 /** The tag that says a dish is a main course. */
 export const MAIN_COURSE_TAG = 'main';
 
+/** The tag that says a recipe is something to drink — a cocktail, a smoothie. */
+export const DRINK_TAG = 'drink';
+
 /**
  * The courses an author can put on a recipe.
  *
@@ -59,6 +62,9 @@ export const COURSE_TAGS: readonly TagFacet[] = [
   { value: 'soup' },
   { value: 'snack' },
   { value: 'baking' },
+  // Without this a cocktail carries no course tag and the Main fallback would
+  // count it as a main dish.
+  { value: DRINK_TAG },
 ];
 
 /** The whole vocabulary, in the shape the API serves it. */
@@ -99,4 +105,9 @@ export function cuisineOf(tags: readonly string[]): string {
     CUISINES_BY_SPECIFICITY.find((facet) => lowered.includes(facet.value))
       ?.value ?? ''
   );
+}
+
+/** True when the tags say this recipe is a drink. Exact match, never a substring. */
+export function isDrink(tags: readonly string[]): boolean {
+  return tags.some((tag) => tag.toLowerCase() === DRINK_TAG);
 }

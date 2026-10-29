@@ -24,9 +24,13 @@ describe('GET /recipe-tags', () => {
     expect(Reflect.getMetadata(PATH_METADATA, RecipeTagController)).toBe(
       'recipe-tags',
     );
-    const proto = RecipeController.prototype as unknown as Record<string, object>;
+    const proto = RecipeController.prototype as unknown as Record<
+      string,
+      object
+    >;
     const onRecipes = Object.getOwnPropertyNames(proto).filter(
-      (name) => name !== 'constructor' && name.toLowerCase().includes('vocabulary'),
+      (name) =>
+        name !== 'constructor' && name.toLowerCase().includes('vocabulary'),
     );
     expect(onRecipes).toEqual([]);
   });

@@ -28,6 +28,7 @@ enum PantryCategory {
   frozen
   canned
   beverages
+  alcohol
   snacks
   other
 }

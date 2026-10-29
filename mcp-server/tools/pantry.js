@@ -3,7 +3,7 @@ import { api, localeProperty, SUPPORTED_LOCALES } from '../lib/api-client.js';
 const UNITS = ['g', 'kg', 'ml', 'l', 'tsp', 'tbsp', 'piece', 'pinch'];
 const CATEGORIES = [
   'dairy', 'meat', 'produce', 'grains', 'spices', 'condiments',
-  'baking', 'frozen', 'canned', 'beverages', 'snacks', 'other',
+  'baking', 'frozen', 'canned', 'beverages', 'alcohol', 'snacks', 'other',
 ];
 
 export const tools = [

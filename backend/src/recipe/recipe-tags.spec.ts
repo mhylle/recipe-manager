@@ -7,6 +7,7 @@ import {
   TAG_VOCABULARY,
   cuisineOf,
   expandCuisine,
+  isDrink,
 } from './recipe-tags.js';
 
 const values = (facet: readonly { value: string }[]): string[] =>
@@ -107,15 +108,36 @@ describe('nothing keeps a second copy of the vocabulary', () => {
     const offenders = sourceFiles(join(__dirname, '..'))
       // Specs naming tags is the point of a spec; production code holding a
       // list is the duplication.
-      .filter((file) => !file.endsWith('.spec.ts') && !file.endsWith('recipe-tags.ts'))
+      .filter(
+        (file) =>
+          !file.endsWith('.spec.ts') && !file.endsWith('recipe-tags.ts'),
+      )
       .filter((file) => {
         const source = readFileSync(file, 'utf8');
-        const named = CUISINE_TAGS.filter((tag) =>
-          source.includes(`'${tag.value}'`) || source.includes(`"${tag.value}"`),
+        const named = CUISINE_TAGS.filter(
+          (tag) =>
+            source.includes(`'${tag.value}'`) ||
+            source.includes(`"${tag.value}"`),
         );
         return named.length >= 2;
       })
       .map((file) => file.replace(join(__dirname, '..'), 'src'));
     expect(offenders).toEqual([]);
+  });
+});
+
+describe('drinks', () => {
+  it('offers drink as a course, so a cocktail is not counted as a main dish', () => {
+    expect(values(COURSE_TAGS)).toContain('drink');
+  });
+
+  it('recognises a drink by its tag, whatever the capitalisation', () => {
+    expect(isDrink(['Drink', 'summer'])).toBe(true);
+  });
+
+  it('does not call a dish a drink because it has a drink-like word', () => {
+    // Distractor: a substring match would catch "drinking-chocolate-cake".
+    expect(isDrink(['dessert', 'drinking-chocolate-cake', 'main'])).toBe(false);
+    expect(isDrink([])).toBe(false);
   });
 });

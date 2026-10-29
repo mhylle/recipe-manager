@@ -27,6 +27,7 @@ const vocabulary: TagVocabulary = {
     { value: 'dessert' },
     { value: 'soup' },
     { value: 'baking' },
+    { value: 'drink' },
   ],
 };
 
@@ -115,6 +116,11 @@ describe('matchesCourse', () => {
   it('does not call a dessert a main dish', () => {
     expect(matchesCourse(vocabulary, ['dessert'], 'Main')).toBe(false);
     expect(matchesCourse(vocabulary, ['baking', 'bread'], 'Main')).toBe(false);
+  });
+
+  it('does not call a cocktail a main dish', () => {
+    expect(matchesCourse(vocabulary, ['drink', 'cocktail'], 'Main')).toBe(false);
+    expect(matchesCourse(vocabulary, ['drink', 'cocktail'], 'Drink')).toBe(true);
   });
 
   it('takes an explicit main tag over the exclusion rule', () => {

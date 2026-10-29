@@ -294,6 +294,7 @@ export const da: Dictionary = {
   'recipe.filters.course.soup': 'Suppe',
   'recipe.filters.course.snack': 'Snack',
   'recipe.filters.course.baking': 'Bagværk',
+  'recipe.filters.course.drink': 'Drikke',
 
   'recipe.form.titleAdd': 'Tilføj opskrift',
   'recipe.form.titleEdit': 'Rediger opskrift',
@@ -551,6 +552,7 @@ export const da: Dictionary = {
   'enum.pantryCategory.frozen': 'Frost',
   'enum.pantryCategory.canned': 'Konserves',
   'enum.pantryCategory.beverages': 'Drikkevarer',
+  'enum.pantryCategory.alcohol': 'Alkohol',
   'enum.pantryCategory.snacks': 'Snacks',
   'enum.pantryCategory.other': 'Andet',
 

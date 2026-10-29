@@ -321,6 +321,7 @@ export const en = {
   'recipe.filters.course.soup': 'Soup',
   'recipe.filters.course.snack': 'Snack',
   'recipe.filters.course.baking': 'Baking',
+  'recipe.filters.course.drink': 'Drinks',
 
   'recipe.form.titleAdd': 'Add Recipe',
   'recipe.form.titleEdit': 'Edit Recipe',
@@ -575,6 +576,7 @@ export const en = {
   'enum.pantryCategory.frozen': 'Frozen',
   'enum.pantryCategory.canned': 'Canned',
   'enum.pantryCategory.beverages': 'Beverages',
+  'enum.pantryCategory.alcohol': 'Alcohol',
   'enum.pantryCategory.snacks': 'Snacks',
   'enum.pantryCategory.other': 'Other',
 

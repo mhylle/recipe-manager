@@ -18,7 +18,7 @@ const INGREDIENT_SCHEMA = {
       type: 'string',
       enum: [
         'dairy', 'meat', 'produce', 'grains', 'spices', 'condiments',
-        'baking', 'frozen', 'canned', 'beverages', 'snacks', 'other',
+        'baking', 'frozen', 'canned', 'beverages', 'alcohol', 'snacks', 'other',
       ],
     },
   },

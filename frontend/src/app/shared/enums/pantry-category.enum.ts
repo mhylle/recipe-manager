@@ -9,6 +9,7 @@ export enum PantryCategory {
   FROZEN = 'frozen',
   CANNED = 'canned',
   BEVERAGES = 'beverages',
+  ALCOHOL = 'alcohol',
   SNACKS = 'snacks',
   OTHER = 'other',
 }

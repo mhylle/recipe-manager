@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { cuisineOf } from '../recipe/recipe-tags.js';
+import { heroImagePrompt } from './image-prompts.js';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -64,21 +65,7 @@ export class ImageGenerationService {
   ): Promise<string | null> {
     this.ensureDirs();
 
-    const ingredientNames = recipe.ingredients
-      .slice(0, 5)
-      .map((i) => i.name)
-      .join(', ');
-    const cuisine = cuisineOf(recipe.tags);
-
-    const prompt =
-      `Professional food photography of ${recipe.name}. ${recipe.description}. ` +
-      `Key ingredients visible: ${ingredientNames}. ` +
-      (cuisine
-        ? `${cuisine.charAt(0).toUpperCase() + cuisine.slice(1)} cuisine style. `
-        : '') +
-      `Shot from above at 45 degrees, natural warm lighting, beautiful plating on a rustic wooden table, ` +
-      `shallow depth of field, appetizing and vibrant colors. High-end restaurant presentation. ` +
-      `Photorealistic, no text or watermarks.`;
+    const prompt = heroImagePrompt(recipe);
 
     const buffer = await this.callGemini(apiKey, prompt);
     if (!buffer) return null;
