@@ -6,8 +6,10 @@ import {
   glassStatesPrompt,
   heroImagePrompt,
   parseGlassStates,
+  parseScenes,
   referenceFilename,
   resolveGlassStates,
+  sceneRewritePrompt,
   stepImagePrompt,
   type GlassState,
   type ReferenceImage,
@@ -143,6 +145,32 @@ export class ImageGenerationService {
     }
   }
 
+  /**
+   * Each step rewritten to stand on its own, or undefined entries where the model
+   * could not. One call for the whole recipe; a failure just means the steps go
+   * out as written, with the previous step alongside.
+   */
+  private async scenesFor(
+    apiKey: string,
+    recipeName: string,
+    steps: readonly string[],
+  ): Promise<Array<string | undefined>> {
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: TEXT_MODEL,
+        contents: sceneRewritePrompt(recipeName, steps),
+      });
+      return parseScenes(response.text, steps.length) ?? [];
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Scene rewrite failed: ${this.scrub(msg, apiKey).substring(0, 120)}`,
+      );
+      return [];
+    }
+  }
+
   async generateStepImages(
     recipe: {
       id: string;
@@ -160,6 +188,11 @@ export class ImageGenerationService {
     const garnished = isDrink(recipe.tags)
       ? garnishShown(recipe.instructions)
       : [];
+    const scenes = await this.scenesFor(
+      apiKey,
+      recipe.name,
+      recipe.instructions,
+    );
     const glassStates = isDrink(recipe.tags)
       ? await this.glassStatesFor(apiKey, recipe.instructions)
       : [];
@@ -174,6 +207,8 @@ export class ImageGenerationService {
         hasReference: reference !== undefined,
         glassState: glassStates[i],
         garnished: garnished[i],
+        previousText: recipe.instructions[i - 1],
+        scene: scenes[i],
       });
 
       const buffer = await this.callGemini(apiKey, prompt, reference);

@@ -4,6 +4,8 @@ import {
   garnishShown,
   glassStatesPrompt,
   parseGlassStates,
+  parseScenes,
+  sceneRewritePrompt,
   resolveGlassStates,
   glassFor,
   heroImagePrompt,
@@ -434,5 +436,132 @@ describe('a drink step knows about the garnish', () => {
 
   it('says nothing when it is not known', () => {
     expect(garnished(undefined)).not.toMatch(/garnish yet/i);
+  });
+});
+
+const BIRRIA = [
+  'Melt a knob of butter in a pan over medium heat.',
+  'Lay a tortilla in the pan and make sure its underside is coated in butter.',
+  'Scatter shredded cheese over it — I use half cheddar, half mild — and give it about a minute to melt.',
+  'Cover one half of the tortilla with meat. Not too much, but enough to taste it.',
+];
+
+describe('a step knows what the one before it was about', () => {
+  const food = {
+    name: 'Birria',
+    tags: ['mexican', 'beef'],
+    ingredients: names('Beef', 'Tortillas'),
+  };
+  const at = (
+    index: number,
+    extra: { previousText?: string; scene?: string } = {},
+  ) =>
+    stepImagePrompt(food, {
+      index,
+      total: BIRRIA.length,
+      text: BIRRIA[index],
+      hasReference: true,
+      ...extra,
+    });
+
+  it('hands over the previous step, as context to read and not to draw', () => {
+    const prompt = at(2, { previousText: BIRRIA[1] });
+    expect(prompt).toContain('Lay a tortilla in the pan');
+    expect(prompt).toMatch(
+      /previous step.*context only.*do not (draw|depict)/is,
+    );
+  });
+
+  it('puts the previous step AFTER this one, so this one is still the subject', () => {
+    const prompt = at(2, { previousText: BIRRIA[1] });
+    expect(prompt.indexOf('Scatter shredded cheese')).toBeLessThan(
+      prompt.indexOf('Lay a tortilla in the pan'),
+    );
+  });
+
+  it('has no previous step to mention on the first one', () => {
+    expect(at(0)).not.toMatch(/previous step/i);
+  });
+
+  it('states the scene in plain words when it has one', () => {
+    const prompt = at(2, {
+      scene: 'Shredded cheese scattered over the buttered tortilla in the pan.',
+    });
+    expect(prompt).toContain(
+      'Shredded cheese scattered over the buttered tortilla',
+    );
+    expect(prompt).toContain('Scatter shredded cheese over it'); // the original stays
+  });
+
+  it('works the same for a drink', () => {
+    const prompt = stepImagePrompt(
+      { name: 'Painkiller', tags: ['drink'], ingredients: names('Rum') },
+      {
+        index: 3,
+        total: 6,
+        text: 'Strain it into the glass.',
+        hasReference: true,
+        previousText: 'Shake it hard.',
+        scene: 'Straining the shaker into the iced glass.',
+      },
+    );
+    expect(prompt).toContain('Shake it hard.');
+    expect(prompt).toContain('Straining the shaker into the iced glass.');
+  });
+});
+
+describe('sceneRewritePrompt', () => {
+  it('numbers every step and asks for a JSON array of the same length', () => {
+    const prompt = sceneRewritePrompt('Birria', BIRRIA);
+    expect(prompt).toContain('3. Scatter shredded cheese over it');
+    expect(prompt).toMatch(/JSON array of exactly 4/i);
+  });
+
+  it('asks for pronouns to be resolved and the vessel to be named', () => {
+    const prompt = sceneRewritePrompt('Birria', BIRRIA);
+    expect(prompt).toMatch(/pronoun|"it"/i);
+    expect(prompt).toMatch(/pan|pot|vessel/i);
+  });
+
+  it('forbids inventing ingredients', () => {
+    expect(sceneRewritePrompt('Birria', BIRRIA)).toMatch(
+      /do not (add|invent)/i,
+    );
+  });
+});
+
+describe('parseScenes', () => {
+  it('reads a plain or fenced array of sentences', () => {
+    expect(parseScenes('["a b","c d"]', 2)).toEqual(['a b', 'c d']);
+    expect(parseScenes('```json\n["a b","c d"]\n```', 2)).toEqual([
+      'a b',
+      'c d',
+    ]);
+  });
+
+  it('discards an answer of the wrong length rather than misaligning steps', () => {
+    expect(parseScenes('["only one"]', 3)).toBeUndefined();
+  });
+
+  it('keeps the usable entries and drops blanks and non-strings', () => {
+    expect(parseScenes('["fine", "", 7, null, "  also fine  "]', 5)).toEqual([
+      'fine',
+      undefined,
+      undefined,
+      undefined,
+      'also fine',
+    ]);
+  });
+
+  it('drops an entry that is an essay, not a scene', () => {
+    const long = 'x'.repeat(2000);
+    expect(parseScenes(JSON.stringify(['ok', long]), 2)).toEqual([
+      'ok',
+      undefined,
+    ]);
+  });
+
+  it.each(['', 'not json', '{"a":1}', undefined])('survives %p', (raw) => {
+    expect(parseScenes(raw, 2)).toBeUndefined();
   });
 });

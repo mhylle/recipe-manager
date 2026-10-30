@@ -84,6 +84,10 @@ export interface StepImageRequest {
   glassState?: GlassState;
   /** Whether the garnish has been added by this step; ignored for food. */
   garnished?: boolean;
+  /** The step before this one, so a bare "it" has something to point at. */
+  previousText?: string;
+  /** This step rewritten to stand on its own, when the model supplied one. */
+  scene?: string;
 }
 
 /** One fixed description, so the cook looks the same in every frame. */
@@ -119,6 +123,10 @@ export function stepImagePrompt(
   request: StepImageRequest,
 ): string {
   const { index, total, text, hasReference, glassState, garnished } = request;
+  const scene = request.scene ? `In this step: ${request.scene} ` : '';
+  const previous = request.previousText
+    ? `The previous step, for context only (do not depict it): ${request.previousText} `
+    : '';
   const reference = hasReference
     ? `Match the attached reference photograph exactly: the same ` +
       `${isDrink(recipe.tags) ? 'glass shape and style, not its contents, the same garnish and bar' : 'cookware, dishes and kitchen'}, ` +
@@ -129,7 +137,9 @@ export function stepImagePrompt(
     const glass = glassFor(recipe.tags, recipe.ingredients);
     return (
       `Cocktail preparation for "${recipe.name}" — Step ${index + 1}: ${text} ` +
+      scene +
       glassStateSentence(glassState, hasReference) +
+      previous +
       reference +
       `The drink's glass is always the same ${glass}; show no other glass, ` +
       `mug or vessel for it, and no paper umbrellas or straws unless this step says so. ` +
@@ -146,6 +156,8 @@ export function stepImagePrompt(
   const cuisine = cuisineOf(recipe.tags);
   return (
     `Step ${index + 1} of "${recipe.name}": ${text} ` +
+    scene +
+    previous +
     (cuisine
       ? `${cuisine.charAt(0).toUpperCase() + cuisine.slice(1)} cuisine. `
       : '') +
@@ -303,4 +315,53 @@ export function garnishShown(steps: readonly string[]): boolean[] {
     added = added || GARNISH_STEP.test(step);
     return added;
   });
+}
+
+/** A scene is one or two sentences; anything longer is the model rambling. */
+const MAX_SCENE_CHARS = 400;
+
+/**
+ * The question that turns each step into something a picture can be made from.
+ *
+ * Steps are written for a reader who has the whole recipe in mind: "scatter
+ * cheese over it" has no noun in it. Each image is a separate request that only
+ * sees its own sentence, and drew the cheese over the pot of meat.
+ */
+export function sceneRewritePrompt(
+  recipeName: string,
+  steps: readonly string[],
+): string {
+  return (
+    `Below are the numbered steps of the recipe "${recipeName}". Rewrite each one ` +
+    `as a single self-contained sentence describing what a photograph of that ` +
+    `moment shows. Replace every pronoun such as "it" or "them" with the thing it ` +
+    `refers to, name the pan, pot or other vessel in use, and say what is in it at ` +
+    `that point. Do not add ingredients or actions the recipe does not mention. ` +
+    `Answer with a JSON array of exactly ${steps.length} strings and nothing else.\n\n` +
+    steps.map((step, i) => `${i + 1}. ${step}`).join('\n')
+  );
+}
+
+/** The model's rewrite as scenes, or undefined if it cannot be lined up with the steps. */
+export function parseScenes(
+  raw: string | undefined,
+  count: number,
+): Array<string | undefined> | undefined {
+  const start = raw?.indexOf('[') ?? -1;
+  const end = raw?.lastIndexOf(']') ?? -1;
+  if (!raw || start < 0 || end < start) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw.slice(start, end + 1));
+    if (!Array.isArray(parsed) || parsed.length !== count) return undefined;
+    const values: unknown[] = parsed;
+    return values.map((value): string | undefined => {
+      if (typeof value !== 'string') return undefined;
+      const scene = value.trim();
+      return scene.length > 0 && scene.length <= MAX_SCENE_CHARS
+        ? scene
+        : undefined;
+    });
+  } catch {
+    return undefined;
+  }
 }
