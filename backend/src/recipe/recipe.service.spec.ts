@@ -366,6 +366,27 @@ describe('RecipeService', () => {
       expect(imageGeneration.generateStepImages).toHaveBeenCalledWith(
         expect.anything(),
         'caller-supplied-key',
+        undefined,
+      );
+    });
+
+    it('hands the new hero to the step images, so they can match it', async () => {
+      repository.findOwner.mockResolvedValue({
+        createdById: 'user-1',
+        pantryId: null,
+      });
+      repository.findById.mockResolvedValue(mockRecipe);
+      imageGeneration.generateHeroImage.mockResolvedValue(
+        '/api/recipe-manager/images/recipes/hero.png',
+      );
+
+      await service.regenerateImages('recipe-1', 'user-1', 'a-key');
+      await new Promise((r) => setImmediate(r));
+
+      expect(imageGeneration.generateStepImages).toHaveBeenCalledWith(
+        expect.anything(),
+        'a-key',
+        '/api/recipe-manager/images/recipes/hero.png',
       );
     });
   });

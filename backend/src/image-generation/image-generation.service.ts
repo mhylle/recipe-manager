@@ -1,6 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { cuisineOf } from '../recipe/recipe-tags.js';
-import { heroImagePrompt } from './image-prompts.js';
+import {
+  geminiContents,
+  heroImagePrompt,
+  referenceFilename,
+  stepImagePrompt,
+  type ReferenceImage,
+} from './image-prompts.js';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -78,32 +83,50 @@ export class ImageGenerationService {
     return `/api/recipe-manager/images/recipes/${filename}`;
   }
 
+  /**
+   * The hero photograph as a reference image, or undefined when there is none.
+   *
+   * Only files this service wrote are read — see `referenceFilename`.
+   */
+  private loadReference(heroUrl?: string): ReferenceImage | undefined {
+    const filename = referenceFilename(heroUrl);
+    if (!filename) return undefined;
+    try {
+      const data = fs
+        .readFileSync(path.join(this.outputDir, filename))
+        .toString('base64');
+      return { mimeType: 'image/png', data };
+    } catch {
+      return undefined;
+    }
+  }
+
   async generateStepImages(
     recipe: {
       id: string;
       name: string;
       tags: string[];
+      ingredients: Array<{ name: string }>;
       instructions: string[];
     },
     apiKey: string,
+    heroUrl?: string,
   ): Promise<string[]> {
     this.ensureDirs();
 
-    const cuisine = cuisineOf(recipe.tags);
+    const reference = this.loadReference(heroUrl);
 
     const images: string[] = [];
 
     for (let i = 0; i < recipe.instructions.length; i++) {
-      const prompt =
-        `Cooking process illustration for "${recipe.name}" - Step ${i + 1}: ${recipe.instructions[i]}. ` +
-        (cuisine
-          ? `${cuisine.charAt(0).toUpperCase() + cuisine.slice(1)} cuisine. `
-          : '') +
-        `Show hands actively performing this cooking step in a home kitchen. ` +
-        `Warm natural lighting, close-up action shot, clean modern kitchen background. ` +
-        `Photorealistic cooking photography, no text or labels.`;
+      const prompt = stepImagePrompt(recipe, {
+        index: i,
+        total: recipe.instructions.length,
+        text: recipe.instructions[i],
+        hasReference: reference !== undefined,
+      });
 
-      const buffer = await this.callGemini(apiKey, prompt);
+      const buffer = await this.callGemini(apiKey, prompt, reference);
       if (buffer) {
         const filename = `${recipe.id}_step${i + 1}.png`;
         fs.writeFileSync(path.join(this.stepsDir, filename), buffer);
@@ -126,6 +149,7 @@ export class ImageGenerationService {
   private async callGemini(
     apiKey: string,
     prompt: string,
+    reference?: ReferenceImage,
     retries = 2,
   ): Promise<Buffer | null> {
     // Built here, not cached: a client cached on the service would outlive the
@@ -136,7 +160,7 @@ export class ImageGenerationService {
       try {
         const response = await ai.models.generateContent({
           model: 'gemini-2.5-flash-image',
-          contents: prompt,
+          contents: geminiContents(prompt, reference),
           config: { responseModalities: ['IMAGE'] },
         });
 

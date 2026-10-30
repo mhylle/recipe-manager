@@ -132,9 +132,12 @@ export class RecipeService {
       });
     }
 
+    // The hero rides along as a reference so the steps show the same glass,
+    // cookware and room; with no new hero, the steps are made without one.
     const stepImages = await this.imageGeneration.generateStepImages(
       recipe,
       apiKey,
+      heroUrl ?? undefined,
     );
     if (stepImages.length > 0) {
       await this.recipeRepository.update(recipe.id, {
