@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  geminiContents,
   classifyGlassState,
+  garnishShown,
+  geminiContents,
   glassStatesPrompt,
   heroImagePrompt,
   parseGlassStates,
@@ -156,6 +157,9 @@ export class ImageGenerationService {
     this.ensureDirs();
 
     const reference = this.loadReference(heroUrl);
+    const garnished = isDrink(recipe.tags)
+      ? garnishShown(recipe.instructions)
+      : [];
     const glassStates = isDrink(recipe.tags)
       ? await this.glassStatesFor(apiKey, recipe.instructions)
       : [];
@@ -169,6 +173,7 @@ export class ImageGenerationService {
         text: recipe.instructions[i],
         hasReference: reference !== undefined,
         glassState: glassStates[i],
+        garnished: garnished[i],
       });
 
       const buffer = await this.callGemini(apiKey, prompt, reference);

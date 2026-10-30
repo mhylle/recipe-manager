@@ -82,6 +82,8 @@ export interface StepImageRequest {
   hasReference: boolean;
   /** What the drink's glass holds at this step; ignored for food. */
   glassState?: GlassState;
+  /** Whether the garnish has been added by this step; ignored for food. */
+  garnished?: boolean;
 }
 
 /** One fixed description, so the cook looks the same in every frame. */
@@ -116,7 +118,7 @@ export function stepImagePrompt(
   recipe: StepImageRecipe,
   request: StepImageRequest,
 ): string {
-  const { index, total, text, hasReference, glassState } = request;
+  const { index, total, text, hasReference, glassState, garnished } = request;
   const reference = hasReference
     ? `Match the attached reference photograph exactly: the same ` +
       `${isDrink(recipe.tags) ? 'glass shape and style, not its contents, the same garnish and bar' : 'cookware, dishes and kitchen'}, ` +
@@ -131,6 +133,9 @@ export function stepImagePrompt(
       `The drink's glass is always the same ${glass}; show no other glass, ` +
       `mug or vessel for it, and no paper umbrellas or straws unless this step says so. ` +
       GLASS_STATE_SENTENCE[glassState ?? 'unknown'] +
+      (garnished === false
+        ? 'No garnish yet — none on the glass and none beside it. '
+        : '') +
       cookClause(index, total) +
       `A home bar counter, soft warm lighting, close-up. ` +
       NO_PRINTED_TEXT +
@@ -188,8 +193,6 @@ const GLASS_STATE_SENTENCE: Record<GlassState | 'unknown', string> = {
   unknown: '',
 };
 
-const GLASS_RANK: Record<GlassState, number> = { absent: 0, ice: 1, filled: 2 };
-
 const FILLED_STEP =
   /\b(strain\w*|serv(e|ed|ing)|garnish(ed)? (the|with|your|it)|perch\w*|float\w*|top(ped)? (it )?(off|with)|over the top|on the rim|sip\w*|pour\w* (\w+ ){0,3}into (\w+[ -]){0,3}glass)\b/i;
 const ICED_GLASS_STEP = /\b(ice|chill\w*)\b/i;
@@ -216,8 +219,9 @@ export function classifyGlassState(text: string): GlassState | undefined {
 /**
  * One state per step, from the rules first and the model second.
  *
- * A step neither could read inherits the one before it, and a glass is never
- * emptied again: a later line about shaking describes the text, not the glass.
+ * A step neither could read inherits the one before it. A filled glass is never
+ * emptied again — a later line about shaking describes the text, not the glass —
+ * but an iced one can leave the shot for the shaker steps.
  */
 export function resolveGlassStates(
   fromRules: ReadonlyArray<GlassState | undefined>,
@@ -227,7 +231,9 @@ export function resolveGlassStates(
   let current: GlassState = 'absent';
   fromRules.forEach((rule, index) => {
     const read = rule ?? fromModel[index];
-    if (read && GLASS_RANK[read] > GLASS_RANK[current]) current = read;
+    // Only a filled glass is permanent. An iced one can be set aside while the
+    // shaker is worked, which is exactly what a step about shaking says.
+    if (read && current !== 'filled') current = read;
     states.push(current);
   });
   return states;
@@ -265,4 +271,16 @@ export function parseGlassStates(
   } catch {
     return undefined;
   }
+}
+
+const GARNISH_STEP =
+  /\b(garnish\w*|perch\w*|wheel|slices?|wedge|sprig|twist|on the rim)\b/i;
+
+/** For each step, whether the garnish has been added by then. Once on, it stays. */
+export function garnishShown(steps: readonly string[]): boolean[] {
+  let added = false;
+  return steps.map((step) => {
+    added = added || GARNISH_STEP.test(step);
+    return added;
+  });
 }

@@ -1,6 +1,7 @@
 import {
   classifyGlassState,
   geminiContents,
+  garnishShown,
   glassStatesPrompt,
   parseGlassStates,
   resolveGlassStates,
@@ -248,6 +249,26 @@ describe('resolveGlassStates', () => {
     ]);
   });
 
+  it('takes the iced glass out of the shot for shaker work, then fills it', () => {
+    // The Painkiller as classified: ice, shaker, shaker, then the strain.
+    expect(
+      resolveGlassStates([
+        'ice',
+        'absent',
+        'absent',
+        'filled',
+        'filled',
+        'filled',
+      ]),
+    ).toEqual(['ice', 'absent', 'absent', 'filled', 'filled', 'filled']);
+  });
+
+  it('lets the model take an iced glass out of the shot too', () => {
+    expect(
+      resolveGlassStates(['ice', undefined], [undefined, 'absent']),
+    ).toEqual(['ice', 'absent']);
+  });
+
   it('never empties a glass that has been filled', () => {
     // Distractor: a step about shaking after the pour is a reading of the
     // text, not the glass being emptied again.
@@ -334,5 +355,54 @@ describe('a drink step knows what is in the glass', () => {
     expect(withState(undefined)).not.toMatch(
       /only ice|not in the shot|filled with/i,
     );
+  });
+});
+
+describe('garnishShown', () => {
+  it('shows the garnish only from the step that adds it, and keeps it', () => {
+    expect(garnishShown(PAINKILLER)).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ]);
+    expect(garnishShown(['Garnish with a lime wheel.', 'Serve.'])).toEqual([
+      true,
+      true,
+    ]);
+  });
+
+  it('does not count nutmeg over the top as a garnish step', () => {
+    expect(garnishShown(['Grate nutmeg over the top.'])).toEqual([false]);
+  });
+});
+
+describe('a drink step knows about the garnish', () => {
+  const drink = {
+    name: 'Painkiller',
+    tags: ['drink'],
+    ingredients: names('Dark rum'),
+  };
+  const garnished = (value?: boolean) =>
+    stepImagePrompt(drink, {
+      index: 1,
+      total: 6,
+      text: 'Shake.',
+      hasReference: true,
+      garnished: value,
+    });
+
+  it('keeps the garnish off until the step that adds it', () => {
+    expect(garnished(false)).toMatch(/no garnish yet/i);
+  });
+
+  it('allows it once it has been added', () => {
+    expect(garnished(true)).not.toMatch(/no garnish yet/i);
+  });
+
+  it('says nothing when it is not known', () => {
+    expect(garnished(undefined)).not.toMatch(/garnish yet/i);
   });
 });
