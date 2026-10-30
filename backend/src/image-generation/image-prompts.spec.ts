@@ -342,6 +342,36 @@ describe('a drink step knows what is in the glass', () => {
     expect(withState('ice')).toMatch(/only ice/i);
   });
 
+  it('tells a filled glass to hold the drink from the reference, never empty', () => {
+    const prompt = withState('filled');
+    expect(prompt).toMatch(/same drink as the reference photograph/i);
+    expect(prompt).toMatch(/never empty/i);
+  });
+
+  it('states what is in the glass before it talks about matching the reference', () => {
+    // Early text carries the most weight, and the reference is what pulls the
+    // model towards drawing whatever it saw there.
+    const prompt = withState('filled');
+    expect(prompt.indexOf('filled with the finished drink')).toBeGreaterThan(
+      -1,
+    );
+    expect(prompt.indexOf('filled with the finished drink')).toBeLessThan(
+      prompt.indexOf('Match the attached reference photograph'),
+    );
+  });
+
+  it('does not point at a reference that is not attached', () => {
+    const prompt = stepImagePrompt(drink, {
+      index: 4,
+      total: 6,
+      text: 'Grate nutmeg over the top.',
+      hasReference: false,
+      glassState: 'filled',
+    });
+    expect(prompt).not.toMatch(/reference/i);
+    expect(prompt).toMatch(/filled with the finished drink/i);
+  });
+
   it('fills the glass only once it is filled', () => {
     expect(withState('filled')).toMatch(/filled with the finished drink/i);
     expect(withState('absent')).not.toMatch(/filled with the finished drink/i);

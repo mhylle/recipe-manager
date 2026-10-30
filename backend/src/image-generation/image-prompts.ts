@@ -129,10 +129,10 @@ export function stepImagePrompt(
     const glass = glassFor(recipe.tags, recipe.ingredients);
     return (
       `Cocktail preparation for "${recipe.name}" — Step ${index + 1}: ${text} ` +
+      glassStateSentence(glassState, hasReference) +
       reference +
       `The drink's glass is always the same ${glass}; show no other glass, ` +
       `mug or vessel for it, and no paper umbrellas or straws unless this step says so. ` +
-      GLASS_STATE_SENTENCE[glassState ?? 'unknown'] +
       (garnished === false
         ? 'No garnish yet — none on the glass and none beside it. '
         : '') +
@@ -185,13 +185,33 @@ export function referenceFilename(heroUrl?: string): string | undefined {
 
 export type GlassState = 'absent' | 'ice' | 'filled';
 
-const GLASS_STATE_SENTENCE: Record<GlassState | 'unknown', string> = {
-  absent:
-    'The glass is not in the shot in this step — show only the bar tools and ingredients. ',
-  ice: 'If the glass is visible it holds only ice and no drink. ',
-  filled: 'The glass is filled with the finished drink. ',
-  unknown: '',
-};
+/**
+ * What the glass holds in this step, stated plainly and placed first.
+ *
+ * A filled glass is described as holding the reference's drink: told only to
+ * match the glass's shape, the model drew an empty one in a step that was
+ * about grating nutmeg over a finished drink.
+ */
+function glassStateSentence(
+  state: GlassState | undefined,
+  hasReference: boolean,
+): string {
+  switch (state) {
+    case 'absent':
+      return 'The glass is not in the shot in this step — show only the bar tools and ingredients. ';
+    case 'ice':
+      return 'If the glass is visible it holds only ice and no drink. ';
+    case 'filled':
+      return (
+        'The glass is filled with the finished drink — full to just below the rim, never empty or clear. ' +
+        (hasReference
+          ? 'It holds the same drink as the reference photograph. '
+          : '')
+      );
+    default:
+      return '';
+  }
+}
 
 const FILLED_STEP =
   /\b(strain\w*|serv(e|ed|ing)|garnish(ed)? (the|with|your|it)|perch\w*|float\w*|top(ped)? (it )?(off|with)|over the top|on the rim|sip\w*|pour\w* (\w+ ){0,3}into (\w+[ -]){0,3}glass)\b/i;
