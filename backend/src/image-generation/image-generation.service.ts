@@ -1,14 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
   geminiContents,
+  classifyGlassState,
+  glassStatesPrompt,
   heroImagePrompt,
+  parseGlassStates,
   referenceFilename,
+  resolveGlassStates,
   stepImagePrompt,
+  type GlassState,
   type ReferenceImage,
 } from './image-prompts.js';
+import { isDrink } from '../recipe/recipe-tags.js';
 import { GoogleGenAI } from '@google/genai';
 import * as fs from 'fs';
 import * as path from 'path';
+
+/** Plain text model, for the small judgement calls around image generation. */
+const TEXT_MODEL = 'gemini-2.5-flash';
 
 /**
  * Generates recipe photography with Gemini, using the CALLER'S key.
@@ -101,6 +110,38 @@ export class ImageGenerationService {
     }
   }
 
+  /**
+   * What the drink's glass holds at each step.
+   *
+   * Rules read what they can for free; the model is asked once, and only about
+   * the steps the rules left open. If that call fails the rules and the carry-
+   * over still give an answer, so image generation never waits on it.
+   */
+  private async glassStatesFor(
+    apiKey: string,
+    steps: readonly string[],
+  ): Promise<GlassState[]> {
+    const fromRules = steps.map(classifyGlassState);
+    if (!fromRules.some((state) => state === undefined)) {
+      return resolveGlassStates(fromRules);
+    }
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: TEXT_MODEL,
+        contents: glassStatesPrompt(steps),
+      });
+      const fromModel = parseGlassStates(response.text, steps.length);
+      return resolveGlassStates(fromRules, fromModel);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(
+        `Glass-state lookup failed: ${this.scrub(msg, apiKey).substring(0, 120)}`,
+      );
+      return resolveGlassStates(fromRules);
+    }
+  }
+
   async generateStepImages(
     recipe: {
       id: string;
@@ -115,6 +156,9 @@ export class ImageGenerationService {
     this.ensureDirs();
 
     const reference = this.loadReference(heroUrl);
+    const glassStates = isDrink(recipe.tags)
+      ? await this.glassStatesFor(apiKey, recipe.instructions)
+      : [];
 
     const images: string[] = [];
 
@@ -124,6 +168,7 @@ export class ImageGenerationService {
         total: recipe.instructions.length,
         text: recipe.instructions[i],
         hasReference: reference !== undefined,
+        glassState: glassStates[i],
       });
 
       const buffer = await this.callGemini(apiKey, prompt, reference);

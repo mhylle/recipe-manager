@@ -80,6 +80,8 @@ export interface StepImageRequest {
   text: string;
   /** True when the hero photograph is attached to the same request. */
   hasReference: boolean;
+  /** What the drink's glass holds at this step; ignored for food. */
+  glassState?: GlassState;
 }
 
 /** One fixed description, so the cook looks the same in every frame. */
@@ -114,10 +116,10 @@ export function stepImagePrompt(
   recipe: StepImageRecipe,
   request: StepImageRequest,
 ): string {
-  const { index, total, text, hasReference } = request;
+  const { index, total, text, hasReference, glassState } = request;
   const reference = hasReference
     ? `Match the attached reference photograph exactly: the same ` +
-      `${isDrink(recipe.tags) ? 'glass, garnish and bar' : 'cookware, dishes and kitchen'}, ` +
+      `${isDrink(recipe.tags) ? 'glass shape and style, not its contents, the same garnish and bar' : 'cookware, dishes and kitchen'}, ` +
       `the same lighting and colours. `
     : '';
 
@@ -126,8 +128,9 @@ export function stepImagePrompt(
     return (
       `Cocktail preparation for "${recipe.name}" — Step ${index + 1}: ${text} ` +
       reference +
-      `The finished drink is always served in the same ${glass}; show no other glass, ` +
+      `The drink's glass is always the same ${glass}; show no other glass, ` +
       `mug or vessel for it, and no paper umbrellas or straws unless this step says so. ` +
+      GLASS_STATE_SENTENCE[glassState ?? 'unknown'] +
       cookClause(index, total) +
       `A home bar counter, soft warm lighting, close-up. ` +
       NO_PRINTED_TEXT +
@@ -173,4 +176,93 @@ export function geminiContents(
 export function referenceFilename(heroUrl?: string): string | undefined {
   const filename = heroUrl?.split('/').pop();
   return filename && /^[\w-]+\.png$/.test(filename) ? filename : undefined;
+}
+
+export type GlassState = 'absent' | 'ice' | 'filled';
+
+const GLASS_STATE_SENTENCE: Record<GlassState | 'unknown', string> = {
+  absent:
+    'The glass is not in the shot in this step — show only the bar tools and ingredients. ',
+  ice: 'If the glass is visible it holds only ice and no drink. ',
+  filled: 'The glass is filled with the finished drink. ',
+  unknown: '',
+};
+
+const GLASS_RANK: Record<GlassState, number> = { absent: 0, ice: 1, filled: 2 };
+
+const FILLED_STEP =
+  /\b(strain\w*|serv(e|ed|ing)|garnish(ed)? (the|with|your|it)|perch\w*|float\w*|top(ped)? (it )?(off|with)|over the top|on the rim|sip\w*|pour\w* (\w+ ){0,3}into (\w+[ -]){0,3}glass)\b/i;
+const ICED_GLASS_STEP = /\b(ice|chill\w*)\b/i;
+const BAR_TOOL_STEP =
+  /\b(shak\w*|shaker|jigger|measure\w*|muddl\w*|blend\w*|stir\w*)\b/i;
+
+/**
+ * What a step says is in the glass, or undefined when the text does not say.
+ *
+ * Undefined is a real answer: those steps go to the model, and only those. The
+ * rules are deliberately narrow — a wrong confident answer here would never be
+ * second-guessed — and read English, the language the images are made from.
+ */
+export function classifyGlassState(text: string): GlassState | undefined {
+  if (FILLED_STEP.test(text)) return 'filled';
+  const withoutMixingGlass = text.replace(/mixing glass/gi, '');
+  if (/\bglass\b/i.test(withoutMixingGlass) && ICED_GLASS_STEP.test(text)) {
+    return 'ice';
+  }
+  if (BAR_TOOL_STEP.test(text)) return 'absent';
+  return undefined;
+}
+
+/**
+ * One state per step, from the rules first and the model second.
+ *
+ * A step neither could read inherits the one before it, and a glass is never
+ * emptied again: a later line about shaking describes the text, not the glass.
+ */
+export function resolveGlassStates(
+  fromRules: ReadonlyArray<GlassState | undefined>,
+  fromModel: ReadonlyArray<GlassState | undefined> = [],
+): GlassState[] {
+  const states: GlassState[] = [];
+  let current: GlassState = 'absent';
+  fromRules.forEach((rule, index) => {
+    const read = rule ?? fromModel[index];
+    if (read && GLASS_RANK[read] > GLASS_RANK[current]) current = read;
+    states.push(current);
+  });
+  return states;
+}
+
+/** The question put to the model for the steps the rules could not read. */
+export function glassStatesPrompt(steps: readonly string[]): string {
+  return (
+    `Below are the numbered steps of a cocktail recipe. For each step say what ` +
+    `the serving glass holds at the END of that step: "absent" if the glass has not ` +
+    `been used or shown yet, "ice" if it only holds ice, "filled" if the drink has ` +
+    `been poured into it. Answer with a JSON array of exactly ${steps.length} ` +
+    `strings and nothing else.\n\n` +
+    steps.map((step, i) => `${i + 1}. ${step}`).join('\n')
+  );
+}
+
+/** The model's answer as states, or undefined if it cannot be lined up with the steps. */
+export function parseGlassStates(
+  raw: string | undefined,
+  count: number,
+): Array<GlassState | undefined> | undefined {
+  const start = raw?.indexOf('[') ?? -1;
+  const end = raw?.lastIndexOf(']') ?? -1;
+  if (!raw || start < 0 || end < start) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(raw.slice(start, end + 1));
+    if (!Array.isArray(parsed) || parsed.length !== count) return undefined;
+    const values: unknown[] = parsed;
+    return values.map((value): GlassState | undefined =>
+      value === 'absent' || value === 'ice' || value === 'filled'
+        ? value
+        : undefined,
+    );
+  } catch {
+    return undefined;
+  }
 }

@@ -1,5 +1,9 @@
 import {
+  classifyGlassState,
   geminiContents,
+  glassStatesPrompt,
+  parseGlassStates,
+  resolveGlassStates,
   glassFor,
   heroImagePrompt,
   referenceFilename,
@@ -187,5 +191,148 @@ describe('referenceFilename', () => {
     '/images/recipes/',
   ])('refuses %p, so a stored URL cannot name another file', (url) => {
     expect(referenceFilename(url)).toBeUndefined();
+  });
+});
+
+const PAINKILLER = [
+  'Fill a glass with ice and set it aside to chill while you get the good stuff ready.',
+  "Pour the dark rum, pineapple juice, orange juice and coconut milk into a shaker — give the coconut milk a quick stir first so it's nice and smooth.",
+  "Add a handful of ice, lid on, and shake like you're trying to wake up the sun. About 15 seconds, until the shaker is properly frosty.",
+  'Strain into your ice-filled glass and admire that golden, sunset colour.',
+  "Grate a little nutmeg over the top — it's the cozy, warming finish that makes this drink a Painkiller.",
+  'Perch an orange wheel on the rim, kick back somewhere comfy and let the Painkiller live up to its name.',
+];
+
+describe('classifyGlassState', () => {
+  it('reads the Painkiller: ice, shaker work, then filled from the strain on', () => {
+    expect(PAINKILLER.map(classifyGlassState)).toEqual([
+      'ice',
+      'absent',
+      'absent',
+      'filled',
+      'filled',
+      'filled',
+    ]);
+  });
+
+  it('tells pouring into the shaker from pouring into the glass', () => {
+    expect(classifyGlassState('Pour the rum into the shaker.')).toBe('absent');
+    expect(classifyGlassState('Pour the rum into the glass.')).toBe('filled');
+  });
+
+  it('puts a chilled empty glass at ice only', () => {
+    expect(classifyGlassState('Chill a rocks glass with ice.')).toBe('ice');
+  });
+
+  it('says nothing about a step it cannot read', () => {
+    expect(classifyGlassState('Let it rest for a moment.')).toBeUndefined();
+  });
+});
+
+describe('resolveGlassStates', () => {
+  it('lets a rule beat the model', () => {
+    expect(resolveGlassStates(['ice'], ['filled'])).toEqual(['ice']);
+  });
+
+  it('uses the model for a step the rules left open', () => {
+    expect(
+      resolveGlassStates(['absent', undefined], [undefined, 'ice']),
+    ).toEqual(['absent', 'ice']);
+  });
+
+  it('carries the previous state over when nobody knows', () => {
+    expect(resolveGlassStates([undefined, 'ice', undefined])).toEqual([
+      'absent',
+      'ice',
+      'ice',
+    ]);
+  });
+
+  it('never empties a glass that has been filled', () => {
+    // Distractor: a step about shaking after the pour is a reading of the
+    // text, not the glass being emptied again.
+    expect(resolveGlassStates(['filled', 'absent', 'ice'])).toEqual([
+      'filled',
+      'filled',
+      'filled',
+    ]);
+  });
+});
+
+describe('parseGlassStates', () => {
+  it('reads a plain or fenced JSON array', () => {
+    expect(parseGlassStates('["absent","ice","filled"]', 3)).toEqual([
+      'absent',
+      'ice',
+      'filled',
+    ]);
+    expect(parseGlassStates('```json\n["ice","filled"]\n```', 2)).toEqual([
+      'ice',
+      'filled',
+    ]);
+  });
+
+  it('discards an answer of the wrong length rather than misaligning steps', () => {
+    expect(parseGlassStates('["ice"]', 3)).toBeUndefined();
+  });
+
+  it('keeps the good entries and drops the unknown words', () => {
+    expect(parseGlassStates('["ice","bubbles"]', 2)).toEqual([
+      'ice',
+      undefined,
+    ]);
+  });
+
+  it.each(['', 'not json', '{"a":1}', undefined])('survives %p', (raw) => {
+    expect(parseGlassStates(raw, 2)).toBeUndefined();
+  });
+});
+
+describe('glassStatesPrompt', () => {
+  it('numbers every step it asks about', () => {
+    const prompt = glassStatesPrompt(['Shake.', 'Strain.']);
+    expect(prompt).toContain('1. Shake.');
+    expect(prompt).toContain('2. Strain.');
+    expect(prompt).toMatch(/JSON array/i);
+    expect(prompt).toMatch(/absent.*ice.*filled/is);
+  });
+});
+
+describe('a drink step knows what is in the glass', () => {
+  const drink = {
+    name: 'Painkiller',
+    tags: ['drink', 'cocktail', 'rum'],
+    ingredients: names('Dark rum', 'Pineapple juice', 'Coconut milk'),
+  };
+  const withState = (glassState?: 'absent' | 'ice' | 'filled') =>
+    stepImagePrompt(drink, {
+      index: 2,
+      total: 6,
+      text: 'Shake.',
+      hasReference: true,
+      glassState,
+    });
+
+  it('keeps the glass out of the shot before it is used', () => {
+    expect(withState('absent')).toMatch(/glass is not in the shot/i);
+  });
+
+  it('shows an iced glass as holding only ice', () => {
+    expect(withState('ice')).toMatch(/only ice/i);
+  });
+
+  it('fills the glass only once it is filled', () => {
+    expect(withState('filled')).toMatch(/filled with the finished drink/i);
+    expect(withState('absent')).not.toMatch(/filled with the finished drink/i);
+  });
+
+  it('takes the glass SHAPE from the reference, not its contents', () => {
+    expect(withState('absent')).toMatch(/shape and style, not its contents/i);
+  });
+
+  it('says nothing about contents when the state is unknown', () => {
+    expect(withState(undefined)).not.toMatch(
+      /only ice|not in the shot|filled with/i,
+    );
   });
 });
